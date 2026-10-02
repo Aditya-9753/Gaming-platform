@@ -35,7 +35,7 @@ from app.services import platform_settings
 router = APIRouter(prefix="/admin", tags=["Super Admin"])
 public_router = APIRouter(prefix="/system", tags=["System"])
 
-STAFF_ROLES = {UserRole.ADMIN.value, UserRole.SUPPORT.value, UserRole.AUDITOR.value}
+NON_STAFF_ROLES = {UserRole.USER.value}
 PASSWORD_RE = re.compile(r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&_\-#^]).{12,128}$")
 
 
@@ -59,9 +59,9 @@ async def _staff(db: AsyncSession, user_id: str, allow_superadmin: bool = False)
     user = (await db.execute(select(User).options(selectinload(User.role)).where(User.id == user_id))).scalar_one_or_none()
     if not user or not user.role:
         raise NotFoundException("Admin account not found")
-    allowed = STAFF_ROLES | ({UserRole.SUPERADMIN.value} if allow_superadmin else set())
-    if user.role.name not in allowed:
-        raise ForbiddenException("This action only applies to admin / support / auditor accounts")
+    role_name = user.role.name.upper()
+    if role_name in NON_STAFF_ROLES or (role_name == UserRole.SUPERADMIN.value and not allow_superadmin):
+        raise ForbiddenException("This action only applies to staff accounts (not players or the super admin)")
     return user
 
 
@@ -117,6 +117,7 @@ async def update_system_settings(
 
 
 class StaffUpdate(BaseModel):
+    full_name: Optional[str] = Field(None, max_length=100)
     email: Optional[str] = Field(None, max_length=255)
     role: Optional[str] = None
     password: Optional[str] = Field(None, min_length=12, max_length=128)
@@ -132,6 +133,10 @@ async def update_staff(
 ) -> Dict[str, Any]:
     user = await _staff(db, user_id)
     changes: Dict[str, Any] = {}
+    if payload.full_name is not None:
+        name = payload.full_name.strip() or None
+        changes["full_name"] = {"from": user.full_name, "to": name}
+        user.full_name = name
     if payload.email is not None:
         email = payload.email.strip().lower() or None
         if email and not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
@@ -144,9 +149,11 @@ async def update_staff(
         user.email = email
     if payload.role is not None:
         role_name = payload.role.upper()
-        if role_name not in STAFF_ROLES:
-            raise BadRequestException("Role must be ADMIN, SUPPORT or AUDITOR")
-        role = (await db.execute(select(Role).where(Role.name == role_name))).scalar_one()
+        if role_name in NON_STAFF_ROLES or role_name == UserRole.SUPERADMIN.value:
+            raise BadRequestException("Choose a staff role (not USER or SUPERADMIN)")
+        role = (await db.execute(select(Role).where(func.upper(Role.name) == role_name))).scalar_one_or_none()
+        if role is None:
+            raise BadRequestException(f"Role {role_name} does not exist")
         changes["role"] = {"from": user.role.name, "to": role_name}
         user.role_id = role.id
     if payload.password is not None:
@@ -317,39 +324,52 @@ async def _aviator_exposure(db: AsyncSession, state: Any) -> Dict[str, Any]:
 
 
 async def _wingo_exposure(db: AsyncSession, state: Any, game_id: str) -> Dict[str, Any]:
+    """Read-only aggregate of the open period: one GROUP BY over the bets.
+
+    P/L per number is a pure display calculation from those totals and the
+    period's (already fixed) payout table. Nothing here touches the engine or
+    the RNG; the outcome was committed before betting opened.
+    """
     from app.games.wingo.rules import WingoOutcome, number_colours, number_size, payout_x100, payouts_from_config
 
     snapshot = await state.get_round_state(game_id)
     if not snapshot:
         return {"game_id": game_id, "status": "IDLE"}
     round_obj = await db.get(GameRound, snapshot.round_id)
-    entries = (await db.execute(select(GameEntry).where(GameEntry.round_id == snapshot.round_id))).scalars().all()
     payouts = ((round_obj.result or {}).get("payouts_x100") if round_obj else None) or payouts_from_config(None)
-    by_pick: Dict[str, Dict[str, int]] = {}
-    for e in entries:
-        sel = e.selection or {}
-        key = f"{sel.get('type')}:{sel.get('value')}"
-        bucket = by_pick.setdefault(key, {"count": 0, "amount": 0})
-        bucket["count"] += 1
-        bucket["amount"] += e.bet_amount
-    total = sum(e.bet_amount for e in entries)
-    outcomes = []
+
+    pick_type = GameEntry.selection["type"].as_string()
+    pick_value = GameEntry.selection["value"].as_string()
+    rows = (await db.execute(
+        select(pick_type, pick_value, func.count(GameEntry.id), func.coalesce(func.sum(GameEntry.bet_amount), 0))
+        .where(GameEntry.round_id == snapshot.round_id)
+        .group_by(pick_type, pick_value)
+    )).all()
+    groups = [(str(t or ""), str(v or ""), int(c), int(a)) for t, v, c, a in rows]
+    by_pick = {f"{t}:{v}": {"count": c, "amount": a} for t, v, c, a in groups}
+    total = sum(a for *_x, a in groups)
+
+    numbers = []
     for n in range(10):
         drawn = WingoOutcome(n, number_colours(n), number_size(n))
-        payout = sum(
-            e.bet_amount * payout_x100((e.selection or {}).get("type", ""), (e.selection or {}).get("value", ""), drawn, payouts) // 100
-            for e in entries
-        )
-        outcomes.append({"number": n, "payout": payout, "house_net": total - payout})
+        payout = sum(a * payout_x100(t, v, drawn, payouts) // 100 for t, v, _c, a in groups)
+        direct = by_pick.get(f"NUMBER:{n}", {"count": 0, "amount": 0})
+        numbers.append({
+            "number": n,
+            "bets": direct["count"],          # bets placed on this exact number
+            "staked": direct["amount"],
+            "payout": payout,                 # paid to everyone if n is drawn
+            "house_net": total - payout,      # house P/L if n is drawn
+        })
     return {
         "game_id": game_id,
         "status": snapshot.status,
         "round_id": snapshot.round_id,
         "period": (snapshot.metadata or {}).get("period"),
-        "bets": len(entries),
+        "bets": sum(c for _t, _v, c, _a in groups),
         "total_bet": total,
         "by_pick": by_pick,
-        "outcomes": outcomes,
+        "outcomes": numbers,
     }
 
 
@@ -377,7 +397,7 @@ async def _mines_exposure(db: AsyncSession) -> Dict[str, Any]:
 
 @router.get("/risk/live")
 async def live_risk(
-    _: CurrentUser = Depends(require_permission(PermissionCode.GAME_MANAGE)),
+    _: CurrentUser = Depends(require_superadmin),
     db: AsyncSession = Depends(get_db),
 ) -> Dict[str, Any]:
     from app.games.base.state import RedisRoundStateManager

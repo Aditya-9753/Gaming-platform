@@ -727,3 +727,40 @@ async def test_finance_overview_is_superadmin_only(admin_env):
     assert (await client.get("/api/v1/admin/finance/overview", headers=admin_env["admin_headers"])).status_code == 403
     res = await client.get("/api/v1/admin/finance/overview", headers=admin_env["super_headers"], params={"days": 7})
     assert res.status_code == 200 and "totals" in res.json()
+
+
+@pytest.mark.asyncio
+async def test_add_new_admin_superadmin_only_with_custom_role(admin_env):
+    client, sup, adm = admin_env["client"], admin_env["super_headers"], admin_env["admin_headers"]
+    body = {"full_name": "Riya Sharma", "username": "riya_ops", "email": "Riya@Example.com", "password": "Str0ng!Passw0rd", "role": "ADMIN"}
+
+    # A normal admin can neither list staff nor create one (API-enforced, not just hidden)
+    assert (await client.post("/api/v1/admin/admins", headers=adm, json=body)).status_code == 403
+    assert (await client.get("/api/v1/admin/admins", headers=adm)).status_code == 403
+
+    created = await client.post("/api/v1/admin/admins", headers=sup, json=body)
+    assert created.status_code == 201, created.text
+    assert created.json()["full_name"] == "Riya Sharma" and created.json()["email"] == "riya@example.com"
+
+    # Uniqueness is case-insensitive for login ID and email
+    dup_id = await client.post("/api/v1/admin/admins", headers=sup, json={**body, "username": "RIYA_OPS", "email": "other@example.com"})
+    dup_mail = await client.post("/api/v1/admin/admins", headers=sup, json={**body, "username": "riya2", "email": "RIYA@example.com"})
+    assert dup_id.status_code == 409 and dup_mail.status_code == 409
+    # Weak passwords and the super admin role are rejected
+    assert (await client.post("/api/v1/admin/admins", headers=sup, json={**body, "username": "weak1", "email": "w@x.io", "password": "short"})).status_code == 422
+    assert (await client.post("/api/v1/admin/admins", headers=sup, json={**body, "username": "boss2", "email": "b@x.io", "role": "SUPERADMIN"})).status_code == 400
+
+    # Custom roles from the Roles system are allowed
+    role = await client.post("/api/v1/admin/roles", headers=sup, json={"name": "GAME_OPERATOR", "description": "Runs games", "permission_codes": ["game:manage"]})
+    assert role.status_code == 200
+    custom = await client.post("/api/v1/admin/admins", headers=sup, json={**body, "username": "gameop", "email": "op@x.io", "role": "GAME_OPERATOR"})
+    assert custom.status_code == 201 and custom.json()["role"] == "GAME_OPERATOR"
+
+    # Password stored hashed; creation audited with actor + IP
+    async with admin_env["session_factory"]() as session:
+        user = (await session.execute(select(User).where(User.username == "riya_ops"))).scalar_one()
+        assert user.password_hash != body["password"] and user.password_hash.startswith("$argon2")
+        log = (await session.execute(select(AuditLog).where(AuditLog.action == "CREATE_ADMIN_USER", AuditLog.target_id == user.id))).scalar_one()
+        assert log.actor_id == "super_admin_id" and log.ip_address
+    staff = (await client.get("/api/v1/admin/admins", headers=sup)).json()
+    assert {"riya_ops", "gameop"} <= {s["username"] for s in staff}

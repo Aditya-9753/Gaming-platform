@@ -13,17 +13,7 @@ from app.services.game_service import GameService
 
 router = APIRouter(prefix="/history", tags=["History"])
 
-# Server-only fields that would reveal an unfinished game's outcome
-_SECRET_SELECTION_KEYS = {"mines", "cashout_idempotency_key"}
-
-
-def _public_selection(selection: Optional[Dict[str, Any]], status: str) -> Optional[Dict[str, Any]]:
-    """Strip hidden state (e.g. Mines positions) from bets that are still in play."""
-    if not selection:
-        return selection
-    if status == "PLACED":
-        return {k: v for k, v in selection.items() if k not in _SECRET_SELECTION_KEYS}
-    return {k: v for k, v in selection.items() if k != "cashout_idempotency_key"}
+from app.games.fairness_guard import public_selection as _public_selection
 
 
 @router.get("/bets")

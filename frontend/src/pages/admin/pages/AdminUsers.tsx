@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import { Activity, Ban, CheckCircle2, Coins, Pencil, Plus, Trash2, X } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Activity, Ban, CheckCircle2, Coins, Pencil, Trash2, UserPlus } from 'lucide-react'
 import { DataTable, type Column } from '../components/DataTable'
 import { Modal } from '../components/Modal'
 import { apiClient } from '../../../services/api'
@@ -13,6 +14,7 @@ import { formatPaiseToRupee, rupeeToPaise } from '../../../utils/formatters'
 interface StaffAdmin {
   id: string
   username: string
+  full_name: string | null
   email: string | null
   role: string | null
   is_active: boolean
@@ -29,19 +31,15 @@ type Dialog =
   | { kind: 'remove'; user: StaffAdmin }
   | null
 
-const STAFF_ROLES = ['ADMIN', 'SUPPORT', 'AUDITOR'] as const
 
 export const AdminUsers: React.FC = () => {
   const me = useAuthStore((s) => s.user)
   const isSuper = me?.role === 'superadmin'
   const [staff, setStaff] = useState<StaffAdmin[]>([])
   const [loading, setLoading] = useState(true)
-  const [showCreate, setShowCreate] = useState(false)
-  const [creating, setCreating] = useState(false)
-  const [username, setUsername] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [role, setRole] = useState<'ADMIN' | 'SUPPORT' | 'AUDITOR'>('ADMIN')
+  const navigate = useNavigate()
+  const [roleNames, setRoleNames] = useState<string[]>(['ADMIN', 'SUPPORT', 'AUDITOR'])
+  const [editName, setEditName] = useState('')
   const [dialog, setDialog] = useState<Dialog>(null)
   const [saving, setSaving] = useState(false)
   // dialog fields
@@ -61,9 +59,15 @@ export const AdminUsers: React.FC = () => {
   }, [])
 
   useEffect(loadStaff, [loadStaff])
+  useEffect(() => {
+    apiClient.get<Array<{ name: string }>>('/admin/roles')
+      .then(({ data }) => setRoleNames(data.map((r) => r.name).filter((n) => n !== 'USER' && n !== 'SUPERADMIN')))
+      .catch(() => undefined)
+  }, [])
 
   const open = (next: Dialog) => {
     if (next?.kind === 'edit') {
+      setEditName(next.user.full_name ?? '')
       setEditEmail(next.user.email ?? '')
       setEditRole(next.user.role ?? 'ADMIN')
       setEditPassword('')
@@ -93,21 +97,6 @@ export const AdminUsers: React.FC = () => {
     }
   }
 
-  const createAccount = async (event: React.FormEvent) => {
-    event.preventDefault()
-    setCreating(true)
-    try {
-      await apiClient.post('/admin/admins', { username, email, password, role })
-      showToast({ title: 'Staff account created', message: 'Share the credentials securely.', type: 'success', duration: 8000 })
-      setUsername(''); setEmail(''); setPassword(''); setRole('ADMIN'); setShowCreate(false)
-      loadStaff()
-    } catch (error) {
-      showToast({ title: 'Could not create account', message: getApiErrorMessage(error, 'Check the details and try again.'), type: 'error', duration: 7000 })
-    } finally {
-      setCreating(false)
-    }
-  }
-
   const toggleBlock = (user: StaffAdmin) => run(
     () => apiClient.patch(`/admin/admins/${user.id}/status`, { is_active: !user.is_active }),
     user.is_active ? `${user.username} blocked` : `${user.username} unblocked`,
@@ -118,7 +107,7 @@ export const AdminUsers: React.FC = () => {
   )
 
   const columns: Column<StaffAdmin>[] = [
-    { header: 'Staff Name', accessor: 'username' },
+    { header: 'Name', accessor: (user) => <div><p className="font-bold text-white">{user.full_name || '—'}</p><p className="font-mono text-[11px] text-slate-400">@{user.username}</p></div> },
     { header: 'Email', accessor: (user) => user.email || '—' },
     { header: 'Role', accessor: (user) => <span className="rounded-full bg-purple-500/20 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-purple-400">{user.role || '—'}</span> },
     { header: 'Status', accessor: (user) => user.is_active ? <span className="text-emerald-400">Active</span> : <span className="text-rose-400">Blocked</span> },
@@ -153,25 +142,10 @@ export const AdminUsers: React.FC = () => {
           <p className="text-xs text-slate-400">Create, edit, block or remove admins, see their activity and give demo credits for testing games.</p>
         </div>
         {isSuper && (
-          <Button type="button" onClick={() => setShowCreate((current) => !current)} leftIcon={showCreate ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}>
-            {showCreate ? 'Cancel' : 'Create staff account'}
-          </Button>
+          <Button type="button" onClick={() => navigate('/admin/admin-users/new')} leftIcon={<UserPlus className="h-4 w-4" />}>Add new admin</Button>
         )}
       </div>
 
-      {showCreate && (
-        <form onSubmit={(event) => void createAccount(event)} className="grid gap-4 rounded-2xl border border-dark-border bg-dark-card p-5 sm:grid-cols-2">
-          <Input label="Username" autoComplete="off" minLength={3} maxLength={50} pattern="[A-Za-z0-9_]+" title="3–50 letters, numbers, or underscores" value={username} onChange={(event) => setUsername(event.target.value)} required />
-          <Input label="Email" type="email" autoComplete="off" value={email} onChange={(event) => setEmail(event.target.value)} required />
-          <Input label="Temporary password" type="password" autoComplete="new-password" minLength={8} maxLength={128} helperText="8–128 chars; uppercase, lowercase, number, and one of @$!%*?&_-#^." value={password} onChange={(event) => setPassword(event.target.value)} required />
-          <label className="flex flex-col gap-2 text-xs font-semibold text-slate-300">Staff role
-            <select value={role} onChange={(event) => setRole(event.target.value as typeof role)} className="rounded-xl border border-dark-border bg-dark-card px-3.5 py-2.5 text-sm text-white">
-              {STAFF_ROLES.map((r) => <option key={r} value={r}>{r.charAt(0) + r.slice(1).toLowerCase()}</option>)}
-            </select>
-          </label>
-          <div className="flex justify-end sm:col-span-2"><Button type="submit" isLoading={creating}>Create account</Button></div>
-        </form>
-      )}
 
       {loading ? <p className="text-sm text-slate-400">Loading staff…</p> : staff.length
         ? <DataTable columns={columns} data={staff} keyExtractor={(row) => row.id} />
@@ -183,16 +157,18 @@ export const AdminUsers: React.FC = () => {
           e.preventDefault()
           if (!user) return
           const body: Record<string, string> = {}
+          if (editName !== (user.full_name ?? '')) body.full_name = editName
           if (editEmail !== (user.email ?? '')) body.email = editEmail
           if (editRole !== user.role) body.role = editRole
           if (editPassword) body.password = editPassword
           if (Object.keys(body).length === 0) { close(); return }
           void run(() => apiClient.patch(`/admin/admins/${user.id}`, body), `${user.username} updated`)
         }}>
+          <Input label="Full name" value={editName} maxLength={100} onChange={(e) => setEditName(e.target.value)} />
           <Input label="Email" type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} />
           <label className="flex flex-col gap-2 text-xs font-semibold text-slate-300">Role
             <select value={editRole} onChange={(e) => setEditRole(e.target.value)} className="rounded-xl border border-dark-border bg-dark-elevated px-3.5 py-2.5 text-sm text-white">
-              {STAFF_ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+              {(roleNames.includes(editRole) ? roleNames : [editRole, ...roleNames]).map((r) => <option key={r} value={r}>{r}</option>)}
             </select>
           </label>
           <Input label="New password (optional)" type="password" autoComplete="new-password" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} helperText="12+ chars with upper, lower, number and symbol. Signs the admin out everywhere." />

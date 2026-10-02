@@ -202,7 +202,8 @@ class FairnessService:
             "round_no": game_round.round_no,
             "status": game_round.status,
             "server_seed_hash": game_round.server_seed_hash,
-            "client_seed": game_round.client_seed if settled else None,
+            # the client seed is public from the start; only the server seed is secret
+            "client_seed": game_round.client_seed or game_round.id,
             "seed_revealed": settled,
         }
 
@@ -269,6 +270,16 @@ class FairnessService:
                 "winning_colour": outcome.colour.value,
                 "slot": outcome.slot,
                 "payout_x100": outcome.payout_x100,
+            }
+
+        elif game_id.startswith("wingo"):
+            from app.games.wingo.rules import compute_outcome
+
+            outcome = compute_outcome(server_seed, client_seed, nonce)
+            return {
+                "number": outcome.number,
+                "size": outcome.size,
+                "colours": list(outcome.colours),
             }
 
         elif "mines" in game_id:

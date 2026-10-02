@@ -128,6 +128,8 @@ class WingoEngine(BaseGameEngine):
                 "round_no": round_obj.round_no,
                 "period": period,
                 "server_seed_hash": round_obj.server_seed_hash,
+                "client_seed": round_obj.client_seed or round_obj.id,
+                "nonce": round_obj.round_no,
                 "betting_closes_at": lock_at.isoformat(),
                 "result_at": result_at.isoformat(),
             },

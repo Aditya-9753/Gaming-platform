@@ -17,7 +17,7 @@ interface AviatorRisk {
 interface WingoRisk {
   game_id: string; status: string; round_id?: string; period?: string; bets?: number; total_bet?: number
   by_pick?: Record<string, { count: number; amount: number }>
-  outcomes?: Array<{ number: number; payout: number; house_net: number }>
+  outcomes?: Array<{ number: number; bets: number; staked: number; payout: number; house_net: number }>
 }
 interface MinesRisk {
   active_sessions: number; total_stake: number; potential_payout: number
@@ -107,12 +107,12 @@ export const LiveGames: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="flex items-center gap-2 text-2xl font-black text-white"><Radio className="h-6 w-6 text-rose-400" />Live Risk Monitor</h1>
-          <p className="text-xs text-slate-400">Real-time stakes and exposure per game • refreshed every 2s • {new Date(data.generated_at).toLocaleTimeString()}</p>
+          <h1 className="flex items-center gap-2 text-2xl font-black text-white"><Radio className="h-6 w-6 text-rose-400" />Exposure Monitor</h1>
+          <p className="text-xs text-slate-400">Read-only view of open stakes • refreshed every 2s • {new Date(data.generated_at).toLocaleTimeString()}</p>
         </div>
         <p className="flex max-w-md items-start gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-[11px] text-emerald-200">
           <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
-          Results are provably fair and can't be changed. You can pause a game, void a round (every stake refunded) or change limits for future rounds.
+          Display only. Every result comes from the RNG (HMAC-SHA256 of a server seed committed before betting) and is never influenced by this screen — there is no way to see or set an outcome here. Controls: pause a game, or void a whole round (all stakes refunded, audit logged).
         </p>
       </div>
 
@@ -187,18 +187,27 @@ export const LiveGames: React.FC = () => {
                 {Object.keys(wingo.by_pick ?? {}).length === 0 && <p className="text-xs text-slate-500">No bets yet.</p>}
               </div>
             </div>
-            <div>
-              <p className="mb-2 text-xs font-bold text-slate-400">If this number is drawn — payout to players / house result</p>
-              <div className="space-y-1">
-                {(wingo.outcomes ?? []).map((o) => (
-                  <div key={o.number} className="grid grid-cols-[28px_1fr_90px_90px] items-center gap-2 text-xs">
-                    <span className="font-black text-white">{o.number}</span>
-                    <div className="h-3 overflow-hidden rounded-full bg-dark-elevated"><div className="h-full rounded-full bg-violet-500" style={{ width: `${(o.payout / maxPayout) * 100}%` }} /></div>
-                    <span className="text-right font-mono text-slate-300">{formatPaiseToRupee(o.payout)}</span>
-                    <span className={`text-right font-mono font-bold ${o.house_net >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{o.house_net >= 0 ? '+' : '−'}{formatPaiseToRupee(Math.abs(o.house_net))}</span>
-                  </div>
-                ))}
-              </div>
+            <div className="overflow-x-auto">
+              <p className="mb-2 text-xs font-bold text-slate-400">Per number — bets placed on it, and the house result if it is drawn (display calculation)</p>
+              <table className="w-full min-w-[460px] text-xs">
+                <thead><tr className="text-left text-slate-400"><th className="py-1.5">No.</th><th className="py-1.5 text-right">Bets</th><th className="py-1.5 text-right">Staked</th><th className="py-1.5 pl-3">Payout if drawn</th><th className="py-1.5 text-right">House P/L</th></tr></thead>
+                <tbody>
+                  {(wingo.outcomes ?? []).map((o) => (
+                    <tr key={o.number} className="border-t border-dark-border/50">
+                      <td className="py-1.5 font-black text-white">{o.number}</td>
+                      <td className="py-1.5 text-right">{o.bets}</td>
+                      <td className="py-1.5 text-right font-mono">{formatPaiseToRupee(o.staked)}</td>
+                      <td className="py-1.5 pl-3">
+                        <div className="flex items-center gap-2">
+                          <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-dark-elevated"><div className="h-full rounded-full bg-violet-500" style={{ width: `${(o.payout / maxPayout) * 100}%` }} /></div>
+                          <span className="w-20 text-right font-mono text-slate-300">{formatPaiseToRupee(o.payout)}</span>
+                        </div>
+                      </td>
+                      <td className={`py-1.5 text-right font-mono font-bold ${o.house_net >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{o.house_net >= 0 ? '+' : '−'}{formatPaiseToRupee(Math.abs(o.house_net))}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )}

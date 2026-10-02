@@ -36,6 +36,7 @@ class CurrentUser:
         self.is_verified = user.is_verified
         self.totp_enabled = user.totp_enabled
         self.two_factor_method = user.two_factor_method
+        self.full_name = user.full_name
         self.permissions = permissions
         self.role_id = user.role_id
         self.created_at = user.created_at

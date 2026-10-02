@@ -63,6 +63,28 @@ need outside production:
   house result per game and ledger movements. Virtual credits only — no real
   deposits, withdrawals or payment gateways.
 
+## Fairness architecture (outcomes are independent of operators)
+
+```
+round created ──► serverSeed = random 32 bytes (never sent anywhere)
+                  commitment = SHA-256(serverSeed) ──► published in round_open
+                  clientSeed (public) + nonce = round number
+betting closes
+result = HMAC-SHA256(serverSeed, "clientSeed:nonce") → WinGo n = floor(r·10), Aviator crash point
+round finished ──► serverSeed revealed → anyone re-hashes it and recomputes the result
+```
+
+- `app/games/fairness_guard.py` is the only gate for round secrets: the seed is
+  returned **only after the round is finished** (public, admin and super admin
+  APIs alike), and hidden game state such as a live Mines layout is stripped.
+- There is no endpoint, flag or test mode to read an outcome early or set one.
+- The Exposure Monitor (`/admin/risk/live`, super admin only) is read-only:
+  `GROUP BY pick` totals plus a display-only "house P/L if this number is
+  drawn" column. Its only controls are pause/resume and void-and-refund of a
+  whole round (all stakes returned, audit logged) — neither touches the RNG.
+- Players verify on `/fairness`, either through the API or entirely in the
+  browser (WebCrypto re-implementation, cross-checked against the Python code).
+
 ## Super-admin login provisioning
 
 Account passwords are stored as Argon2 hashes and cannot be read back from the

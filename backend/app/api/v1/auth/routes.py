@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
+from app.core.constants import PermissionCode
 from app.core.database import get_db
 from app.core.deps import CurrentUser, get_current_user
 from pydantic import BaseModel, EmailStr, Field
@@ -291,6 +292,13 @@ async def me(
         is_verified=current_user.is_verified,
         totp_enabled=current_user.totp_enabled,
         two_factor_method=current_user.two_factor_method if current_user.totp_enabled else None,
+        full_name=current_user.full_name,
+        is_staff=current_user.role.upper() != "USER",
+        permissions=sorted(
+            {code.value for code in PermissionCode}
+            if current_user.role.upper() == "SUPERADMIN"
+            else current_user.permissions
+        ),
         requires_2fa_setup=(
             settings.admin_2fa_required
             and current_user.role.upper() in ("ADMIN", "SUPERADMIN")

@@ -107,5 +107,8 @@ class MeResponse(BaseModel):
     totp_enabled: bool
     requires_2fa_setup: bool = False
     two_factor_method: Optional[str] = None
+    full_name: Optional[str] = None
+    is_staff: bool = False
+    permissions: list[str] = []
 
     model_config = {"from_attributes": True}

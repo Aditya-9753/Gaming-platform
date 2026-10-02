@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from app.games.fairness_guard import revealable_seed
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -50,7 +51,7 @@ class GameService:
                 "round_no": r.round_no,
                 "status": r.status,
                 "server_seed_hash": r.server_seed_hash,
-                "server_seed": r.server_seed,
+                "server_seed": revealable_seed(r),
                 "client_seed": r.client_seed,
                 "result": r.result,
                 "ended_at": r.ended_at.isoformat() if r.ended_at else None,
@@ -111,7 +112,7 @@ class GameService:
                 "round_no": r.round_no,
                 "status": r.status,
                 "server_seed_hash": r.server_seed_hash,
-                "server_seed": r.server_seed,
+                "server_seed": revealable_seed(r),
                 "client_seed": r.client_seed,
                 "result": r.result,
                 "started_at": r.started_at.isoformat() if r.started_at else None,

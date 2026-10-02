@@ -9,6 +9,8 @@ export function usePermission() {
   const isSuperAdmin = (): boolean => user?.role === 'superadmin'
   const isStaff = (): boolean => isStaffRole(user?.role)
   const isAuthenticated = (): boolean => Boolean(user)
+  /** Mirrors the backend RBAC check: super admin always passes. */
+  const hasPermission = (code: string): boolean => user?.role === 'superadmin' || Boolean(user?.permissions.includes(code))
 
-  return { hasRole, isAdmin, isSuperAdmin, isStaff, isAuthenticated }
+  return { hasRole, isAdmin, isSuperAdmin, isStaff, isAuthenticated, hasPermission }
 }

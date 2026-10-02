@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 import io
 import math
+from app.games.fairness_guard import public_selection, revealable_seed
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 from sqlalchemy import desc, func, or_, select
@@ -676,7 +677,7 @@ class AdminService:
                 "payout_amount": e.payout_amount,
                 "multiplier": (e.multiplier / 100.0) if e.multiplier else None,
                 "status": e.status,
-                "selection": e.selection,
+                "selection": public_selection(e.selection, e.status),
                 "created_at": e.created_at.isoformat(),
             }
             for e in round_obj.entries
@@ -688,7 +689,8 @@ class AdminService:
             "round_no": round_obj.round_no,
             "status": round_obj.status,
             "server_seed_hash": round_obj.server_seed_hash,
-            "server_seed": round_obj.server_seed,
+            # never before the round is finished (would reveal the outcome)
+            "server_seed": revealable_seed(round_obj),
             "client_seed": round_obj.client_seed,
             "result": round_obj.result,
             "started_at": round_obj.started_at.isoformat() if round_obj.started_at else None,
@@ -726,7 +728,7 @@ class AdminService:
                 "round_no": r.round_no,
                 "status": r.status,
                 "server_seed_hash": r.server_seed_hash,
-                "server_seed": r.server_seed,
+                "server_seed": revealable_seed(r),
                 "result": r.result,
                 "started_at": r.started_at.isoformat() if r.started_at else None,
                 "ended_at": r.ended_at.isoformat() if r.ended_at else None,
@@ -846,11 +848,11 @@ class AdminService:
 
     async def list_admin_users(self) -> List[Dict[str, Any]]:
         """List administrative staff and support users."""
-        admin_roles = ["ADMIN", "SUPERADMIN", "SUPPORT", "AUDITOR"]
+        # Every non-player role, including custom roles from the Roles system
         stmt = (
             select(User)
             .join(Role, User.role_id == Role.id)
-            .where(Role.name.in_(admin_roles))
+            .where(Role.name != UserRole.USER.value)
             .options(selectinload(User.role))
             .order_by(User.username)
         )
@@ -860,6 +862,7 @@ class AdminService:
             {
                 "id": u.id,
                 "username": u.username,
+                "full_name": u.full_name,
                 "email": u.email,
                 "role_id": u.role_id,
                 "role": u.role.name if u.role else None,
@@ -878,22 +881,18 @@ class AdminService:
         password: str,
         role_name: str,
         ip_address: Optional[str] = None,
+        full_name: Optional[str] = None,
     ) -> User:
         """Create staff credentials with a zero-balance wallet and immutable audit record."""
         role_name = role_name.upper()
-        allowed_roles = {
-            UserRole.ADMIN.value,
-            UserRole.SUPPORT.value,
-            UserRole.AUDITOR.value,
-        }
-        if role_name not in allowed_roles:
-            raise BadRequestException("Only ADMIN, SUPPORT, or AUDITOR accounts can be created here")
+        if role_name in {UserRole.USER.value, UserRole.SUPERADMIN.value}:
+            raise BadRequestException("Choose a staff role (players and super admins cannot be created here)")
 
-        existing = await self.session.execute(
-            select(User).where(or_(User.username == username, User.email == email)).limit(1)
-        )
-        if existing.scalar_one_or_none():
-            raise ConflictException("Username or email is already registered")
+        # Login ID and email are unique case-insensitively
+        if (await self.session.execute(select(User.id).where(func.lower(User.username) == username.lower()).limit(1))).scalar_one_or_none():
+            raise ConflictException("This login ID is already taken")
+        if (await self.session.execute(select(User.id).where(func.lower(User.email) == email.lower()).limit(1))).scalar_one_or_none():
+            raise ConflictException("This email is already registered")
 
         role_result = await self.session.execute(
             select(Role).where(func.upper(Role.name) == role_name)
@@ -904,7 +903,9 @@ class AdminService:
 
         user = User(
             username=username,
-            email=email,
+            full_name=(full_name or "").strip() or None,
+            email=email.lower(),
+            # Argon2id hash — the plaintext password is never stored
             password_hash=hash_password(password),
             role_id=role.id,
             role=role,
@@ -930,7 +931,7 @@ class AdminService:
             action="CREATE_ADMIN_USER",
             target_type="USER",
             target_id=user.id,
-            details={"username": username, "email": email, "role": role_name},
+            details={"username": username, "full_name": user.full_name, "email": user.email, "role": role_name},
             ip_address=ip_address,
         )
         return user

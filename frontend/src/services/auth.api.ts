@@ -15,6 +15,9 @@ interface ApiUser {
   is_verified: boolean
   totp_enabled: boolean
   requires_2fa_setup?: boolean
+  is_staff?: boolean
+  full_name?: string | null
+  permissions?: string[]
 }
 
 const mapUser = (user: ApiUser): UserSession => {
@@ -23,8 +26,10 @@ const mapUser = (user: ApiUser): UserSession => {
     id: user.id,
     username: user.username,
     email: user.email ?? undefined,
-    role: (STAFF_ROLES as string[]).includes(role) ? (role as UserRole) : 'user',
-    permissions: [],
+    role: (STAFF_ROLES as string[]).includes(role) ? (role as UserRole) : user.is_staff ? 'staff' : 'user',
+    roleName: user.role,
+    fullName: user.full_name ?? undefined,
+    permissions: user.permissions ?? [],
     isVerified: user.is_verified,
     has2FA: user.totp_enabled,
     requires2FASetup: Boolean(user.requires_2fa_setup),

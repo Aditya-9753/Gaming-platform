@@ -62,6 +62,7 @@ const AdminUsersStaff = lazy(() => import('../pages/admin/pages/AdminUsers').the
 const Roles = lazy(() => import('../pages/admin/pages/Roles').then((m) => ({ default: m.Roles })))
 const Permissions = lazy(() => import('../pages/admin/pages/Permissions').then((m) => ({ default: m.Permissions })))
 const AuditLogs = lazy(() => import('../pages/admin/pages/AuditLogs').then((m) => ({ default: m.AuditLogs })))
+const AddAdmin = lazy(() => import('../pages/admin/pages/AddAdmin').then((m) => ({ default: m.AddAdmin })))
 const CreditFlow = lazy(() => import('../pages/admin/pages/CreditFlow').then((m) => ({ default: m.CreditFlow })))
 const Setup2FA = lazy(() => import('../pages/admin/pages/Setup2FA').then((m) => ({ default: m.Setup2FA })))
 const AdminSettings = lazy(() => import('../pages/admin/pages/Settings').then((m) => ({ default: m.AdminSettings })))
@@ -88,6 +89,13 @@ const RequireAdmin: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   if (user.requires2FASetup && location.pathname !== '/admin/2fa') {
     return <Navigate to="/admin/2fa" replace />
   }
+  return <>{children}</>
+}
+
+/** Super-admin-only pages. The matching APIs enforce the same rule server-side. */
+const RequireSuperAdmin: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuthStore()
+  if (user?.role !== 'superadmin') return <Navigate to="/admin/dashboard" replace />
   return <>{children}</>
 }
 
@@ -246,21 +254,22 @@ export const router = createBrowserRouter([
       { path: 'users/:id', element: <UserDetails /> },
       { path: 'games', element: <AdminGames /> },
       { path: 'game-settings', element: <GameSettings /> },
-      { path: 'live-games', element: <LiveGames /> },
+      { path: 'live-games', element: <RequireSuperAdmin><LiveGames /></RequireSuperAdmin> },
       { path: 'rounds', element: <GameRounds /> },
       { path: 'transactions', element: <AdminTransactions /> },
       { path: 'wallets', element: <AdminWallet /> },
       { path: 'wallet-adjustment', element: <WalletAdjustment /> },
       { path: 'reports', element: <AdminReports /> },
-      { path: 'credit-flow', element: <CreditFlow /> },
+      { path: 'credit-flow', element: <RequireSuperAdmin><CreditFlow /></RequireSuperAdmin> },
       { path: 'notifications', element: <AdminNotifications /> },
       { path: 'support', element: <AdminSupport /> },
-      { path: 'admin-users', element: <AdminUsersStaff /> },
-      { path: 'roles', element: <Roles /> },
-      { path: 'permissions', element: <Permissions /> },
+      { path: 'admin-users', element: <RequireSuperAdmin><AdminUsersStaff /></RequireSuperAdmin> },
+      { path: 'admin-users/new', element: <RequireSuperAdmin><AddAdmin /></RequireSuperAdmin> },
+      { path: 'roles', element: <RequireSuperAdmin><Roles /></RequireSuperAdmin> },
+      { path: 'permissions', element: <RequireSuperAdmin><Permissions /></RequireSuperAdmin> },
       { path: 'audit-logs', element: <AuditLogs /> },
       { path: '2fa', element: <Setup2FA /> },
-      { path: 'settings', element: <AdminSettings /> },
+      { path: 'settings', element: <RequireSuperAdmin><AdminSettings /></RequireSuperAdmin> },
     ],
   },
 ])

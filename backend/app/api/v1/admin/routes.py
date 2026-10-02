@@ -64,10 +64,12 @@ class AssignRoleRequest(BaseModel):
 
 
 class CreateAdminUserRequest(BaseModel):
+    full_name: Optional[str] = Field(None, min_length=2, max_length=100)
     username: str = Field(..., min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_]+$")
     email: EmailStr
-    password: str = Field(..., min_length=8, max_length=128)
-    role: str = Field(..., pattern=r"^(ADMIN|SUPPORT|AUDITOR)$")
+    password: str = Field(..., min_length=12, max_length=128)
+    # Any staff role from the Roles system (not USER / SUPERADMIN)
+    role: str = Field(..., min_length=2, max_length=50)
 
     @field_validator("password")
     @classmethod
@@ -564,11 +566,13 @@ async def create_admin_user(
         password=payload.password,
         role_name=payload.role,
         ip_address=ip_addr,
+        full_name=payload.full_name,
     )
     await db.commit()
     return {
         "id": user.id,
         "username": user.username,
+        "full_name": user.full_name,
         "email": user.email,
         "role": user.role.name if user.role else payload.role,
         "is_active": user.is_active,
