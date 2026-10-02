@@ -3,13 +3,15 @@ import React, { forwardRef } from 'react'
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string
   error?: string
+  /** Green confirmation shown under the field (e.g. "username available") */
+  success?: string
   helperText?: string
   leftElement?: React.ReactNode
   rightElement?: React.ReactNode
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, helperText, leftElement, rightElement, className = '', ...props }, ref) => {
+  ({ label, error, success, helperText, leftElement, rightElement, className = '', ...props }, ref) => {
     return (
       <div className="w-full space-y-1.5 text-left">
         {label && (
@@ -30,6 +32,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             } ${rightElement ? 'pr-10' : ''} ${
               error
                 ? 'border-rose-500 focus:ring-rose-500/30'
+                : success
+                ? 'border-emerald-500 focus:ring-emerald-500/30'
                 : 'border-dark-border focus:border-emerald-500 focus:ring-emerald-500/20'
             } ${className}`}
             {...props}
@@ -42,6 +46,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         </div>
         {error ? (
           <p className="text-xs text-rose-400 font-medium">{error}</p>
+        ) : success ? (
+          <p className="text-xs text-emerald-400 font-medium">{success}</p>
         ) : helperText ? (
           <p className="text-xs text-slate-500">{helperText}</p>
         ) : null}

@@ -206,7 +206,7 @@ async def test_register_weak_password(client: AsyncClient):
     error = resp.json()["error"]
     assert error["code"] == "VALIDATION_ERROR"
     assert error["details"][0]["loc"] == ["body", "password"]
-    assert "uppercase" in error["details"][0]["msg"]
+    assert "letter and a number" in error["details"][0]["msg"]
 
 
 @pytest.mark.asyncio
@@ -455,3 +455,31 @@ async def test_totp_setup_and_verify(client: AsyncClient):
     me_resp = await client.get("/api/v1/auth/me", headers=headers)
     assert me_resp.status_code == 200
     assert me_resp.json()["totp_enabled"] is True
+
+
+@pytest.mark.asyncio
+async def test_register_accepts_simple_player_passwords(client: AsyncClient):
+    # Registration is rate limited per client, so check the rule on the schema
+    # and send just two real requests.
+    from pydantic import ValidationError
+
+    from app.schemas.auth import RegisterRequest
+
+    for password in ["sanukhan27", "Sanu.1234", "Sanu@123", "my pass 9"]:
+        RegisterRequest(username="Sanu_x", password=password, age_confirmed=True)
+    for password in ["sanukhan", "12345678", "abc12"]:
+        with pytest.raises(ValidationError):
+            RegisterRequest(username="Sanu_x", password=password, age_confirmed=True)
+    resp = await client.post("/api/v1/auth/register", json={"username": "Sanukhan_27", "password": "Sanu.1234", "age_confirmed": True})
+    assert resp.status_code == 201, resp.text
+
+
+@pytest.mark.asyncio
+async def test_username_available_suggests_free_names(client: AsyncClient):
+    await client.post("/api/v1/auth/register", json={"username": "Sanukhan_27", "password": "sanukhan27", "age_confirmed": True})
+    taken = (await client.get("/api/v1/auth/username-available", params={"username": "sanukhan_27"})).json()
+    assert taken["available"] is False and len(taken["suggestions"]) == 3
+    for name in taken["suggestions"]:
+        assert (await client.get("/api/v1/auth/username-available", params={"username": name})).json()["available"] is True
+    bad = (await client.get("/api/v1/auth/username-available", params={"username": "sanu khan"})).json()
+    assert bad["available"] is False and "letters" in bad["reason"]

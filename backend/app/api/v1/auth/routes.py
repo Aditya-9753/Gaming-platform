@@ -111,10 +111,29 @@ async def username_available(
     from app.repositories.user_repo import UserRepository
 
     candidate = username.strip()
-    if not re.fullmatch(r"[A-Za-z0-9_]{3,50}", candidate):
-        return {"username": candidate, "available": False, "reason": "Use 3-50 letters, numbers or underscores"}
-    taken = await UserRepository(db).username_exists(candidate)
-    return {"username": candidate, "available": not taken, "reason": "Username is already taken" if taken else None}
+    if len(candidate) < 3:
+        return {"username": candidate, "available": False, "reason": "Too short: use at least 3 characters", "suggestions": []}
+    if len(candidate) > 50:
+        return {"username": candidate, "available": False, "reason": "Too long: use at most 50 characters", "suggestions": []}
+    if not re.fullmatch(r"[A-Za-z0-9_]+", candidate):
+        return {"username": candidate, "available": False,
+                "reason": "Only letters, numbers and _ are allowed (no spaces or symbols)", "suggestions": []}
+    repo = UserRepository(db)
+    if not await repo.username_exists(candidate):
+        return {"username": candidate, "available": True, "reason": None, "suggestions": []}
+
+    # Offer a few free alternatives built from the same name
+    import secrets
+
+    base = candidate[:44]
+    pool = [f"{base}_{n}" for n in (1, 7, 11, 99)] + [f"{base}{secrets.randbelow(900) + 100}" for _ in range(4)]
+    suggestions = []
+    for option in pool:
+        if option not in suggestions and not await repo.username_exists(option):
+            suggestions.append(option)
+        if len(suggestions) == 3:
+            break
+    return {"username": candidate, "available": False, "reason": "This username is already taken", "suggestions": suggestions}
 
 
 # ---------------------------------------------------------------------------

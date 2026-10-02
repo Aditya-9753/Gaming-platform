@@ -12,6 +12,10 @@ PASSWORD_PATTERN = re.compile(
     r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&_\-#^])[A-Za-z\d@$!%*?&_\-#^]{8,}$"
 )
 
+# Players: 8-128 characters with at least one letter and one number; any symbols allowed.
+# Staff accounts keep the stricter PASSWORD_PATTERN above.
+PLAYER_PASSWORD_PATTERN = re.compile(r"^(?=.*[A-Za-z])(?=.*\d).{8,128}$")
+
 
 class RegisterRequest(BaseModel):
     username: str = Field(min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_]+$")
@@ -22,10 +26,8 @@ class RegisterRequest(BaseModel):
     @field_validator("password")
     @classmethod
     def password_strength(cls, v: str) -> str:
-        if not PASSWORD_PATTERN.match(v):
-            raise ValueError(
-                "Password must contain uppercase, lowercase, digit and special character"
-            )
+        if not PLAYER_PASSWORD_PATTERN.match(v):
+            raise ValueError("Password must be at least 8 characters with a letter and a number")
         return v
 
     @field_validator("age_confirmed")
