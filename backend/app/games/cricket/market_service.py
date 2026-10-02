@@ -14,7 +14,6 @@ from app.core.exceptions import (
     BadRequestException,
     ConflictException,
     NotFoundException,
-    ServiceUnavailableException,
 )
 from app.games.cricket.providers.base import CricketDataProvider, CricketMatch
 from app.models.cricket import CricketMatchRecord, CricketPrediction
@@ -287,10 +286,8 @@ def get_cricket_provider() -> CricketDataProvider:
             settings.CRICKET_DATA_URL,
             api_key=settings.CRICKET_DATA_API_KEY,
         )
-    if settings.is_production:
-        raise ServiceUnavailableException(
-            "CRICKET_DATA_URL must be configured in production"
-        )
+    # No real feed configured: run the clearly labelled simulated Virtual League
+    # (also in production) instead of disabling Cricket entirely.
     from app.games.cricket.providers.simulated import SimulatedCricketDataProvider
 
     return SimulatedCricketDataProvider(secret=settings.JWT_SECRET)
