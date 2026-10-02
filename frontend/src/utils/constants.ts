@@ -1,5 +1,6 @@
 export const APP_NAME = import.meta.env.VITE_APP_NAME || 'CasinoPulse'
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'
+// One setting for every API call: VITE_API_BASE_URL (VITE_API_URL kept for older envs)
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'
 export const WS_BASE_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws'
 
 export const PAISE_PER_RUPEE = 100
