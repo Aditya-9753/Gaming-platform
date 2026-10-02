@@ -116,6 +116,18 @@ async def get_dashboard_stats(
     return await svc.get_dashboard_stats()
 
 
+@router.get("/dashboard/live")
+async def get_live_dashboard(
+    include_bots: bool = Query(False, description="Include simulated players in the figures"),
+    current_user: CurrentUser = Depends(require_permission(PermissionCode.AUDIT_READ)),
+    db: AsyncSession = Depends(get_db),
+) -> Dict[str, Any]:
+    """Real-time operations view built from live tables (polled by the dashboard)."""
+    from app.services.live_dashboard import LiveDashboard
+
+    return await LiveDashboard(db, include_bots=include_bots).build()
+
+
 # =========================================================================
 # 2. Users Management
 # =========================================================================

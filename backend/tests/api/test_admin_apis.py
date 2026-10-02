@@ -764,3 +764,26 @@ async def test_add_new_admin_superadmin_only_with_custom_role(admin_env):
         assert log.actor_id == "super_admin_id" and log.ip_address
     staff = (await client.get("/api/v1/admin/admins", headers=sup)).json()
     assert {"riya_ops", "gameop"} <= {s["username"] for s in staff}
+
+
+@pytest.mark.asyncio
+async def test_live_dashboard_counts_real_players_only(admin_env):
+    client, sup = admin_env["client"], admin_env["super_headers"]
+    async with admin_env["session_factory"]() as session:
+        session.add(User(id="bot1", username="Rahul_King", email=None, password_hash="x", role_id=1, is_active=True))
+        session.add(GameEntry(id="bot_bet", round_id="live_round_1", user_id="bot1", bet_amount=5000, payout_amount=0, status="PLACED", idempotency_key="bot_bet"))
+        await session.commit()
+
+    real = (await client.get("/api/v1/admin/dashboard/live", headers=sup)).json()
+    assert real["include_bots"] is False
+    assert real["kpis"]["players_total"] == 1          # target_player only; staff and bots excluded
+    assert real["kpis"]["bets_today"] == 1 and real["kpis"]["wagered_today"] == 200
+    assert [b["username"] for b in real["recent_bets"]] == ["target_player"]
+    assert len(real["hourly"]) == 24
+    aviator = next(g for g in real["games"] if g["game_id"] == "aviator")
+    assert aviator["bets"] == 1 and aviator["round_no"] == 1
+
+    with_bots = (await client.get("/api/v1/admin/dashboard/live", headers=sup, params={"include_bots": True})).json()
+    assert with_bots["kpis"]["players_total"] == 2 and with_bots["kpis"]["wagered_today"] == 5200
+
+    assert (await client.get("/api/v1/admin/dashboard/live", headers=admin_env["player_headers"])).status_code == 403
