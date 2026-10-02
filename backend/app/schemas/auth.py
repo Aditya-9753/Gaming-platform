@@ -106,5 +106,6 @@ class MeResponse(BaseModel):
     is_verified: bool
     totp_enabled: bool
     requires_2fa_setup: bool = False
+    two_factor_method: Optional[str] = None
 
     model_config = {"from_attributes": True}

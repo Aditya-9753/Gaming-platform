@@ -282,3 +282,10 @@ def register_exception_handlers(app: FastAPI) -> None:
     app.add_exception_handler(RequestValidationError, validation_exception_handler)  # type: ignore
     app.add_exception_handler(StarletteHTTPException, http_exception_handler)  # type: ignore
     app.add_exception_handler(Exception, unhandled_exception_handler)  # type: ignore
+
+
+class SecondFactorRequiredException(UnauthorizedException):
+    """Password was right; a one-time code was sent / is still needed.
+
+    Not a failed login, so it must not count towards the lockout counter.
+    """

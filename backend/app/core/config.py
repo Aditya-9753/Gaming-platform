@@ -31,6 +31,19 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379/0"
     CRICKET_DATA_URL: Optional[str] = None
     CRICKET_DATA_API_KEY: Optional[str] = None
+    # Email (admin 2-step verification codes, password reset)
+    EMAIL_PROVIDER: Optional[str] = None  # brevo | resend | smtp | console (auto by keys)
+    EMAIL_FROM: Optional[str] = None
+    EMAIL_FROM_NAME: str = "GameZone"
+    BREVO_API_KEY: Optional[str] = None
+    RESEND_API_KEY: Optional[str] = None
+    SMTP_HOST: Optional[str] = None
+    SMTP_PORT: int = 587
+    SMTP_USER: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
+    # Comma separated: only these addresses may receive admin login codes (empty = any)
+    ADMIN_OTP_EMAILS: str = ""
+
     # Real worldwide cricket from CricketData.org (free key at cricketdata.org)
     CRICAPI_KEY: Optional[str] = None
     CRICAPI_LIVE_REFRESH_SECONDS: int = 1000
@@ -123,6 +136,10 @@ class Settings(BaseSettings):
         if self.SIMULATED_PLAYERS is None:
             return not self.is_production and not self.is_test
         return self.SIMULATED_PLAYERS
+
+    @property
+    def admin_otp_emails(self) -> set[str]:
+        return {e.strip().lower() for e in self.ADMIN_OTP_EMAILS.split(",") if e.strip()}
 
     @property
     def is_development(self) -> bool:

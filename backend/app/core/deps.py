@@ -35,6 +35,7 @@ class CurrentUser:
         self.is_active = user.is_active
         self.is_verified = user.is_verified
         self.totp_enabled = user.totp_enabled
+        self.two_factor_method = user.two_factor_method
         self.permissions = permissions
         self.role_id = user.role_id
         self.created_at = user.created_at
@@ -92,6 +93,8 @@ async def get_current_user(
             "/api/v1/auth/me",
             "/api/v1/auth/totp/setup",
             "/api/v1/auth/totp/verify",
+            "/api/v1/auth/2fa/email/send",
+            "/api/v1/auth/2fa/email/verify",
         }
         if request.url.path not in allowed_setup_paths:
             raise ForbiddenException(

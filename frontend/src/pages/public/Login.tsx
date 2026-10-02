@@ -27,13 +27,15 @@ export const Login: React.FC = () => {
   const [password, setPassword] = useState('')
   const [totpCode, setTotpCode] = useState('')
   const [needsTotp, setNeedsTotp] = useState(false)
+  // 'email' = a one-time code was emailed; 'app' = authenticator app code
+  const [codeMode, setCodeMode] = useState<'email' | 'app'>('app')
+  const [codeNotice, setCodeNotice] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault()
+  const signIn = async (code?: string) => {
     setIsLoading(true)
     try {
-      const { access_token } = await authApi.login(username, password, totpCode || undefined)
+      const { access_token } = await authApi.login(username, password, code || undefined)
       setAccessToken(access_token)
       const user = await authApi.getCurrentUser()
       setAuth(user, access_token)
@@ -43,11 +45,25 @@ export const Login: React.FC = () => {
         : '/dashboard')
     } catch (error) {
       const message = getLoginError(error)
-      if (/authenticator code|totp code/i.test(message)) setNeedsTotp(true)
+      if (/verification code sent/i.test(message)) {
+        // Password was correct; a fresh code is on its way to the admin's inbox
+        setCodeMode('email')
+        setNeedsTotp(true)
+        setTotpCode('')
+        setCodeNotice(message)
+        showToast({ title: 'Check your email', message, type: 'info', duration: 7000 })
+        return
+      }
+      if (/authenticator code|totp code/i.test(message)) { setCodeMode('app'); setNeedsTotp(true) }
       showToast({ title: 'Sign in failed', message, type: 'error', duration: 7000 })
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault()
+    void signIn(totpCode)
   }
 
   return (
@@ -64,10 +80,30 @@ export const Login: React.FC = () => {
           <Input label="Username" autoComplete="username" autoCapitalize="none" spellCheck={false} value={username} onChange={(e) => setUsername(e.target.value)} leftElement={<User className="w-4 h-4 text-slate-400" />} required />
           <Input label="Password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} leftElement={<Lock className="w-4 h-4 text-slate-400" />} required />
           {needsTotp ? (
-            <Input label="Authenticator code" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} autoComplete="one-time-code" autoFocus value={totpCode} onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))} leftElement={<KeyRound className="w-4 h-4 text-slate-400" />} helperText="This account has 2FA enabled. Enter the current six-digit code from your authenticator app." required />
+            <div className="space-y-2">
+              {codeMode === 'email' && codeNotice && (
+                <p className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">{codeNotice}</p>
+              )}
+              <Input
+                label={codeMode === 'email' ? 'Verification code (check your email)' : 'Authenticator code'}
+                inputMode="numeric"
+                pattern="[0-9]{6}"
+                maxLength={6}
+                autoComplete="one-time-code"
+                autoFocus
+                value={totpCode}
+                onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                leftElement={<KeyRound className="w-4 h-4 text-slate-400" />}
+                helperText={codeMode === 'email' ? 'Enter the 6-digit code from the email. It expires in 10 minutes. Check the Spam folder if it is not in your inbox.' : 'Enter the current six-digit code from your authenticator app.'}
+                required
+              />
+              {codeMode === 'email' && (
+                <button type="button" disabled={isLoading} onClick={() => { setTotpCode(''); void signIn() }} className="text-xs font-semibold text-emerald-400 hover:underline disabled:opacity-50">Didn't get it? Resend code</button>
+              )}
+            </div>
           ) : null}
           <div className="flex items-center justify-between text-xs">
-            <button type="button" onClick={() => setNeedsTotp((value) => !value)} className="text-slate-400 hover:text-slate-200">{needsTotp ? 'Hide 2FA code' : 'Have a 2FA code?'}</button>
+            <button type="button" onClick={() => setNeedsTotp((value) => !value)} className="text-slate-400 hover:text-slate-200">{needsTotp ? 'Hide code' : 'Have a verification code?'}</button>
             <Link to="/forgot-password" className="text-emerald-400 hover:underline font-semibold">Forgot password?</Link>
           </div>
           <Button type="submit" variant="primary" className="w-full font-black py-3" isLoading={isLoading} rightIcon={<ArrowRight className="w-4 h-4" />}>Sign In</Button>

@@ -41,7 +41,7 @@ const adminLinks = [
   { name: 'Roles (RBAC)', to: '/admin/roles', icon: <Shield className="w-4 h-4" />, superOnly: true },
   { name: 'Permissions', to: '/admin/permissions', icon: <Key className="w-4 h-4" />, superOnly: true },
   { name: 'Audit Logs', to: '/admin/audit-logs', icon: <FileText className="w-4 h-4" /> },
-  { name: 'TOTP 2FA', to: '/admin/2fa', icon: <Lock className="w-4 h-4" /> },
+  { name: 'Email 2FA', to: '/admin/2fa', icon: <Lock className="w-4 h-4" /> },
   { name: 'Platform Settings', to: '/admin/settings', icon: <Settings className="w-4 h-4" />, superOnly: true },
 ]
 

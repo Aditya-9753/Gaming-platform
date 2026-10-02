@@ -10,7 +10,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.deps import CurrentUser, get_current_user
-from app.core.exceptions import BadRequestException, UnauthorizedException
+from pydantic import BaseModel, EmailStr, Field
+
+from app.core.exceptions import BadRequestException, SecondFactorRequiredException, UnauthorizedException
 from app.core.rate_limit import (
     is_locked_out,
     record_failed_login,
@@ -152,6 +154,8 @@ async def login(
             password=body.password,
             totp_code=body.totp_code,
         )
+    except SecondFactorRequiredException:
+        raise  # correct password, code just emailed: not a failed attempt
     except Exception:
         await record_failed_login(identifier, client_ip)
         raise
@@ -286,6 +290,7 @@ async def me(
         is_active=current_user.is_active,
         is_verified=current_user.is_verified,
         totp_enabled=current_user.totp_enabled,
+        two_factor_method=current_user.two_factor_method if current_user.totp_enabled else None,
         requires_2fa_setup=(
             settings.admin_2fa_required
             and current_user.role.upper() in ("ADMIN", "SUPERADMIN")
@@ -297,6 +302,35 @@ async def me(
 # ---------------------------------------------------------------------------
 # TOTP / 2FA  (admin-focused)
 # ---------------------------------------------------------------------------
+
+class EmailSecondFactorSend(BaseModel):
+    email: Optional[EmailStr] = None
+
+
+class EmailSecondFactorVerify(BaseModel):
+    code: str = Field(..., min_length=6, max_length=6, pattern=r"^\d{6}$")
+
+
+@router.post("/2fa/email/send")
+async def email_2fa_send(
+    body: EmailSecondFactorSend,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Email a 6-digit code to set up email two-step verification."""
+    return await AuthService(db).email_2fa_send(current_user.id, str(body.email) if body.email else None)
+
+
+@router.post("/2fa/email/verify")
+async def email_2fa_verify(
+    body: EmailSecondFactorVerify,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Confirm the emailed code; from now on every sign-in emails a fresh code."""
+    email = await AuthService(db).email_2fa_verify(current_user.id, body.code)
+    return {"enabled": True, "method": "email", "email": email}
+
 
 @router.post("/totp/setup", response_model=TOTPSetupResponse)
 async def totp_setup(

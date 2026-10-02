@@ -177,7 +177,9 @@ class AuthService:
         is_admin_user = role_name in ("ADMIN", "SUPERADMIN")
 
         if is_admin_user:
-            if user.totp_enabled:
+            if user.totp_enabled and user.two_factor_method == "email":
+                await self._email_second_factor(user, totp_code)
+            elif user.totp_enabled:
                 if not totp_code:
                     raise UnauthorizedException(
                         "Authenticator code required for this administrator account"
@@ -326,6 +328,54 @@ class AuthService:
         logger.info("Password reset successful", user_id=user.id)
 
     # ------------------------------------------------------------------
+    # Email one-time codes (2FA) for admins
+    # ------------------------------------------------------------------
+
+    async def _email_second_factor(self, user: User, code: Optional[str]) -> None:
+        from app.core.exceptions import SecondFactorRequiredException
+        from app.services import email_otp_service as otp
+
+        email = otp.ensure_allowed(user.email)
+        if not code:
+            info = await otp.send_code(user.id, email, "login")
+            raise SecondFactorRequiredException(
+                f"Verification code sent to {info['sent_to']}. Enter it to sign in.",
+                details={"method": "email", **info},
+            )
+        if not await otp.verify_code(user.id, code, "login"):
+            raise UnauthorizedException("Invalid or expired verification code")
+
+    async def email_2fa_send(self, user_id: str, email: Optional[str]) -> dict:
+        from app.services import email_otp_service as otp
+
+        user = await self._users.get_by_id(user_id)
+        if not user:
+            raise NotFoundException("User not found")
+        target = otp.ensure_allowed(email or user.email)
+        if target != (user.email or "").lower():
+            owner = await self._users.get_by_email(target)
+            if owner and owner.id != user.id:
+                raise ConflictException("That email belongs to another account")
+        return await otp.send_code(user.id, target, "setup")
+
+    async def email_2fa_verify(self, user_id: str, code: str) -> str:
+        from app.services import email_otp_service as otp
+
+        user = await self._users.get_by_id(user_id)
+        if not user:
+            raise NotFoundException("User not found")
+        email = await otp.verify_code(user.id, code, "setup")
+        if not email:
+            raise UnauthorizedException("Invalid or expired verification code")
+        user.email = email
+        user.totp_enabled = True
+        user.totp_secret = None
+        user.two_factor_method = "email"
+        await self._users.save(user)
+        await self._db.commit()
+        return email
+
+    # ------------------------------------------------------------------
     # TOTP (2FA) for admins
     # ------------------------------------------------------------------
 
@@ -357,6 +407,7 @@ class AuthService:
             raise UnauthorizedException("Invalid TOTP code")
 
         user.totp_enabled = True
+        user.two_factor_method = "totp"
         await self._users.save(user)
         await self._db.commit()
 
