@@ -55,3 +55,6 @@ desktop.ini
 
 # Generated load-test output
 backend/tests/load/results/
+
+# Public production endpoints for the frontend build (no secrets)
+!frontend/.env.production
