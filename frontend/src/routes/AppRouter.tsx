@@ -92,8 +92,9 @@ const RequireAdmin: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 }
 
 const RedirectIfAuthed: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated } = useAuthStore()
-  if (isAuthenticated) return <Navigate to="/dashboard" replace />
+  const { isAuthenticated, user } = useAuthStore()
+  // Admins that still must enrol 2FA go straight to the setup page
+  if (isAuthenticated) return <Navigate to={user?.requires2FASetup ? '/admin/2fa' : '/dashboard'} replace />
   return <>{children}</>
 }
 
