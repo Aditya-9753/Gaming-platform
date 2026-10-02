@@ -62,11 +62,13 @@ async def ensure_bots(session: AsyncSession) -> List[str]:
     for name in BOT_NAMES:
         if name in existing:
             continue
+        # Argon2 is CPU heavy: hash off the event loop so live games keep ticking
+        password_hash = await asyncio.to_thread(hash_password, secrets.token_urlsafe(32))
         user = User(
             id=str(uuid.uuid4()),
             username=name,
             email=None,
-            password_hash=hash_password(secrets.token_urlsafe(32)),
+            password_hash=password_hash,
             role_id=role.id,
             is_active=True,
             is_verified=True,

@@ -49,3 +49,14 @@ async def get_health() -> HealthResponse:
             redis="up" if redis_ok else "down",
         ),
     )
+
+
+@router.get("/health/live", tags=["Health"])
+async def liveness() -> dict:
+    """Instant liveness probe for the hosting platform (no DB / Redis round-trips).
+
+    Use this as the load balancer health check so a slow database on a small
+    instance never makes the platform restart a healthy process; ``/health``
+    still reports dependency status.
+    """
+    return {"status": "alive", "timestamp": datetime.now(timezone.utc).isoformat()}

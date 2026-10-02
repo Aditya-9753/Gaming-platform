@@ -163,13 +163,16 @@ class AviatorEngine(BaseGameEngine):
             house_edge_bp,
         )
         crash_at = crash_elapsed_seconds(crash_x100, growth_rate, growth_power, growth_model)
+        # Betting is closed, so the set of auto-cashout targets is fixed: load once
+        # instead of querying the database on every 50 ms tick.
+        pending = await self._auto_cashout_targets(round_obj.id)
         while self._running and round_obj.started_at:
             elapsed = elapsed_since(round_obj.started_at, datetime.now(timezone.utc))
             current_x100 = min(
                 multiplier_x100_at(elapsed, growth_rate, growth_power, growth_model),
                 crash_x100,
             )
-            await self._process_auto_cashouts(round_obj.id, current_x100)
+            pending = await self._process_auto_cashouts(round_obj.id, current_x100, pending)
             if elapsed >= crash_at:
                 break
             await asyncio.sleep(min(self.tick_interval, max(0.001, crash_at - elapsed)))
@@ -192,23 +195,36 @@ class AviatorEngine(BaseGameEngine):
         )
         return outcome
 
-    async def _process_auto_cashouts(self, round_id: str, multiplier_x100: int) -> None:
+    async def _auto_cashout_targets(self, round_id: str) -> list[tuple[int, str, str]]:
+        """(target_x100, entry_id, user_id) for open bets with auto cash-out, lowest first."""
         async with self.session_factory() as session:
             entries = await EntryRepository(session).get_by_round_id(round_id)
+        targets = []
         for entry in entries:
-            if entry.status != "PLACED":
-                continue
             target = (entry.selection or {}).get("auto_cashout")
-            if target is None or multiplier_x100 < int(round(float(target) * 100)):
-                continue
-            async with self.session_factory() as session:
-                await AviatorService(session, redis=self.redis).cashout(
-                    user_id=entry.user_id,
-                    round_id=round_id,
-                    entry_id=entry.id,
-                    idempotency_key=f"aviator:auto:{round_id}:{entry.id}",
-                    automatic=True,
-                )
+            if entry.status == "PLACED" and target is not None:
+                targets.append((int(round(float(target) * 100)), entry.id, entry.user_id))
+        return sorted(targets)
+
+    async def _process_auto_cashouts(
+        self, round_id: str, multiplier_x100: int, pending: list[tuple[int, str, str]]
+    ) -> list[tuple[int, str, str]]:
+        """Cash out every pending target reached at this multiplier; returns the rest."""
+        while pending and pending[0][0] <= multiplier_x100:
+            _target, entry_id, user_id = pending.pop(0)
+            try:
+                async with self.session_factory() as session:
+                    await AviatorService(session, redis=self.redis).cashout(
+                        user_id=user_id,
+                        round_id=round_id,
+                        entry_id=entry_id,
+                        idempotency_key=f"aviator:auto:{round_id}:{entry_id}",
+                        automatic=True,
+                    )
+            except Exception as exc:
+                # Already cashed out manually / voided: never let one bet stop the round
+                logger.info("Auto cash-out skipped", entry_id=entry_id, reason=str(exc))
+        return pending
 
     async def settle(self, round_obj: GameRound, outcome: Dict[str, Any]) -> None:
         await self._set_round_status(round_obj, GameRoundLifecycle.SETTLING.value)
