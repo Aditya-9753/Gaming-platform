@@ -787,3 +787,32 @@ async def test_live_dashboard_counts_real_players_only(admin_env):
     assert with_bots["kpis"]["players_total"] == 2 and with_bots["kpis"]["wagered_today"] == 5200
 
     assert (await client.get("/api/v1/admin/dashboard/live", headers=admin_env["player_headers"])).status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_live_dashboard_drilldowns_and_game_detail(admin_env):
+    client, sup = admin_env["client"], admin_env["super_headers"]
+    async with admin_env["session_factory"]() as session:
+        round_obj = await session.get(GameRound, "live_round_1")
+        round_obj.server_seed = "secret-seed-value"
+        if await session.get(Game, "cricket") is None:
+            session.add(Game(id="cricket", name="Cricket", type="cricket", is_active=True))
+        await session.commit()
+
+    game = (await client.get("/api/v1/admin/dashboard/live/games/aviator", headers=sup)).json()
+    assert game["current"]["round_no"] == 1
+    assert [b["username"] for b in game["live_bets"]] == ["target_player"]
+    assert "secret-seed-value" not in str(game)
+
+    players = (await client.get("/api/v1/admin/dashboard/live/drilldown/players", headers=sup)).json()
+    assert players["shape"] == "players" and [r["username"] for r in players["rows"]] == ["target_player"]
+    bets = (await client.get("/api/v1/admin/dashboard/live/drilldown/bets_today", headers=sup)).json()
+    assert bets["shape"] == "bets" and len(bets["rows"]) == 1
+    hour = (await client.get("/api/v1/admin/dashboard/live/drilldown/hour", headers=sup, params={"hour": 0})).json()
+    assert len(hour["rows"]) == 1
+    assert (await client.get("/api/v1/admin/dashboard/live/drilldown/nope", headers=sup)).status_code == 404
+
+    bet = (await client.get(f"/api/v1/admin/dashboard/live/bets/{bets['rows'][0]['id']}", headers=sup)).json()
+    assert bet["round"]["server_seed"] is None          # round still running: seed stays secret
+    assert (await client.get("/api/v1/admin/dashboard/live/games/cricket", headers=sup)).status_code == 200
+    assert (await client.get("/api/v1/admin/dashboard/live/games/aviator", headers=admin_env["player_headers"])).status_code == 403

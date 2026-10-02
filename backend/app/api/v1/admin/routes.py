@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.constants import PermissionCode, UserRole
 from app.core.database import get_db
 from app.core.deps import CurrentUser, require_permission
-from app.core.exceptions import BadRequestException
+from app.core.exceptions import BadRequestException, NotFoundException
 from app.games.cricket.market_service import CricketMarketService
 from app.games.cricket.providers.mock import MockCricketDataProvider
 from app.games.cricket.schemas import CricketSettlementOverrideRequest
@@ -126,6 +126,54 @@ async def get_live_dashboard(
     from app.services.live_dashboard import LiveDashboard
 
     return await LiveDashboard(db, include_bots=include_bots).build()
+
+
+@router.get("/dashboard/live/games/{game_id}")
+async def get_live_game(
+    game_id: str,
+    include_bots: bool = Query(False),
+    current_user: CurrentUser = Depends(require_permission(PermissionCode.AUDIT_READ)),
+    db: AsyncSession = Depends(get_db),
+) -> Dict[str, Any]:
+    """Everything in play for one game: current round, its bets, recent results."""
+    from app.services.live_dashboard import LiveDashboard
+
+    data = await LiveDashboard(db, include_bots=include_bots).game_detail(game_id)
+    if data is None:
+        raise NotFoundException("Game not found")
+    return data
+
+
+@router.get("/dashboard/live/drilldown/{kind}")
+async def get_live_drilldown(
+    kind: str,
+    hour: Optional[int] = Query(None, ge=0, le=23),
+    include_bots: bool = Query(False),
+    current_user: CurrentUser = Depends(require_permission(PermissionCode.AUDIT_READ)),
+    db: AsyncSession = Depends(get_db),
+) -> Dict[str, Any]:
+    """The rows behind a dashboard card or chart hour."""
+    from app.services.live_dashboard import LiveDashboard
+
+    data = await LiveDashboard(db, include_bots=include_bots).drilldown(kind, hour)
+    if data is None:
+        raise NotFoundException("Unknown list")
+    return data
+
+
+@router.get("/dashboard/live/bets/{entry_id}")
+async def get_live_bet(
+    entry_id: str,
+    current_user: CurrentUser = Depends(require_permission(PermissionCode.AUDIT_READ)),
+    db: AsyncSession = Depends(get_db),
+) -> Dict[str, Any]:
+    """One bet with its round (seed revealed only once the round is finished)."""
+    from app.services.live_dashboard import LiveDashboard
+
+    data = await LiveDashboard(db, include_bots=True).bet_detail(entry_id)
+    if data is None:
+        raise NotFoundException("Bet not found")
+    return data
 
 
 # =========================================================================

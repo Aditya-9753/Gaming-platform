@@ -21,7 +21,7 @@ const compact = (paise: number) => {
 }
 
 /** Wagered vs paid per hour, one shared ₹ axis (never dual-axis). */
-export const HourlyFlowChart: React.FC<{ data: HourPoint[] }> = ({ data }) => {
+export const HourlyFlowChart: React.FC<{ data: HourPoint[]; onSelect?: (index: number) => void }> = ({ data, onSelect }) => {
   const [hover, setHover] = useState<number | null>(null)
   const [table, setTable] = useState(false)
 
@@ -58,7 +58,7 @@ export const HourlyFlowChart: React.FC<{ data: HourPoint[] }> = ({ data }) => {
             <thead><tr className="text-left text-slate-400"><th className="py-1">Hour (IST)</th><th className="py-1 text-right">Bets</th><th className="py-1 text-right">Wagered</th><th className="py-1 text-right">Paid</th></tr></thead>
             <tbody>
               {[...data].reverse().map((d) => (
-                <tr key={d.hour} className="border-t border-dark-border/50"><td className="py-1 text-slate-300">{d.hour}</td><td className="py-1 text-right text-slate-300">{d.bets}</td><td className="py-1 text-right font-mono text-slate-200">{formatPaiseToRupee(d.wagered)}</td><td className="py-1 text-right font-mono text-slate-200">{formatPaiseToRupee(d.paid)}</td></tr>
+                <tr key={d.hour} onClick={() => onSelect?.(data.indexOf(d))} className={`border-t border-dark-border/50 ${onSelect ? 'cursor-pointer hover:bg-dark-elevated/60' : ''}`}><td className="py-1 text-slate-300">{d.hour}</td><td className="py-1 text-right text-slate-300">{d.bets}</td><td className="py-1 text-right font-mono text-slate-200">{formatPaiseToRupee(d.wagered)}</td><td className="py-1 text-right font-mono text-slate-200">{formatPaiseToRupee(d.paid)}</td></tr>
               ))}
             </tbody>
           </table>
@@ -90,6 +90,7 @@ export const HourlyFlowChart: React.FC<{ data: HourPoint[] }> = ({ data }) => {
             {/* hit areas wider than the marks */}
             {data.map((_d, i) => (
               <rect key={i} x={x(i) - innerW / data.length / 2} y={PAD.top} width={innerW / data.length} height={innerH} fill="transparent"
+                style={onSelect ? { cursor: 'pointer' } : undefined} onClick={() => onSelect?.(i)}
                 onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)} onFocus={() => setHover(i)} onBlur={() => setHover(null)} tabIndex={-1} />
             ))}
           </svg>
@@ -97,6 +98,7 @@ export const HourlyFlowChart: React.FC<{ data: HourPoint[] }> = ({ data }) => {
             <div className="pointer-events-none absolute top-1 rounded-lg border border-dark-border bg-dark-elevated px-3 py-2 text-[11px] shadow-xl"
               style={{ left: `${Math.min(70, (x(hover) / W) * 100)}%` }}>
               <p className="font-bold text-white">{hovered.hour} · {hovered.bets} bets</p>
+              {onSelect && <p className="text-slate-500">Click to see these bets</p>}
               {SERIES.map((s) => (
                 <p key={s.key} className="flex items-center gap-1.5 text-slate-300"><span className="h-2 w-2 rounded-full" style={{ background: s.color }} />{s.label}: <span className="font-mono text-white">{formatPaiseToRupee(hovered[s.key])}</span></p>
               ))}
