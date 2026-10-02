@@ -1,0 +1,729 @@
+"""Tests for Admin APIs: RBAC, audit logging for every write, dashboard, users, games, live rounds, roles, support, reports, and admin 2FA."""
+
+from __future__ import annotations
+
+from datetime import datetime, timezone
+import pytest
+import pyotp
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
+from app.core.constants import PermissionCode, UserRole
+from app.core.database import Base, get_db
+from app.core.security import create_access_token, hash_password
+from app.main import create_app
+from app.models.audit_log import AuditLog
+from app.models.cricket import CricketMatchRecord
+from app.models.game import Game, GameEntry, GameRound, GameSetting
+from app.models.role import Permission, Role, RolePermission
+from app.models.support import SupportTicket
+from app.models.user import User
+from app.models.wallet import Wallet
+from app.services.auth_service import AuthService
+from app.services.two_factor_service import two_factor_service
+
+TEST_DB_URL = "sqlite+aiosqlite:///:memory:"
+
+
+@pytest.fixture
+async def admin_env():
+    """Setup in-memory SQLite database and test seed data."""
+    engine = create_async_engine(TEST_DB_URL, echo=False)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    session_factory = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
+
+    async with session_factory() as session:
+        # Create roles
+        role_user = Role(id=1, name="USER", description="Player")
+        role_admin = Role(id=2, name="ADMIN", description="Administrator")
+        role_super = Role(id=3, name="SUPERADMIN", description="Super Admin")
+        session.add_all([role_user, role_admin, role_super])
+
+        # Create all permissions
+        perm_codes = [code.value for code in PermissionCode]
+        perm_objs = [
+            Permission(id=idx + 1, code=code, name=code, description=code)
+            for idx, code in enumerate(perm_codes)
+        ]
+        session.add_all(perm_objs)
+        await session.flush()
+
+        # Admin gets all permissions
+        for p in perm_objs:
+            session.add(RolePermission(role_id=2, permission_id=p.id))
+            session.add(RolePermission(role_id=3, permission_id=p.id))
+
+        # Create normal player
+        player = User(
+            id="target_player_id",
+            username="target_player",
+            email="player@test.com",
+            password_hash=hash_password("Password123!"),
+            role_id=1,
+            is_active=True,
+        )
+        session.add(player)
+
+        # Create admin user
+        totp_secret = two_factor_service.generate_secret()
+        admin = User(
+            id="admin_user_id",
+            username="admin_user",
+            email="admin@test.com",
+            password_hash=hash_password("AdminPass123!"),
+            role_id=2,
+            is_active=True,
+            totp_secret=totp_secret,
+            totp_enabled=True,
+        )
+        session.add(admin)
+
+        # Create super admin user
+        super_admin = User(
+            id="super_admin_id",
+            username="super_user",
+            email="super@test.com",
+            password_hash=hash_password("SuperPass123!"),
+            role_id=3,
+            is_active=True,
+            totp_secret=totp_secret,
+            totp_enabled=True,
+        )
+        session.add(super_admin)
+
+        # Create wallets
+        w1 = Wallet(id="wallet_p1", user_id="target_player_id", balance=50000, locked_balance=0)
+        session.add(w1)
+
+        # Create game and setting
+        game = Game(id="aviator", name="Aviator", type="CRASH", description="Crash", is_active=True)
+        setting = GameSetting(game_id="aviator", min_bet=100, max_bet=50000, house_edge_percent=300)
+        session.add_all([game, setting])
+
+        # Create round and entry
+        r = GameRound(
+            id="live_round_1",
+            game_id="aviator",
+            round_no=1,
+            status="BETTING",
+            server_seed_hash="hash1",
+            started_at=datetime.now(timezone.utc),
+        )
+        entry = GameEntry(
+            id="entry_p1",
+            round_id="live_round_1",
+            user_id="target_player_id",
+            bet_amount=200,
+            payout_amount=0,
+            status="PLACED",
+            idempotency_key="entry_idem_1",
+        )
+        session.add_all([r, entry])
+
+        # Create a support ticket
+        ticket = SupportTicket(
+            id="ticket_1",
+            user_id="target_player_id",
+            subject="Need help",
+            status="OPEN",
+            priority="NORMAL",
+        )
+        session.add(ticket)
+
+        await session.commit()
+
+    app = create_app()
+
+    async def override_get_db():
+        async with session_factory() as session:
+            yield session
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        admin_token = create_access_token({"sub": "admin_user_id", "role": "ADMIN", "username": "admin_user"})
+        admin_headers = {"Authorization": f"Bearer {admin_token}"}
+
+        super_token = create_access_token({"sub": "super_admin_id", "role": "SUPERADMIN", "username": "super_user"})
+        super_headers = {"Authorization": f"Bearer {super_token}"}
+
+        player_token = create_access_token({"sub": "target_player_id", "role": "USER", "username": "target_player"})
+        player_headers = {"Authorization": f"Bearer {player_token}"}
+
+        yield {
+            "client": client,
+            "admin_headers": admin_headers,
+            "super_headers": super_headers,
+            "player_headers": player_headers,
+            "session_factory": session_factory,
+            "admin_id": "admin_user_id",
+            "totp_secret": totp_secret,
+        }
+
+    await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_rbac_permission_denied_cases(admin_env):
+    """Test that unauthorized regular users get 403 Forbidden on admin endpoints."""
+    client = admin_env["client"]
+    player_headers = admin_env["player_headers"]
+
+    # Regular player tries to access dashboard stats
+    res = await client.get("/api/v1/admin/dashboard/stats", headers=player_headers)
+    assert res.status_code == 403
+
+    # Regular player tries to access users list
+    res = await client.get("/api/v1/admin/users", headers=player_headers)
+    assert res.status_code == 403
+
+    # Regular player tries to update game settings
+    res = await client.patch("/api/v1/admin/games/aviator/settings", headers=player_headers, json={"min_bet": 200})
+    assert res.status_code == 403
+
+    # Regular player tries to view audit logs
+    res = await client.get("/api/v1/admin/audit-logs", headers=player_headers)
+    assert res.status_code == 403
+
+    # Administrator role and permission management is super-admin-only.
+    res = await client.get("/api/v1/admin/roles", headers=admin_env["admin_headers"])
+    assert res.status_code == 403
+
+    async with admin_env["session_factory"]() as session:
+        admin = await session.get(User, admin_env["admin_id"])
+        admin.totp_enabled = False
+        await session.commit()
+
+    res = await client.get(
+        "/api/v1/admin/dashboard/stats",
+        headers=admin_env["admin_headers"],
+    )
+    assert res.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_admin_dashboard_stats(admin_env):
+    """Test GET /admin/dashboard/stats returns aggregate metrics and chart series."""
+    client = admin_env["client"]
+    admin_headers = admin_env["admin_headers"]
+
+    res = await client.get("/api/v1/admin/dashboard/stats", headers=admin_headers)
+    assert res.status_code == 200
+    stats = res.json()
+    assert stats["users"] >= 2
+    assert stats["live_games"] >= 1
+    assert "rounds_played" in stats
+    assert "chart_series" in stats
+    assert len(stats["chart_series"]) == 7
+
+
+@pytest.mark.asyncio
+async def test_superadmin_can_create_admin_credentials_with_audit(admin_env):
+    client = admin_env["client"]
+    response = await client.post(
+        "/api/v1/admin/admins",
+        headers=admin_env["super_headers"],
+        json={
+            "username": "new_operator",
+            "email": "operator@test.com",
+            "password": "OperatorPass123!",
+            "role": "ADMIN",
+        },
+    )
+    assert response.status_code == 201, response.text
+    body = response.json()
+    assert body["username"] == "new_operator"
+    assert body["email"] == "operator@test.com"
+    assert body["role"] == "ADMIN"
+    assert body["totp_enabled"] is False
+    assert "password" not in body
+
+    async with admin_env["session_factory"]() as session:
+        created = await session.get(User, body["id"])
+        assert created is not None
+        from app.core.security import verify_password
+        assert verify_password("OperatorPass123!", created.password_hash)
+        wallet = (
+            await session.execute(select(Wallet).where(Wallet.user_id == body["id"]))
+        ).scalar_one()
+        assert wallet.balance == 0
+        audit = (
+            await session.execute(
+                select(AuditLog).where(
+                    AuditLog.action == "CREATE_ADMIN_USER",
+                    AuditLog.target_id == body["id"],
+                )
+            )
+        ).scalar_one()
+        assert audit.actor_id == "super_admin_id"
+        assert audit.details["role"] == "ADMIN"
+        assert "password" not in audit.details
+
+    denied = await client.post(
+        "/api/v1/admin/admins",
+        headers=admin_env["admin_headers"],
+        json={
+            "username": "not_super",
+            "email": "not-super@test.com",
+            "password": "OperatorPass123!",
+            "role": "ADMIN",
+        },
+    )
+    assert denied.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_admin_users_operations_and_audit(admin_env):
+    """Test user search, details, status block, wallet view, and balance adjustment with audit logging."""
+    client = admin_env["client"]
+    admin_headers = admin_env["admin_headers"]
+    session_factory = admin_env["session_factory"]
+
+    # 1. Search users
+    res = await client.get("/api/v1/admin/users?q=target_player", headers=admin_headers)
+    assert res.status_code == 200
+    assert res.json()["total"] == 1
+
+    # 2. Get user details
+    res = await client.get("/api/v1/admin/users/target_player_id", headers=admin_headers)
+    assert res.status_code == 200
+    assert res.json()["username"] == "target_player"
+
+    # 3. Block user with reason -> triggers audit log
+    res = await client.patch(
+        "/api/v1/admin/users/target_player_id/status",
+        headers=admin_headers,
+        json={"is_active": False, "reason": "Suspicious activity detected"},
+    )
+    assert res.status_code == 200
+    assert res.json()["is_active"] is False
+
+    # 4. View user wallet
+    res = await client.get("/api/v1/admin/users/target_player_id/wallet", headers=admin_headers)
+    assert res.status_code == 200
+    assert res.json()["balance"] == 50000
+
+    # 5. View user history & transactions
+    res = await client.get("/api/v1/admin/users/target_player_id/history", headers=admin_headers)
+    assert res.status_code == 200
+    assert res.json()["total"] >= 1
+
+    # 6. Manual wallet adjustment -> triggers audit log
+    res = await client.post(
+        "/api/v1/admin/users/target_player_id/adjust-balance",
+        headers={**admin_headers, "Idempotency-Key": "admin-adjust-once"},
+        json={"amount": 1000, "reason": "Goodwill courtesy credit"},
+    )
+    assert res.status_code == 200
+    tx_id = res.json()["transaction_id"]
+    replay = await client.post(
+        "/api/v1/admin/users/target_player_id/adjust-balance",
+        headers={**admin_headers, "Idempotency-Key": "admin-adjust-once"},
+        json={"amount": 1000, "reason": "Goodwill courtesy credit"},
+    )
+    assert replay.status_code == 200
+    assert replay.json()["transaction_id"] == tx_id
+    conflict = await client.post(
+        "/api/v1/admin/users/target_player_id/adjust-balance",
+        headers={**admin_headers, "Idempotency-Key": "admin-adjust-once"},
+        json={"amount": 2000, "reason": "Different adjustment"},
+    )
+    assert conflict.status_code == 409
+
+    # 7. Verify audit logs created for status change and wallet adjust
+    async with session_factory() as session:
+        from sqlalchemy import select
+        res = await session.execute(select(AuditLog).where(AuditLog.target_id == "target_player_id"))
+        logs = res.scalars().all()
+        actions = [l.action for l in logs]
+        assert "SET_USER_STATUS" in actions
+        assert "ADJUST_USER_BALANCE" in actions
+
+
+@pytest.mark.asyncio
+async def test_admin_games_management_and_audit(admin_env):
+    """Test game enable/disable and game settings update with before/after audit log."""
+    client = admin_env["client"]
+    admin_headers = admin_env["admin_headers"]
+    session_factory = admin_env["session_factory"]
+
+    # 1. List games
+    res = await client.get("/api/v1/admin/games", headers=admin_headers)
+    assert res.status_code == 200
+    assert len(res.json()) >= 1
+
+    # 2. View settings
+    res = await client.get("/api/v1/admin/games/aviator/settings", headers=admin_headers)
+    assert res.status_code == 200
+    assert res.json()["min_bet"] == 100
+
+    # 3. Update settings with before/after audit log
+    update_payload = {
+        "min_bet": 200,
+        "max_bet": 60000,
+        "house_edge_percent": 350,
+        "config": {"tick_rate_ms": 60},
+    }
+    res = await client.patch("/api/v1/admin/games/aviator/settings", headers=admin_headers, json=update_payload)
+    assert res.status_code == 200
+    assert res.json()["min_bet"] == 200
+
+    # 4. Disable game -> triggers audit log
+    res = await client.patch("/api/v1/admin/games/aviator/status", headers=admin_headers, json={"is_active": False})
+    assert res.status_code == 200
+    assert res.json()["is_active"] is False
+
+    # 5. Verify audit logs
+    async with session_factory() as session:
+        from sqlalchemy import select
+        res = await session.execute(select(AuditLog).where(AuditLog.target_id == "aviator"))
+        logs = res.scalars().all()
+        actions = [l.action for l in logs]
+        assert "UPDATE_GAME_SETTINGS" in actions
+        assert "SET_GAME_STATUS" in actions
+        # Check before and after state captured in details
+        settings_log = next(l for l in logs if l.action == "UPDATE_GAME_SETTINGS")
+        assert "before" in settings_log.details
+        assert "after" in settings_log.details
+        assert settings_log.details["before"]["min_bet"] == 100
+        assert settings_log.details["after"]["min_bet"] == 200
+
+        # Game-specific timing and payout fields are validated before mutation.
+        res = await client.patch(
+            "/api/v1/admin/games/aviator/settings",
+            headers=admin_headers,
+            json={"config": {"growth_rate": -1}},
+        )
+        assert res.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_admin_live_rounds_and_history(admin_env):
+    """Test live active rounds listing, round details, and historical rounds."""
+    client = admin_env["client"]
+    admin_headers = admin_env["admin_headers"]
+
+    # 1. Live games
+    res = await client.get("/api/v1/admin/games/live", headers=admin_headers)
+    assert res.status_code == 200
+    live = res.json()
+    assert len(live) >= 1
+    assert live[0]["round_id"] == "live_round_1"
+
+    # 2. Round details
+    res = await client.get("/api/v1/admin/rounds/live_round_1", headers=admin_headers)
+    assert res.status_code == 200
+    details = res.json()
+    assert details["round_id"] == "live_round_1"
+    assert len(details["entries"]) == 1
+
+    # 3. Historical rounds
+    res = await client.get("/api/v1/admin/rounds?game_id=aviator", headers=admin_headers)
+    assert res.status_code == 200
+    assert res.json()["total"] >= 1
+
+
+@pytest.mark.asyncio
+async def test_roles_and_admin_management_superadmin_only(admin_env):
+    """Test superadmin role management, permission listing, and admin user assignment."""
+    client = admin_env["client"]
+    super_headers = admin_env["super_headers"]
+
+    # 1. List roles
+    res = await client.get("/api/v1/admin/roles", headers=super_headers)
+    assert res.status_code == 200
+    assert len(res.json()) >= 3
+
+    # 2. List permissions
+    res = await client.get("/api/v1/admin/permissions", headers=super_headers)
+    assert res.status_code == 200
+    assert len(res.json()) >= 5
+
+    # 3. Create role -> triggers audit log
+    res = await client.post(
+        "/api/v1/admin/roles",
+        headers=super_headers,
+        json={"name": "VIP_SUPPORT", "description": "VIP Support team", "permission_codes": ["ticket:manage"]},
+    )
+    assert res.status_code == 200
+    role_id = res.json()["id"]
+
+    # 4. Update role permissions -> triggers audit log
+    res = await client.put(
+        f"/api/v1/admin/roles/{role_id}/permissions",
+        headers=super_headers,
+        json={"permission_codes": ["ticket:manage", "user:read"]},
+    )
+    assert res.status_code == 200
+
+    # 5. List admin users
+    res = await client.get("/api/v1/admin/admins", headers=super_headers)
+    assert res.status_code == 200
+    assert len(res.json()) >= 2
+
+
+@pytest.mark.asyncio
+async def test_admin_support_and_replies(admin_env):
+    """Test support ticket listing, internal note reply, assign, and status update with audit log."""
+    client = admin_env["client"]
+    admin_headers = admin_env["admin_headers"]
+
+    # 1. List tickets
+    res = await client.get("/api/v1/admin/support/tickets", headers=admin_headers)
+    assert res.status_code == 200
+    assert res.json()["total"] >= 1
+
+    # 2. Get ticket details with internal staff messages
+    res = await client.get("/api/v1/admin/support/tickets/ticket_1", headers=admin_headers)
+    assert res.status_code == 200
+
+    # 3. Reply to ticket with internal staff note -> triggers audit log
+    res = await client.post(
+        "/api/v1/admin/support/tickets/ticket_1/reply",
+        headers=admin_headers,
+        json={"message": "Internal note: player reported payout issue", "is_internal": True},
+    )
+    assert res.status_code == 200
+    assert res.json()["is_internal"] is True
+
+    # 4. Assign ticket -> triggers audit log
+    res = await client.patch(
+        "/api/v1/admin/support/tickets/ticket_1/assign",
+        headers=admin_headers,
+        json={"assigned_to_id": "admin_user_id"},
+    )
+    assert res.status_code == 200
+
+    # 5. Update ticket status -> triggers audit log
+    res = await client.patch(
+        "/api/v1/admin/support/tickets/ticket_1/status",
+        headers=admin_headers,
+        json={"status": "IN_PROGRESS"},
+    )
+    assert res.status_code == 200
+    assert res.json()["status"] == "IN_PROGRESS"
+
+
+@pytest.mark.asyncio
+async def test_admin_notifications_broadcast_and_reports(admin_env):
+    """Test notification broadcast and CSV reports export."""
+    client = admin_env["client"]
+    admin_headers = admin_env["admin_headers"]
+
+    # 1. Broadcast notification -> triggers audit log
+    res = await client.post(
+        "/api/v1/admin/notifications/broadcast",
+        headers=admin_headers,
+        json={"title": "Maintenance Alert", "message": "Scheduled maintenance in 1 hour.", "notification_type": "SYSTEM"},
+    )
+    assert res.status_code == 200
+    assert res.json()["recipients_count"] >= 1
+
+    # 2. CSV report export (users)
+    res = await client.get("/api/v1/admin/reports/export/users", headers=admin_headers)
+    assert res.status_code == 200
+    assert "text/csv" in res.headers["content-type"]
+    assert "username,email" in res.text
+
+    # 3. Read-only Audit logs listing
+    res = await client.get("/api/v1/admin/audit-logs?page=1&page_size=20", headers=admin_headers)
+    assert res.status_code == 200
+    data = res.json()
+    assert data["total"] >= 1
+
+
+@pytest.mark.asyncio
+async def test_cricket_settlement_override_is_permissioned_and_audited(admin_env):
+    client = admin_env["client"]
+    async with admin_env["session_factory"]() as session:
+        session.add(
+            CricketMatchRecord(
+                id="override-match",
+                home_team="Falcons",
+                away_team="Tigers",
+                status="SCHEDULED",
+                abandoned=False,
+                metadata_json={},
+            )
+        )
+        await session.commit()
+
+    path = "/api/v1/admin/cricket/matches/override-match/settle"
+    body = {"abandoned": True, "reason": "Official match was abandoned"}
+    denied = await client.post(
+        path,
+        headers=admin_env["player_headers"],
+        json=body,
+    )
+    assert denied.status_code == 403
+
+    response = await client.post(
+        path,
+        headers={
+            **admin_env["admin_headers"],
+            "Idempotency-Key": "cricket-override-1",
+        },
+        json=body,
+    )
+    assert response.status_code == 200
+    async with admin_env["session_factory"]() as session:
+        log = (
+            await session.execute(
+                select(AuditLog).where(
+                    AuditLog.action == "CRICKET_SETTLEMENT_OVERRIDE",
+                    AuditLog.target_id == "override-match",
+                )
+            )
+        ).scalar_one()
+        assert log.details["reason"] == body["reason"]
+        assert log.details["before"]["status"] == "SCHEDULED"
+        assert log.details["after"]["status"] == "ABANDONED"
+
+
+@pytest.mark.asyncio
+async def test_admin_2fa_enforcement(admin_env):
+    """Test that admin login requires 2FA enrollment and valid TOTP code."""
+    session_factory = admin_env["session_factory"]
+    totp_secret = admin_env["totp_secret"]
+
+    async with session_factory() as session:
+        auth_svc = AuthService(session)
+
+        # Admin with 2FA enabled must provide its current authenticator code.
+        from app.core.exceptions import UnauthorizedException
+        with pytest.raises(UnauthorizedException) as excinfo:
+            await auth_svc.login("admin@test.com", "AdminPass123!", totp_code=None)
+        assert "Authenticator code required" in str(excinfo.value)
+
+        # 2. Admin login with invalid TOTP code raises UnauthorizedException
+        with pytest.raises(UnauthorizedException) as excinfo:
+            await auth_svc.login("admin@test.com", "AdminPass123!", totp_code="000000")
+        assert "Invalid authenticator code" in str(excinfo.value)
+
+        # 3. Admin login with valid TOTP code succeeds
+        valid_totp = pyotp.TOTP(totp_secret).now()
+        user, access, refresh = await auth_svc.login("admin@test.com", "AdminPass123!", totp_code=valid_totp)
+        assert user.id == "admin_user_id"
+        assert access is not None
+
+
+@pytest.mark.asyncio
+async def test_audit_logs_append_only(admin_env):
+    """Test that audit log records cannot be updated or deleted in code (append-only enforcement)."""
+    session_factory = admin_env["session_factory"]
+
+    async with session_factory() as session:
+        # Create an audit log
+        log = AuditLog(
+            action="TEST_ACTION",
+            target_type="TEST",
+            actor_id="admin_user_id",
+            details={"key": "val"},
+        )
+        session.add(log)
+        await session.commit()
+        log_id = log.id
+
+    # Attempting to modify must raise PermissionError
+    async with session_factory() as session:
+        log_to_update = await session.get(AuditLog, log_id)
+        log_to_update.action = "TAMPERED_ACTION"
+        with pytest.raises(PermissionError) as excinfo:
+            await session.commit()
+        assert "append-only and cannot be modified" in str(excinfo.value)
+
+    # Attempting to delete must raise PermissionError
+    async with session_factory() as session:
+        log_to_delete = await session.get(AuditLog, log_id)
+        await session.delete(log_to_delete)
+        with pytest.raises(PermissionError) as excinfo:
+            await session.commit()
+        assert "append-only and cannot be deleted" in str(excinfo.value)
+
+
+# =========================================================================
+# Super admin operations
+# =========================================================================
+
+
+@pytest.mark.asyncio
+async def test_superadmin_demo_credit_block_and_remove_admin(admin_env):
+    client, sup, adm = admin_env["client"], admin_env["super_headers"], admin_env["admin_headers"]
+
+    # Only the super admin may grant demo credits (admin gets 403)
+    denied = await client.post("/api/v1/admin/admins/admin_user_id/demo-credit", headers=adm, json={"amount_paise": 1000})
+    assert denied.status_code == 403
+    res = await client.post("/api/v1/admin/admins/admin_user_id/demo-credit", headers=sup, json={"amount_paise": 250_000, "note": "QA"})
+    assert res.status_code == 200, res.text
+    assert res.json()["balance_after"] == 250_000  # wallet created on demand
+
+    # Players are not staff accounts
+    assert (await client.post("/api/v1/admin/admins/target_player_id/demo-credit", headers=sup, json={"amount_paise": 100})).status_code == 403
+
+    # Block -> the admin is locked out; unblock restores access
+    assert (await client.patch("/api/v1/admin/admins/admin_user_id/status", headers=sup, json={"is_active": False, "reason": "audit"})).status_code == 200
+    assert (await client.get("/api/v1/admin/users", headers=adm)).status_code == 403
+    assert (await client.patch("/api/v1/admin/admins/admin_user_id/status", headers=sup, json={"is_active": True})).status_code == 200
+    assert (await client.get("/api/v1/admin/users", headers=adm)).status_code == 200
+
+    # Activity + searchable audit trail
+    activity = await client.get("/api/v1/admin/admins/admin_user_id/activity", headers=sup)
+    assert activity.status_code == 200
+    found = await client.get("/api/v1/admin/audit-logs", headers=sup, params={"q": "DEMO_CREDIT"})
+    assert found.json()["total"] >= 1
+
+    # Remove = demoted to player + disabled (history kept)
+    assert (await client.delete("/api/v1/admin/admins/admin_user_id", headers=sup)).status_code == 200
+    async with admin_env["session_factory"]() as session:
+        removed = await session.get(User, "admin_user_id")
+        assert removed.is_active is False and removed.role_id == 1
+
+
+@pytest.mark.asyncio
+async def test_maintenance_mode_blocks_player_bets(admin_env):
+    client, sup = admin_env["client"], admin_env["super_headers"]
+    res = await client.put("/api/v1/admin/system-settings", headers=sup, json={"values": {"maintenance_mode": True, "platform_name": "GameZone Pro"}})
+    assert res.status_code == 200 and res.json()["values"]["maintenance_mode"] is True
+    public = await client.get("/api/v1/system/config")
+    assert public.json()["platform_name"] == "GameZone Pro"
+
+    bet = await client.post(
+        "/api/v1/games/wingo/action",
+        headers={**admin_env["player_headers"], "Idempotency-Key": "maint-1"},
+        json={"game_id": "wingo_30s", "round_id": "x", "amount": 100, "bet_type": "COLOR", "value": "GREEN"},
+    )
+    assert bet.status_code == 503
+
+    bad = await client.put("/api/v1/admin/system-settings", headers=sup, json={"values": {"unknown_key": 1}})
+    assert bad.status_code == 400
+    await client.put("/api/v1/admin/system-settings", headers=sup, json={"values": {"maintenance_mode": False}})
+
+
+@pytest.mark.asyncio
+async def test_void_round_refunds_open_stakes(admin_env):
+    client, sup = admin_env["client"], admin_env["super_headers"]
+    async with admin_env["session_factory"]() as session:
+        wallet = await session.get(Wallet, "wallet_p1")
+        wallet.locked_balance = 200  # the PLACED 200 stake from the fixture
+        await session.commit()
+
+    assert (await client.post("/api/v1/admin/rounds/live_round_1/void", headers=admin_env["admin_headers"], json={"reason": "incident"})).status_code == 403
+    res = await client.post("/api/v1/admin/rounds/live_round_1/void", headers=sup, json={"reason": "server incident"})
+    assert res.status_code == 200, res.text
+    assert res.json() == {"round_id": "live_round_1", "refunded_entries": 1, "refunded_paise": 200}
+    async with admin_env["session_factory"]() as session:
+        entry = await session.get(GameEntry, "entry_p1")
+        wallet = await session.get(Wallet, "wallet_p1")
+        assert entry.status == "REFUNDED" and wallet.locked_balance == 0
+
+
+@pytest.mark.asyncio
+async def test_finance_overview_is_superadmin_only(admin_env):
+    client = admin_env["client"]
+    assert (await client.get("/api/v1/admin/finance/overview", headers=admin_env["admin_headers"])).status_code == 403
+    res = await client.get("/api/v1/admin/finance/overview", headers=admin_env["super_headers"], params={"days": 7})
+    assert res.status_code == 200 and "totals" in res.json()
