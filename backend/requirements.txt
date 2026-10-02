@@ -1,28 +1,29 @@
 # ---- Web framework / server ----
 fastapi>=0.115
-uvicorn[standard]>=0.30          # includes websockets, httptools, watchfiles (--reload)
-python-multipart>=0.0.9          # form data (OAuth2 login form, uploads)
+uvicorn[standard]>=0.30
+gunicorn>=23.0
+python-multipart>=0.0.9
 
 # ---- Validation / config ----
-pydantic[email]>=2.9             # EmailStr -> email-validator
-pydantic-settings>=2.5           # core/config.py (.env loading)
+pydantic[email]>=2.9
+pydantic-settings>=2.5
 python-dotenv>=1.0
 
 # ---- Database (MySQL 8) ----
 SQLAlchemy>=2.0
 alembic>=1.13
-PyMySQL>=1.1                     # DATABASE_URL=mysql+pymysql://...
-cryptography>=43                 # required by PyMySQL for MySQL 8 auth (caching_sha2_password)
+PyMySQL>=1.1
+cryptography>=43
 
 # ---- Redis / background jobs ----
-redis>=5.0                       # sync + asyncio client, pub/sub, leader election
-celery[redis]>=5.4               # workers/ (reconcile, leaderboard, archive, cleanup)
+redis>=5.0
+celery[redis]>=5.4
 
 # ---- Auth / security ----
-PyJWT>=2.9                       # access + refresh tokens
-bcrypt>=4.2                      # password hashing
-pyotp>=2.9                       # admin TOTP 2FA
-qrcode[pil]>=7.4                 # QR code for 2FA setup
+PyJWT>=2.9
+bcrypt>=4.2
+pyotp>=2.9
+qrcode[pil]>=7.4
 
 # ---- Rate limiting ----
 slowapi>=0.1.9
@@ -37,4 +38,4 @@ httpx>=0.27
 sentry-sdk[fastapi]>=2.0
 
 # ---- Misc ----
-tzdata>=2024.1                   # timezone data on Windows
+tzdata>=2024.1
