@@ -1,34 +1,3 @@
-fastapi
-uvicorn[standard]
-
-sqlalchemy
-pymysql
-alembic
-
-pydantic
-pydantic-settings
-
-redis
-
-python-jose[cryptography]
-passlib[bcrypt]
-bcrypt
-
-python-multipart
-email-validator
-
-celery
-
-httpx
-
-python-dotenv
-
-structlog
-
-pytest
-pytest-asyncio
-pytest-cov
-
-slowapi
-
-sentry-sdk 
+# Render (and any build run from the repo root) installs this file.
+# The real, pinned dependency list lives with the backend.
+-r backend/requirements.txt
