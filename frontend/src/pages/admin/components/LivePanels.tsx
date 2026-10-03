@@ -287,7 +287,7 @@ const BetPanel: React.FC<{ id: string; now: number }> = ({ id, now }) => {
           <Field k="Client seed" mono>{r.client_seed}</Field>
           <Field k="Server seed" mono>{r.server_seed ?? 'hidden until the round finishes'}</Field>
         </div>
-        {r.server_seed && <Link to="/fairness" className="inline-flex items-center gap-1 text-xs text-emerald-300 hover:underline">Verify on the fairness page <ExternalLink className="h-3 w-3" /></Link>}
+        {r.server_seed && <Link to="/admin/fairness" className="inline-flex items-center gap-1 text-xs text-emerald-300 hover:underline">Verify on the fairness page <ExternalLink className="h-3 w-3" /></Link>}
       </Section>
     </div>
   )

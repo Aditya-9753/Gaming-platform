@@ -13,6 +13,8 @@ export interface GameMetadata {
   houseEdgePercent: number
   rtpPercent: number
   currentPlayersCount: number
+  /** Shown in the lobby but not playable yet */
+  comingSoon?: boolean
 }
 
 export interface ProvablyFairData {

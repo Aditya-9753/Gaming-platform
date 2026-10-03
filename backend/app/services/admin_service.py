@@ -720,21 +720,57 @@ class AdminService:
             to_date=to_date,
             limit=limit,
             offset=offset,
+            newest_first=True,
         )
-        items = [
-            {
+        from app.games.fairness_guard import is_finished
+        from app.games.simulated_players import BOT_NAMES
+        from app.services.live_dashboard import _outcome_label
+
+        # Real-player money per round (simulated lobby players excluded)
+        totals: Dict[str, Tuple[int, int, int]] = {}
+        round_ids = [r.id for r in rounds]
+        if round_ids:
+            agg = await self.session.execute(
+                select(
+                    GameEntry.round_id,
+                    func.count(GameEntry.id),
+                    func.coalesce(func.sum(GameEntry.bet_amount), 0),
+                    func.coalesce(func.sum(GameEntry.payout_amount), 0),
+                )
+                .join(User, User.id == GameEntry.user_id)
+                .where(GameEntry.round_id.in_(round_ids), User.username.not_in(BOT_NAMES))
+                .group_by(GameEntry.round_id)
+            )
+            totals = {rid: (int(n), int(bet), int(paid)) for rid, n, bet, paid in agg.all()}
+
+        items = []
+        for r in rounds:
+            finished = is_finished(r.status) or r.status == "CRASHED"
+            outcome = None
+            if finished:
+                outcome = _outcome_label(r.game_id, (r.game_result.outcome if r.game_result else None) or r.result)
+            bets, wagered, paid = totals.get(r.id, (0, 0, 0))
+            if outcome is None and finished and r.game_id == "mines" and bets:
+                outcome = "Cashed out" if paid > 0 else "Hit a mine"
+            items.append({
                 "round_id": r.id,
                 "game_id": r.game_id,
                 "round_no": r.round_no,
+                "period": (r.result or {}).get("period"),
                 "status": r.status,
+                "outcome": outcome,
                 "server_seed_hash": r.server_seed_hash,
                 "server_seed": revealable_seed(r),
-                "result": r.result,
+                # raw result only once final (it can hold the outcome before it is public)
+                "result": r.result if finished else None,
+                "bets": bets,
+                "wagered": wagered,
+                "paid_out": paid,
+                "house_net": wagered - paid,
                 "started_at": r.started_at.isoformat() if r.started_at else None,
                 "ended_at": r.ended_at.isoformat() if r.ended_at else None,
-            }
-            for r in rounds
-        ]
+                "created_at": r.created_at.isoformat() if r.created_at else None,
+            })
         return items, total
 
     # =========================================================================

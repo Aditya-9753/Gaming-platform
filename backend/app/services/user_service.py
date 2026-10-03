@@ -53,7 +53,8 @@ class UserService:
 
         user = await self.get_by_id(user_id)
         if username and username != user.username:
-            if await self.user_repo.username_exists(username):
+            # Changing only the letter case of your own name is allowed
+            if username.lower() != user.username.lower() and await self.user_repo.username_exists(username):
                 raise ConflictException("Username is already taken")
             user.username = username
         if email and email.lower() != user.email:

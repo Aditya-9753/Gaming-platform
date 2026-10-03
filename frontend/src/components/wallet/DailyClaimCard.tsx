@@ -5,11 +5,13 @@ import { useWalletStore } from '../../store/wallet.store'
 import { walletApi } from '../../services/wallet.api'
 import { showToast } from '../common/Toast'
 import confetti from 'canvas-confetti'
+import { usePlatformConfig } from '../../hooks/usePlatformConfig'
 
 export const DailyClaimCard: React.FC = () => {
   const { balance, setBalance } = useWalletStore()
   const dailyClaimAvailable = balance.dailyClaimAvailable
   const [isClaiming, setIsClaiming] = useState(false)
+  const claimRupees = (usePlatformConfig().daily_claim_amount_paise / 100).toLocaleString('en-IN')
 
   const handleClaim = async () => {
     setIsClaiming(true)
@@ -40,7 +42,7 @@ export const DailyClaimCard: React.FC = () => {
             <Sparkles className="w-3.5 h-3.5" />
             <span>Daily Free Bonus</span>
           </div>
-          <h4 className="text-base font-black text-white mt-0.5">Claim ₹10 Free Everyday</h4>
+          <h4 className="text-base font-black text-white mt-0.5">Claim ₹{claimRupees} Free Everyday</h4>
           <p className="text-xs text-slate-400">
             Login every 24 hours to boost your wallet risk-free.
           </p>
@@ -56,7 +58,7 @@ export const DailyClaimCard: React.FC = () => {
         className="shrink-0 font-black"
         leftIcon={dailyClaimAvailable ? <Gift className="w-4 h-4" /> : <Check className="w-4 h-4" />}
       >
-        {dailyClaimAvailable ? 'Claim ₹10' : 'Claimed'}
+        {dailyClaimAvailable ? `Claim ₹${claimRupees}` : 'Claimed'}
       </Button>
     </div>
   )

@@ -15,7 +15,7 @@ export interface MinesBoardProps {
 }
 
 export const MinesBoard: React.FC<MinesBoardProps> = ({ grid, onCellClick, disabled = false }) => (
-  <div className="grid grid-cols-5 gap-2 sm:gap-2.5 rounded-3xl bg-black/30 p-3 sm:p-4 shadow-[inset_0_0_30px_rgba(0,0,0,0.5)] backdrop-blur-sm">
+  <div className="mx-auto w-full max-w-[520px] grid grid-cols-5 gap-1.5 sm:gap-2.5 rounded-2xl sm:rounded-3xl bg-black/30 p-2 sm:p-4 touch-manipulation shadow-[inset_0_0_30px_rgba(0,0,0,0.5)] backdrop-blur-sm">
     {grid.map((cell, idx) => (
       <MinesCell
         key={idx}

@@ -31,8 +31,9 @@ logger = get_logger("daily_credit_service")
 _CLAIM_PREFIX = "daily_claim:"
 _COOLDOWN_SECONDS = 86_400  # 24 hours
 
-# Default claim amount if no SystemSetting is configured: 500 credits = 50,000 paise
-_DEFAULT_CLAIM_PAISE = 50_000
+# Default claim amount if no SystemSetting is configured: ₹10 = 1,000 paise
+# (keep in sync with platform_settings.SETTINGS_SCHEMA)
+_DEFAULT_CLAIM_PAISE = 1_000
 
 
 class DailyCreditService:

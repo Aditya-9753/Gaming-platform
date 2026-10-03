@@ -9,7 +9,7 @@ export interface ProvablyFairBadgeProps {
 
 export const ProvablyFairBadge: React.FC<ProvablyFairBadgeProps> = ({
   className = '',
-  showLink = true,
+  showLink = false,
 }) => {
   const content = (
     <div
@@ -21,7 +21,7 @@ export const ProvablyFairBadge: React.FC<ProvablyFairBadgeProps> = ({
   )
 
   if (showLink) {
-    return <Link to="/fairness">{content}</Link>
+    return <Link to="/admin/fairness">{content}</Link>
   }
 
   return content

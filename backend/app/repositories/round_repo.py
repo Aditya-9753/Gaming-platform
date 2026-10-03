@@ -196,8 +196,13 @@ class RoundRepository:
         to_date: Optional[datetime] = None,
         limit: int = 20,
         offset: int = 0,
+        newest_first: bool = False,
     ) -> Tuple[List[GameRound], int]:
-        """Fetch paginated game rounds filtered by game, status, and date range."""
+        """Fetch paginated game rounds filtered by game, status, and date range.
+
+        ``newest_first`` orders by creation time, which is the only meaningful
+        order when several games (each with its own round numbering) are mixed.
+        """
         stmt = select(GameRound).options(selectinload(GameRound.game_result))
         count_stmt = select(func.count(GameRound.id))
 
@@ -224,6 +229,7 @@ class RoundRepository:
         total_res = await self.session.execute(count_stmt)
         total = total_res.scalar_one() or 0
 
-        stmt = stmt.order_by(desc(GameRound.round_no), desc(GameRound.created_at)).limit(limit).offset(offset)
+        order = (desc(GameRound.created_at),) if newest_first else (desc(GameRound.round_no), desc(GameRound.created_at))
+        stmt = stmt.order_by(*order).limit(limit).offset(offset)
         rounds_res = await self.session.execute(stmt)
         return list(rounds_res.scalars().all()), total

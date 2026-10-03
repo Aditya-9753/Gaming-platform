@@ -144,6 +144,19 @@ async def get_live_game(
     return data
 
 
+@router.get("/reports/live")
+async def get_live_reports(
+    days: int = Query(7, ge=1, le=90),
+    include_bots: bool = Query(False),
+    current_user: CurrentUser = Depends(require_permission(PermissionCode.REPORT_EXPORT)),
+    db: AsyncSession = Depends(get_db),
+) -> Dict[str, Any]:
+    """Reports & Analytics figures (polled every few seconds by the reports page)."""
+    from app.services.live_dashboard import LiveDashboard
+
+    return await LiveDashboard(db, include_bots=include_bots).reports(days)
+
+
 @router.get("/dashboard/live/drilldown/{kind}")
 async def get_live_drilldown(
     kind: str,

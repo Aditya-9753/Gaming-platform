@@ -20,7 +20,7 @@ export const MinesCell: React.FC<MinesCellProps> = ({
   onClick,
   disabled = false,
 }) => {
-  const base = 'relative w-full aspect-square rounded-2xl flex items-center justify-center transition-all duration-200 select-none'
+  const base = 'relative w-full aspect-square rounded-xl sm:rounded-2xl flex items-center justify-center transition-all duration-200 select-none'
   if (!revealed) {
     return (
       <button

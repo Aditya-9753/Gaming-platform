@@ -9,7 +9,7 @@ export interface GameCardProps {
 }
 
 export const GameCard: React.FC<GameCardProps> = ({ game }) => {
-  const isAvailable = game.isActive
+  const isAvailable = game.isActive && !game.comingSoon
 
   const routeMap: Record<string, string> = {
     aviator: '/games/aviator',
@@ -47,6 +47,10 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
         <div className="flex items-center justify-between gap-2 mb-3">
           {isAvailable ? (
             <LiveBadge label="AVAILABLE" />
+          ) : game.comingSoon ? (
+            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
+              Coming Soon
+            </span>
           ) : (
             <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-800 text-slate-400">
               Maintenance

@@ -41,13 +41,6 @@ export const Home: React.FC = () => {
               <span>{isAuthenticated ? 'PLAY AVIATOR' : 'CREATE PLAYER ACCOUNT'}</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
-
-            <Link
-              to="/fairness"
-              className="px-5 py-3.5 rounded-xl bg-dark-elevated text-slate-300 hover:text-white border border-dark-border text-xs font-bold transition-all"
-            >
-              Verify Provable Fairness
-            </Link>
           </div>
         </div>
 

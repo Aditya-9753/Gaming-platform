@@ -425,6 +425,22 @@ async def test_admin_live_rounds_and_history(admin_env):
     res = await client.get("/api/v1/admin/rounds?game_id=aviator", headers=admin_headers)
     assert res.status_code == 200
     assert res.json()["total"] >= 1
+    row = next(r for r in res.json()["items"] if r["round_id"] == "live_round_1")
+    # running round: stake is counted, outcome and raw result stay hidden
+    assert row["bets"] == 1 and row["wagered"] > 0
+    assert row["outcome"] is None and row["result"] is None and row["server_seed"] is None
+
+
+@pytest.mark.asyncio
+async def test_admin_live_reports(admin_env):
+    client = admin_env["client"]
+    res = await client.get("/api/v1/admin/reports/live?days=7", headers=admin_env["admin_headers"])
+    assert res.status_code == 200, res.text
+    body = res.json()
+    assert len(body["daily"]) == 7
+    assert len(body["last_hour"]) == 60
+    assert {"wagered", "paid", "house_net", "bets", "players", "hold_pct"} <= set(body["today"])
+    assert isinstance(body["games"], list)
 
 
 @pytest.mark.asyncio

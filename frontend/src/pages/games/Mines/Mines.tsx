@@ -117,19 +117,19 @@ export const Mines: React.FC = () => {
   const ended = session !== null && session.status !== 'IN_PROGRESS'
 
   return (
-    <div className="mx-auto max-w-5xl overflow-hidden rounded-3xl bg-[radial-gradient(ellipse_at_top,#ff8a3d_0%,#d6261f_38%,#5a0b16_75%,#1c0610_100%)] p-4 sm:p-6 shadow-2xl">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <SkullBomb className="h-14 w-14 drop-shadow-[0_0_12px_rgba(251,146,60,0.9)]" />
+    <div className="-mx-2 sm:mx-auto max-w-5xl overflow-hidden rounded-2xl sm:rounded-3xl bg-[radial-gradient(ellipse_at_top,#ff8a3d_0%,#d6261f_38%,#5a0b16_75%,#1c0610_100%)] p-3 sm:p-6 shadow-2xl">
+      <div className="mb-3 sm:mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <SkullBomb className="h-10 w-10 sm:h-14 sm:w-14 drop-shadow-[0_0_12px_rgba(251,146,60,0.9)]" />
           <div>
-            <h2 className="bg-gradient-to-b from-[#fff6c9] via-[#fbbf24] to-[#b45309] bg-clip-text text-4xl font-black italic tracking-wide text-transparent drop-shadow-[0_3px_0_rgba(80,10,40,0.9)]">MINES</h2>
-            <span className="text-xs font-semibold text-amber-100/80">Find the gems • dodge the bombs</span>
+            <h2 className="bg-gradient-to-b from-[#fff6c9] via-[#fbbf24] to-[#b45309] bg-clip-text font-black italic tracking-wide text-transparent drop-shadow-[0_3px_0_rgba(80,10,40,0.9)] text-2xl sm:text-4xl">MINES</h2>
+            <span className="text-[11px] sm:text-xs font-semibold text-amber-100/80">Find the gems • dodge the bombs</span>
           </div>
         </div>
-        <ProvablyFairBadge />
+        <ProvablyFairBadge className="hidden sm:inline-flex" />
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[1fr_340px]">
+      <div className="grid gap-3 sm:gap-5 lg:grid-cols-[1fr_340px]">
         <div className="space-y-3">
           <MinesBoard grid={grid} onCellClick={handleCellClick} disabled={!isPlaying || busy} />
           {ended && (
@@ -164,7 +164,7 @@ export const Mines: React.FC = () => {
         />
       </div>
 
-      <section className="mt-5 rounded-2xl bg-black/40 p-4">
+      <section className="mt-4 sm:mt-5 rounded-2xl bg-black/40 p-3 sm:p-4">
         <MyBetsHistory gameId="mines" refreshKey={historyKey} title="My Mines history" />
       </section>
     </div>

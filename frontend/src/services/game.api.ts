@@ -1,6 +1,14 @@
 import { apiClient } from './api'
 import type { GameMetadata, GameRound, BetRequest, BetResult } from '../types/game.types'
 
+/** Games that are listed in the lobby but not open for play yet. */
+export const COMING_SOON_GAMES = new Set(['cricket'])
+const LOBBY_ORDER = ['aviator', 'color', 'mines', 'cricket']
+const lobbyRank = (id: string) => {
+  const i = LOBBY_ORDER.indexOf(id)
+  return i === -1 ? LOBBY_ORDER.length : i
+}
+
 interface ApiGame {
   id: string
   name: string
@@ -15,7 +23,10 @@ export const gameApi = {
   getGames: async (): Promise<GameMetadata[]> => {
     const { data } = await apiClient.get<ApiGame[]>('/games')
     // WinGo modes (wingo_30s ...) live inside the single Color Prediction card
-    return data.filter((game) => !game.id.startsWith('wingo_')).map((game) => ({
+    return data
+      .filter((game) => !game.id.startsWith('wingo_'))
+      .sort((a, b) => lobbyRank(a.id) - lobbyRank(b.id))
+      .map((game) => ({
       id: game.id as GameMetadata['id'],
       name: game.name,
       description: game.description || '',
@@ -26,6 +37,7 @@ export const gameApi = {
       houseEdgePercent: game.house_edge_percent,
       rtpPercent: 100 - game.house_edge_percent,
       currentPlayersCount: 0,
+      comingSoon: COMING_SOON_GAMES.has(game.id),
     }))
   },
 

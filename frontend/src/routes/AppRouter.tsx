@@ -5,6 +5,7 @@ import {
   Outlet,
   Navigate,
   useLocation,
+  Link,
 } from 'react-router-dom'
 import { Header } from '../components/layout/Header'
 import { Sidebar } from '../components/layout/Sidebar'
@@ -35,14 +36,12 @@ const WalletPage = lazy(() => import('../pages/user/Wallet').then((m) => ({ defa
 const Profile = lazy(() => import('../pages/user/Profile').then((m) => ({ default: m.Profile })))
 const Leaderboard = lazy(() => import('../pages/user/Leaderboard').then((m) => ({ default: m.Leaderboard })))
 const FairnessPage = lazy(() => import('../pages/user/Fairness').then((m) => ({ default: m.FairnessPage })))
-const ResponsiblePlay = lazy(() => import('../pages/user/ResponsiblePlay').then((m) => ({ default: m.ResponsiblePlay })))
 const BetHistory = lazy(() => import('../pages/user/BetHistory').then((m) => ({ default: m.BetHistory })))
 const Support = lazy(() => import('../pages/user/Support').then((m) => ({ default: m.Support })))
 
 const Aviator = lazy(() => import('../pages/games/Aviator/Aviator').then((m) => ({ default: m.Aviator })))
 const WinGo = lazy(() => import('../pages/games/WinGo/WinGo').then((m) => ({ default: m.WinGo })))
 const Mines = lazy(() => import('../pages/games/Mines/Mines').then((m) => ({ default: m.Mines })))
-const Cricket = lazy(() => import('../pages/games/Cricket/Cricket').then((m) => ({ default: m.Cricket })))
 
 const AdminLayout = lazy(() => import('../pages/admin/layout/AdminLayout').then((m) => ({ default: m.AdminLayout })))
 const AdminDashboard = lazy(() => import('../pages/admin/pages/Dashboard').then((m) => ({ default: m.Dashboard })))
@@ -66,6 +65,16 @@ const AddAdmin = lazy(() => import('../pages/admin/pages/AddAdmin').then((m) => 
 const CreditFlow = lazy(() => import('../pages/admin/pages/CreditFlow').then((m) => ({ default: m.CreditFlow })))
 const Setup2FA = lazy(() => import('../pages/admin/pages/Setup2FA').then((m) => ({ default: m.Setup2FA })))
 const AdminSettings = lazy(() => import('../pages/admin/pages/Settings').then((m) => ({ default: m.AdminSettings })))
+
+/** Cricket is not open yet; its page stays in the codebase for later. */
+const CricketComingSoon: React.FC = () => (
+  <div className="max-w-md mx-auto mt-10 p-8 rounded-2xl bg-dark-card border border-blue-500/30 text-center space-y-3">
+    <span className="inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">Coming Soon</span>
+    <h2 className="text-2xl font-black text-white">Cricket Live</h2>
+    <p className="text-sm text-slate-400">Cricket predictions are launching soon. Meanwhile, try Mines, Aviator or Color Prediction.</p>
+    <Link to="/games/mines" className="inline-block px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-dark-bg font-extrabold text-xs">Play Mines</Link>
+  </div>
+)
 
 // -------------------------------------------------------------------
 // Route Guard Components
@@ -190,7 +199,6 @@ export const router = createBrowserRouter([
       { path: '/reset-password', element: <ResetPassword /> },
       { path: '/terms', element: <Terms /> },
       { path: '/privacy', element: <Privacy /> },
-      { path: '/fairness', element: <FairnessPage /> },
       { path: '/leaderboard', element: <Leaderboard /> },
 
       // Authenticated User Routes
@@ -206,7 +214,7 @@ export const router = createBrowserRouter([
       { path: '/games/aviator', element: <RequireAuth><Aviator /></RequireAuth> },
       { path: '/games/color', element: <WinGo /> },
       { path: '/games/mines', element: <RequireAuth><Mines /></RequireAuth> },
-      { path: '/games/cricket', element: <RequireAuth><Cricket /></RequireAuth> },
+      { path: '/games/cricket', element: <CricketComingSoon /> },
       {
         path: '/wallet',
         element: (
@@ -220,14 +228,6 @@ export const router = createBrowserRouter([
         element: (
           <RequireAuth>
             <Profile />
-          </RequireAuth>
-        ),
-      },
-      {
-        path: '/responsible-play',
-        element: (
-          <RequireAuth>
-            <ResponsiblePlay />
           </RequireAuth>
         ),
       },
@@ -255,6 +255,7 @@ export const router = createBrowserRouter([
       { path: 'games', element: <AdminGames /> },
       { path: 'game-settings', element: <GameSettings /> },
       { path: 'live-games', element: <RequireSuperAdmin><LiveGames /></RequireSuperAdmin> },
+      { path: 'fairness', element: <RequireSuperAdmin><FairnessPage /></RequireSuperAdmin> },
       { path: 'rounds', element: <GameRounds /> },
       { path: 'transactions', element: <AdminTransactions /> },
       { path: 'wallets', element: <AdminWallet /> },

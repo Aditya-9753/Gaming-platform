@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { User, Mail, Shield, Key } from 'lucide-react'
+import { User, Mail, Shield } from 'lucide-react'
 import { Input } from '../../components/common/Input'
 import { Button } from '../../components/common/Button'
 import { showToast } from '../../components/common/Toast'
@@ -22,6 +22,25 @@ export const Profile: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false)
   const [activeTab, setActiveTab] = useState<'profile' | 'security'>('profile')
 
+  // Live uniqueness check (same endpoint the sign-up form uses)
+  const [nameStatus, setNameStatus] = useState<{ checking: boolean; available: boolean | null; reason: string | null }>({ checking: false, available: null, reason: null })
+  const trimmedName = username.trim()
+  const nameChanged = !!user && trimmedName.toLowerCase() !== user.username.toLowerCase()
+  useEffect(() => {
+    if (!nameChanged) { setNameStatus({ checking: false, available: null, reason: null }); return }
+    if (!/^[A-Za-z0-9_]{3,50}$/.test(trimmedName)) {
+      setNameStatus({ checking: false, available: false, reason: 'Use 3–50 letters, numbers or _' })
+      return
+    }
+    setNameStatus((s) => ({ ...s, checking: true }))
+    const timer = setTimeout(() => {
+      apiClient.get<{ available: boolean; reason: string | null }>('/auth/username-available', { params: { username: trimmedName } })
+        .then(({ data }) => setNameStatus({ checking: false, available: data.available, reason: data.reason }))
+        .catch(() => setNameStatus({ checking: false, available: null, reason: null }))
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [trimmedName, nameChanged])
+
   useEffect(() => {
     if (user) {
       setUsername(user.username)
@@ -33,11 +52,16 @@ export const Profile: React.FC = () => {
     e.preventDefault()
     setIsSaving(true)
     try {
-      const profile = await userApi.updateProfile({ username, email })
+      const profile = await userApi.updateProfile({ username: trimmedName, email })
       if (user && accessToken) setAuth({ ...user, username: profile.username, email: profile.email }, accessToken)
       showToast({ title: 'Profile Updated', message: 'Your information has been saved.', type: 'success' })
-    } catch {
-      showToast({ title: 'Profile update failed', message: 'The server did not save your profile changes.', type: 'error' })
+    } catch (err) {
+      const status = (err as { response?: { status?: number } }).response?.status
+      showToast({
+        title: 'Profile update failed',
+        message: status === 409 ? 'That username or email is already taken. Try another one.' : 'The server did not save your profile changes.',
+        type: 'error',
+      })
     } finally {
       setIsSaving(false)
     }
@@ -64,7 +88,6 @@ export const Profile: React.FC = () => {
     { label: 'Real Balance', value: formatPaiseToRupee(balance.realBalancePaise), color: 'text-emerald-400' },
     { label: 'Bonus Balance', value: formatPaiseToRupee(balance.bonusBalancePaise), color: 'text-purple-400' },
     { label: 'VIP Level', value: '—', color: 'text-amber-400' },
-    { label: 'Verification', value: user?.isVerified ? 'Verified' : 'Unverified', color: 'text-cyan-400' },
   ]
 
   return (
@@ -73,7 +96,7 @@ export const Profile: React.FC = () => {
         <User className="w-6 h-6 text-emerald-400" />
         <div>
           <h2 className="text-2xl font-black text-white">My Profile</h2>
-          <p className="text-xs text-slate-400">Manage your account information and security settings</p>
+          <p className="text-xs text-slate-400">Manage your account information and password</p>
         </div>
       </div>
 
@@ -95,7 +118,7 @@ export const Profile: React.FC = () => {
         </div>
 
         {/* Stats row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div className="grid grid-cols-3 gap-3 mb-6">
           {stats.map((s, i) => (
             <div key={i} className="p-3 rounded-xl bg-dark-elevated border border-dark-border text-center">
               <span className={`text-sm font-black block ${s.color}`}>{s.value}</span>
@@ -130,8 +153,11 @@ export const Profile: React.FC = () => {
             <Input
               label="Username"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={(e) => setUsername(e.target.value.replace(/\s/g, ''))}
               leftElement={<User className="w-4 h-4" />}
+              maxLength={50}
+              error={nameChanged && !nameStatus.checking && nameStatus.available === false ? `✗ ${nameStatus.reason || 'Username not available'}` : undefined}
+              success={nameChanged && !nameStatus.checking && nameStatus.available ? '✓ This username is available' : undefined}
             />
             <Input
               label="Email Address"
@@ -141,28 +167,12 @@ export const Profile: React.FC = () => {
               leftElement={<Mail className="w-4 h-4" />}
               placeholder="you@example.com"
             />
-            <Button type="submit" variant="primary" className="w-full font-bold" isLoading={isSaving}>
+            <Button type="submit" variant="primary" className="w-full font-bold" isLoading={isSaving} disabled={nameChanged && nameStatus.available !== true}>
               Save Changes
             </Button>
           </form>
         ) : (
           <div className="space-y-4">
-            <div className="p-4 rounded-xl bg-dark-elevated border border-dark-border space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm">
-                  <Key className="w-4 h-4 text-amber-400" />
-                  <span className="font-bold text-white">Two-Factor Authentication</span>
-                </div>
-                <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-slate-800 text-slate-400">
-                  {user?.has2FA ? 'Enabled' : 'Disabled'}
-                </span>
-              </div>
-              <p className="text-xs text-slate-400">
-                Add an extra layer of protection to your account with TOTP authenticator apps.
-              </p>
-              <p className="text-xs text-slate-400">{user?.has2FA ? 'Authenticator protection is enabled for this account.' : 'Use the account security setup flow to enable an authenticator app.'}</p>
-            </div>
-
             <div className="p-4 rounded-xl bg-dark-elevated border border-dark-border space-y-3">
               <div className="flex items-center gap-2 text-sm">
                 <Shield className="w-4 h-4 text-emerald-400" />

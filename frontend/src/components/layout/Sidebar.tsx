@@ -10,8 +10,6 @@ import {
   Activity,
   Wallet,
   Trophy,
-  ShieldCheck,
-  HeartHandshake,
   Headphones,
   User,
   X,
@@ -33,12 +31,10 @@ const navItems: NavItem[] = [
   { name: 'Aviator', to: '/games/aviator', icon: <Plane className="w-4 h-4" /> },
   { name: 'Color Prediction', to: '/games/color', icon: <Palette className="w-4 h-4" /> },
   { name: 'Mines', to: '/games/mines', icon: <Bomb className="w-4 h-4" /> },
-  { name: 'Cricket Live', to: '/games/cricket', icon: <Activity className="w-4 h-4" /> },
+  { name: 'Cricket Live', to: '/games/cricket', icon: <Activity className="w-4 h-4" />, badge: 'SOON' },
   { name: 'My Bets', to: '/history', icon: <History className="w-4 h-4" />, authRequired: true },
   { name: 'Wallet', to: '/wallet', icon: <Wallet className="w-4 h-4" />, authRequired: true },
   { name: 'Leaderboard', to: '/leaderboard', icon: <Trophy className="w-4 h-4" /> },
-  { name: 'Provably Fair', to: '/fairness', icon: <ShieldCheck className="w-4 h-4" /> },
-  { name: 'Responsible Play', to: '/responsible-play', icon: <HeartHandshake className="w-4 h-4" />, authRequired: true },
   { name: 'Support', to: '/support', icon: <Headphones className="w-4 h-4" />, authRequired: true },
   { name: 'My Profile', to: '/profile', icon: <User className="w-4 h-4" />, authRequired: true },
 ]
@@ -101,17 +97,6 @@ export const Sidebar: React.FC = () => {
             </NavLink>
           ))}
         </nav>
-
-        <div className="p-4 border-t border-dark-border">
-          <div className="p-3 rounded-xl bg-dark-elevated border border-dark-border/50 text-center">
-            <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">
-              Provably Fair
-            </span>
-            <p className="text-[11px] text-slate-400 mt-0.5">
-              100% cryptographic transparency on every round
-            </p>
-          </div>
-        </div>
       </aside>
     </>
   )

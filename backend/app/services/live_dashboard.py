@@ -618,4 +618,91 @@ class LiveDashboard:
         }
 
 
+    async def reports(self, days: int = 7) -> Dict[str, Any]:
+        """Reports & Analytics: totals, per-minute (last hour), daily trend and per-game split.
+
+        Days are India-time calendar days; money is real players only unless bots are requested.
+        """
+        now = datetime.now(timezone.utc)
+        today = _today_start_utc(now)
+        since = today - timedelta(days=days - 1)
+        hour_ago = now - timedelta(minutes=60)
+        player = self._real_users()
+
+        rows = (await self.db.execute(
+            select(GameEntry.created_at, GameEntry.bet_amount, GameEntry.status, GameEntry.payout_amount,
+                   GameEntry.user_id, GameRound.game_id)
+            .join(GameRound, GameRound.id == GameEntry.round_id)
+            .join(User, User.id == GameEntry.user_id).join(Role, Role.id == User.role_id)
+            .where(player, GameEntry.created_at >= since)
+        )).all()
+        signup_rows = (await self.db.execute(
+            select(User.created_at).join(Role, Role.id == User.role_id).where(player, User.created_at >= since)
+        )).scalars().all()
+
+        def blank() -> Dict[str, Any]:
+            return {"wagered": 0, "paid": 0, "settled": 0, "bets": 0, "players": set()}
+
+        daily: Dict[str, Dict[str, Any]] = {}
+        minute: Dict[int, Dict[str, Any]] = {}
+        games: Dict[str, Dict[str, Any]] = {}
+        window = blank()
+        today_tot = blank()
+
+        def add(b: Dict[str, Any], amount: int, status: str, payout: int, uid: str) -> None:
+            b["wagered"] += amount
+            b["bets"] += 1
+            b["players"].add(uid)
+            if status in SETTLED:
+                b["settled"] += amount
+            if status == "WON":
+                b["paid"] += payout
+
+        for created, amount, status, payout, uid, gid in rows:
+            ts = created if created.tzinfo else created.replace(tzinfo=timezone.utc)
+            day = ts.astimezone(_IST).strftime("%Y-%m-%d")
+            add(daily.setdefault(day, blank()), amount, status, payout, uid)
+            add(games.setdefault(gid, blank()), amount, status, payout, uid)
+            add(window, amount, status, payout, uid)
+            if ts >= today:
+                add(today_tot, amount, status, payout, uid)
+            if ts >= hour_ago:
+                add(minute.setdefault(min(59, int((now - ts).total_seconds() // 60)), blank()), amount, status, payout, uid)
+
+        signups_by_day: Dict[str, int] = {}
+        for created in signup_rows:
+            ts = created if created.tzinfo else created.replace(tzinfo=timezone.utc)
+            key = ts.astimezone(_IST).strftime("%Y-%m-%d")
+            signups_by_day[key] = signups_by_day.get(key, 0) + 1
+
+        def out(b: Dict[str, Any]) -> Dict[str, Any]:
+            house = b["settled"] - b["paid"]
+            return {
+                "wagered": b["wagered"], "paid": b["paid"], "house_net": house, "bets": b["bets"],
+                "players": len(b["players"]),
+                "hold_pct": round(house / b["settled"] * 100, 2) if b["settled"] else 0.0,
+            }
+
+        daily_series = []
+        for i in range(days - 1, -1, -1):
+            day = (now - timedelta(days=i)).astimezone(_IST)
+            key = day.strftime("%Y-%m-%d")
+            daily_series.append({"date": key, "label": day.strftime("%d %b"),
+                                 "signups": signups_by_day.get(key, 0), **out(daily.get(key, blank()))})
+        minute_series = []
+        for i in range(59, -1, -1):
+            label = (now - timedelta(minutes=i)).astimezone(_IST).strftime("%H:%M")
+            minute_series.append({"label": label, **out(minute.get(i, blank()))})
+
+        return {
+            "generated_at": now.isoformat(),
+            "days": days,
+            "include_bots": self.include_bots,
+            "today": {**out(today_tot), "signups": signups_by_day.get(now.astimezone(_IST).strftime("%Y-%m-%d"), 0)},
+            "window": {**out(window), "signups": len(signup_rows)},
+            "daily": daily_series,
+            "last_hour": minute_series,
+            "games": sorted(({"game_id": gid, **out(b)} for gid, b in games.items()), key=lambda g: -g["wagered"]),
+        }
+
 __all__ = ["LiveDashboard"]

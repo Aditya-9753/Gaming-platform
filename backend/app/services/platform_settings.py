@@ -22,9 +22,10 @@ SETTINGS_SCHEMA: Dict[str, tuple] = {
     "maintenance_mode": (bool, False, "Block new bets for everyone except staff"),
     "maintenance_message": (str, "We are upgrading the platform. Betting resumes shortly.", "Banner text during maintenance"),
     "signup_bonus_paise": (int, 10000, "Virtual credits given at sign-up (paise)"),
-    "daily_claim_amount_paise": (int, 5000, "Daily bonus amount (paise)"),
+    "daily_claim_amount_paise": (int, 1000, "Daily bonus amount (paise)"),
 }
-PUBLIC_KEYS = ("platform_name", "platform_logo_url", "maintenance_mode", "maintenance_message")
+# daily_claim_amount_paise is public so the claim card shows the amount the server really credits
+PUBLIC_KEYS = ("platform_name", "platform_logo_url", "maintenance_mode", "maintenance_message", "daily_claim_amount_paise")
 
 _CACHE_TTL = 5.0
 _cache: Dict[str, Any] = {}

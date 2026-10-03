@@ -21,7 +21,15 @@ const compact = (paise: number) => {
 }
 
 /** Wagered vs paid per hour, one shared ₹ axis (never dual-axis). */
-export const HourlyFlowChart: React.FC<{ data: HourPoint[]; onSelect?: (index: number) => void }> = ({ data, onSelect }) => {
+export const HourlyFlowChart: React.FC<{
+  data: HourPoint[]
+  onSelect?: (index: number) => void
+  /** Show every Nth x-axis label */
+  labelEvery?: number
+  /** Name of the time column in table view */
+  timeLabel?: string
+  ariaLabel?: string
+}> = ({ data, onSelect, labelEvery = 4, timeLabel = 'Hour (IST)', ariaLabel = 'Wagered and paid per hour, last 24 hours' }) => {
   const [hover, setHover] = useState<number | null>(null)
   const [table, setTable] = useState(false)
 
@@ -55,7 +63,7 @@ export const HourlyFlowChart: React.FC<{ data: HourPoint[]; onSelect?: (index: n
       {table ? (
         <div className="max-h-64 overflow-auto">
           <table className="w-full text-xs">
-            <thead><tr className="text-left text-slate-400"><th className="py-1">Hour (IST)</th><th className="py-1 text-right">Bets</th><th className="py-1 text-right">Wagered</th><th className="py-1 text-right">Paid</th></tr></thead>
+            <thead><tr className="text-left text-slate-400"><th className="py-1">{timeLabel}</th><th className="py-1 text-right">Bets</th><th className="py-1 text-right">Wagered</th><th className="py-1 text-right">Paid</th></tr></thead>
             <tbody>
               {[...data].reverse().map((d) => (
                 <tr key={d.hour} onClick={() => onSelect?.(data.indexOf(d))} className={`border-t border-dark-border/50 ${onSelect ? 'cursor-pointer hover:bg-dark-elevated/60' : ''}`}><td className="py-1 text-slate-300">{d.hour}</td><td className="py-1 text-right text-slate-300">{d.bets}</td><td className="py-1 text-right font-mono text-slate-200">{formatPaiseToRupee(d.wagered)}</td><td className="py-1 text-right font-mono text-slate-200">{formatPaiseToRupee(d.paid)}</td></tr>
@@ -65,14 +73,14 @@ export const HourlyFlowChart: React.FC<{ data: HourPoint[]; onSelect?: (index: n
         </div>
       ) : (
         <div className="relative">
-          <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" role="img" aria-label="Wagered and paid per hour, last 24 hours">
+          <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" role="img" aria-label={ariaLabel}>
             {ticks.map((t) => (
               <g key={t}>
                 <line x1={PAD.left} x2={W - PAD.right} y1={y(t)} y2={y(t)} stroke="#252b37" strokeWidth={1} />
                 <text x={PAD.left - 8} y={y(t) + 4} textAnchor="end" className="fill-slate-500" fontSize={10}>{compact(t)}</text>
               </g>
             ))}
-            {data.map((d, i) => (i % 4 === 0 || i === last) && (
+            {data.map((d, i) => ((last - i) % labelEvery === 0) && (
               <text key={d.hour + i} x={x(i)} y={H - 8} textAnchor="middle" className="fill-slate-500" fontSize={10}>{d.hour}</text>
             ))}
             {hover !== null && <line x1={x(hover)} x2={x(hover)} y1={PAD.top} y2={PAD.top + innerH} stroke="#64748b" strokeWidth={1} strokeDasharray="3 3" />}

@@ -61,19 +61,19 @@ export const AviatorBetPanel: React.FC<AviatorBetPanelProps> = ({ slot, phase, m
   }
 
   return (
-    <div className="rounded-2xl bg-[#1b1c1d] border border-white/5 p-3 space-y-3">
+    <div className="rounded-xl bg-[#1b1c1d] border border-white/5 p-2 space-y-2">
       <div className="flex justify-center">
-        <div className="inline-flex rounded-full bg-black/40 p-0.5 text-xs font-bold">
+        <div className="inline-flex rounded-full bg-black/40 p-0.5 text-[11px] font-bold">
           {(['bet', 'auto'] as const).map((t) => (
-            <button key={t} type="button" onClick={() => setTab(t)} className={`px-6 py-1 rounded-full capitalize transition ${tab === t ? 'bg-[#2c2d30] text-white' : 'text-slate-400'}`}>{t}</button>
+            <button key={t} type="button" onClick={() => setTab(t)} className={`px-4 py-0.5 rounded-full capitalize transition ${tab === t ? 'bg-[#2c2d30] text-white' : 'text-slate-400'}`}>{t}</button>
           ))}
         </div>
       </div>
 
-      <div className="flex gap-3">
-        <div className="flex-1 min-w-0 space-y-2">
-          <div className="flex items-center rounded-full bg-black/50 px-1 py-1">
-            <button type="button" aria-label="Decrease" disabled={locked} onClick={() => setAmount((a) => clamp(a - step))} className="w-7 h-7 rounded-full bg-[#2c2d30] text-slate-300 flex items-center justify-center disabled:opacity-40"><Minus className="w-3.5 h-3.5" /></button>
+      <div className="flex gap-2">
+        <div className="flex-1 min-w-0 space-y-1.5">
+          <div className="flex items-center rounded-full bg-black/50 px-1 py-0.5">
+            <button type="button" aria-label="Decrease" disabled={locked} onClick={() => setAmount((a) => clamp(a - step))} className="w-6 h-6 rounded-full bg-[#2c2d30] text-slate-300 flex items-center justify-center disabled:opacity-40"><Minus className="w-3 h-3" /></button>
             <input
               type="number"
               inputMode="decimal"
@@ -84,9 +84,9 @@ export const AviatorBetPanel: React.FC<AviatorBetPanelProps> = ({ slot, phase, m
               onChange={(e) => setAmount(Number(e.target.value) || 0)}
               onBlur={() => setAmount((a) => clamp(a))}
               aria-label="Bet amount in rupees"
-              className="flex-1 min-w-0 bg-transparent text-center font-mono font-black text-white text-base focus:outline-none disabled:opacity-60"
+              className="flex-1 min-w-0 bg-transparent text-center font-mono font-black text-white text-sm focus:outline-none disabled:opacity-60"
             />
-            <button type="button" aria-label="Increase" disabled={locked} onClick={() => setAmount((a) => clamp(a + step))} className="w-7 h-7 rounded-full bg-[#2c2d30] text-slate-300 flex items-center justify-center disabled:opacity-40"><Plus className="w-3.5 h-3.5" /></button>
+            <button type="button" aria-label="Increase" disabled={locked} onClick={() => setAmount((a) => clamp(a + step))} className="w-6 h-6 rounded-full bg-[#2c2d30] text-slate-300 flex items-center justify-center disabled:opacity-40"><Plus className="w-3 h-3" /></button>
           </div>
           <EditableQuickAmounts
             amounts={quick.amounts}
@@ -97,6 +97,7 @@ export const AviatorBetPanel: React.FC<AviatorBetPanelProps> = ({ slot, phase, m
             disabled={locked}
             min={minRupees}
             max={maxRupees}
+            columns={4}
           />
         </div>
 
@@ -104,15 +105,15 @@ export const AviatorBetPanel: React.FC<AviatorBetPanelProps> = ({ slot, phase, m
           type="button"
           onClick={action.onClick}
           disabled={action.disabled}
-          className={`w-[44%] max-w-[220px] rounded-2xl text-white shadow-lg flex flex-col items-center justify-center transition active:scale-[0.98] disabled:cursor-not-allowed ${action.className}`}
+          className={`w-[36%] max-w-[160px] min-h-[64px] rounded-xl text-white shadow-lg flex flex-col items-center justify-center transition active:scale-[0.98] disabled:cursor-not-allowed ${action.className}`}
         >
-          <span className="text-lg sm:text-xl font-black tracking-wide">{action.label}</span>
-          {action.sub && <span className="text-sm font-mono font-bold opacity-90">{action.sub}</span>}
+          <span className="text-base font-black tracking-wide">{action.label}</span>
+          {action.sub && <span className="text-xs font-mono font-bold opacity-90">{action.sub}</span>}
         </button>
       </div>
 
       {tab === 'auto' && (
-        <div className="flex items-center justify-between gap-3 border-t border-white/5 pt-3 text-xs">
+        <div className="flex items-center justify-between gap-3 border-t border-white/5 pt-2 text-xs">
           <label className="flex items-center gap-2 text-slate-300 font-semibold cursor-pointer">
             <input type="checkbox" checked={autoOn} disabled={locked} onChange={(e) => setAutoOn(e.target.checked)} className="rounded" />
             Auto cash out

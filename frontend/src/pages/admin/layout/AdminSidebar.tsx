@@ -21,6 +21,7 @@ import {
   Settings,
   Landmark,
   UserPlus,
+  ShieldCheck,
 } from 'lucide-react'
 import { useAuthStore } from '../../../store/auth.store'
 import { usePermission } from '../../../hooks/usePermission'
@@ -31,6 +32,7 @@ const adminLinks = [
   { name: 'Game Catalog', to: '/admin/games', icon: <Gamepad2 className="w-4 h-4" />, perm: 'game:manage' },
   { name: 'Game Settings', to: '/admin/game-settings', icon: <Sliders className="w-4 h-4" />, perm: 'game:manage' },
   { name: 'Exposure Monitor', to: '/admin/live-games', icon: <Radio className="w-4 h-4" />, superOnly: true },
+  { name: 'Provably Fair', to: '/admin/fairness', icon: <ShieldCheck className="w-4 h-4" />, superOnly: true },
   { name: 'Game Rounds', to: '/admin/rounds', icon: <History className="w-4 h-4" />, perm: 'game:manage' },
   { name: 'Transactions', to: '/admin/transactions', icon: <Receipt className="w-4 h-4" />, perm: 'ledger:read' },
   { name: 'Vault & Wallets', to: '/admin/wallets', icon: <Wallet className="w-4 h-4" />, perm: 'ledger:read' },

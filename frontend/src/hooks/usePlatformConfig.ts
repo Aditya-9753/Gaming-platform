@@ -7,6 +7,7 @@ export interface PlatformConfig {
   platform_logo_url: string
   maintenance_mode: boolean
   maintenance_message: string
+  daily_claim_amount_paise: number
 }
 
 interface ConfigState {
@@ -20,6 +21,7 @@ const DEFAULTS: PlatformConfig = {
   platform_logo_url: '',
   maintenance_mode: false,
   maintenance_message: '',
+  daily_claim_amount_paise: 1000,
 }
 
 export const usePlatformConfigStore = create<ConfigState>((set) => ({

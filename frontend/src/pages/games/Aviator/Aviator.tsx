@@ -55,7 +55,7 @@ export const Aviator: React.FC = () => {
       <AviatorHistory history={history} />
       <AviatorChart multiplier={round.multiplier} phase={round.phase} countdown={round.countdown} bettingTotal={round.bettingTotal} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
         {[slotA, slotB].map((slot, index) => (
           <AviatorBetPanel
             key={index}

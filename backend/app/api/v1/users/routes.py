@@ -23,7 +23,8 @@ class ChangePasswordRequest(BaseModel):
 
 
 class UpdateProfileRequest(BaseModel):
-    username: Optional[str] = Field(None, min_length=3, max_length=50)
+    # Same rule as sign-up: unique (case-insensitive), letters/numbers/_ only
+    username: Optional[str] = Field(None, min_length=3, max_length=50, pattern=r"^[A-Za-z0-9_]+$")
     email: Optional[str] = Field(None, min_length=5, max_length=255)
 
 
