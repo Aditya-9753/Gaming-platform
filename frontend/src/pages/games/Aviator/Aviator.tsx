@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { AviatorChart, AVIATOR_COVER_SRC } from './AviatorChart'
 import { AviatorBetPanel } from './AviatorBetPanel'
 import { AviatorHistory } from './AviatorHistory'
@@ -10,6 +10,7 @@ import { MyBetsHistory } from '../../../components/games/MyBetsHistory'
 import { showToast } from '../../../components/common/Toast'
 import { formatPaiseToRupee } from '../../../utils/formatters'
 import { apiClient } from '../../../services/api'
+import { onMutedChange, playSound, startEngine, type EngineSound } from '../../../utils/sounds'
 
 interface GameLimits { min_bet: number; max_bet: number }
 
@@ -36,6 +37,26 @@ export const Aviator: React.FC = () => {
     if (round.phase === 'crashed') setHistory((items) => [round.multiplier, ...items].slice(0, 30))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [round.phase])
+
+  // Engine drone while the plane flies; pitch follows the multiplier; whoosh when it flies away
+  const engine = useRef<EngineSound | null>(null)
+  useEffect(() => {
+    if (round.phase === 'flying') {
+      if (!engine.current) {
+        playSound('takeoff')
+        engine.current = startEngine()
+      }
+    } else if (engine.current) {
+      engine.current.stop(round.phase === 'crashed')
+      engine.current = null
+    }
+  }, [round.phase])
+  useEffect(() => { engine.current?.setMultiplier(round.multiplier) }, [round.multiplier])
+  useEffect(() => onMutedChange((muted) => {
+    if (muted) engine.current = null // setMuted already silenced it
+    else if (round.phase === 'flying' && !engine.current) engine.current = startEngine()
+  }), [round.phase])
+  useEffect(() => () => { engine.current?.stop(false); engine.current = null }, [])
 
   const totalBets = round.bets.reduce((sum, b) => sum + b.amount, 0)
 

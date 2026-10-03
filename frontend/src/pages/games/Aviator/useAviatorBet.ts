@@ -59,7 +59,7 @@ export function useAviatorBet(round: AviatorState, label: string, onSettled?: ()
   // Plane flew away with this bet still riding
   useEffect(() => {
     if (round.phase !== 'crashed' || betPaise === null || roundId !== round.roundId) return
-    playSound('lose')
+    window.setTimeout(() => playSound('lose'), 700) // after the fly-away whoosh
     showToast({ title: `${label}: flew away`, message: `Lost ${formatPaiseToRupee(betPaise)} at ${round.multiplier.toFixed(2)}x.`, type: 'error' })
     clear()
     refreshWallet()
