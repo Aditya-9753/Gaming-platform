@@ -40,7 +40,7 @@ export const Header: React.FC = () => {
   }
 
   return (
-    <header className="sticky top-0 z-40 h-16 bg-[#101012]/95 backdrop-blur-md border-b border-dark-border px-3 sm:px-6 flex items-center justify-between gap-2">
+    <header className="sticky top-0 z-40 h-16 bg-dark-bg/95 backdrop-blur-md border-b border-dark-border px-3 sm:px-6 flex items-center justify-between gap-2">
       <div className="flex min-w-0 items-center gap-1.5 sm:gap-3">
         <button
           onClick={toggleSidebar}
@@ -52,8 +52,9 @@ export const Header: React.FC = () => {
 
         <Link to="/" className="flex items-center gap-2">
           <BrandLogo
-            iconClassName="hidden sm:flex w-8 h-8 rounded-lg bg-gradient-to-tr from-orange-500 to-amber-400 text-white"
-            textClassName="text-xl sm:text-2xl font-black italic tracking-tight text-white"
+            wordmark
+            iconClassName="hidden sm:flex w-8 h-8 rounded-lg"
+            textClassName="text-xl sm:text-2xl font-black tracking-tight"
           />
         </Link>
       </div>
@@ -70,7 +71,7 @@ export const Header: React.FC = () => {
             </Link>
             <Link
               to="/wallet"
-              className="flex items-center gap-1.5 rounded-xl bg-brand-green px-3 sm:px-4 py-2 text-xs sm:text-sm font-black text-white shadow-md hover:brightness-110"
+              className="flex items-center gap-1.5 rounded-xl bg-brand-blue px-3 sm:px-4 py-2 text-xs sm:text-sm font-black text-white shadow-md hover:brightness-110"
             >
               <Wallet className="hidden sm:block w-4 h-4" />
               Wallet

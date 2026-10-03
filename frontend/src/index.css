@@ -3,20 +3,79 @@
 @tailwind utilities;
 
 :root {
+  /* Rudra247 site theme: dark navy + white, blue accent */
+  --dark-bg: 8 18 38;
+  --dark-card: 14 29 59;
+  --dark-elevated: 21 42 82;
+  --dark-border: 33 59 110;
+  --emerald-50: 239 246 255;
+  --emerald-100: 219 234 254;
+  --emerald-200: 191 219 254;
+  --emerald-300: 147 197 253;
+  --emerald-400: 96 165 250;
+  --emerald-500: 59 130 246;
+  --emerald-600: 37 99 235;
+  --emerald-700: 29 78 216;
+  --emerald-800: 30 64 175;
+  --emerald-900: 30 58 138;
+  --emerald-950: 23 37 84;
+  --teal-50: 240 249 255;
+  --teal-100: 224 242 254;
+  --teal-200: 186 230 253;
+  --teal-300: 125 211 252;
+  --teal-400: 56 189 248;
+  --teal-500: 14 165 233;
+  --teal-600: 2 132 199;
+  --teal-700: 3 105 161;
+  --teal-800: 7 89 133;
+  --teal-900: 12 74 110;
+  --teal-950: 8 47 73;
+}
+/* Game pages keep their original look (charcoal + emerald) */
+.game-theme {
+  --dark-bg: 20 20 22;
+  --dark-card: 29 29 32;
+  --dark-elevated: 40 40 44;
+  --dark-border: 50 50 56;
+  --emerald-50: 236 253 245;
+  --emerald-100: 209 250 229;
+  --emerald-200: 167 243 208;
+  --emerald-300: 110 231 183;
+  --emerald-400: 52 211 153;
+  --emerald-500: 16 185 129;
+  --emerald-600: 5 150 105;
+  --emerald-700: 4 120 87;
+  --emerald-800: 6 95 70;
+  --emerald-900: 6 78 59;
+  --emerald-950: 2 44 34;
+  --teal-50: 240 253 250;
+  --teal-100: 204 251 241;
+  --teal-200: 153 246 228;
+  --teal-300: 94 234 212;
+  --teal-400: 45 212 191;
+  --teal-500: 20 184 166;
+  --teal-600: 13 148 136;
+  --teal-700: 15 118 110;
+  --teal-800: 17 94 89;
+  --teal-900: 19 78 74;
+  --teal-950: 4 47 46;
+}
+
+:root {
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color-scheme: dark;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: #0b0e14;
+  background: #050d1f;
 }
 
 body {
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
-  background: #0b0e14;
+  background: #050d1f;
 }
 
 #root {
@@ -24,7 +83,7 @@ body {
 }
 
 * {
-  scrollbar-color: #334155 #0b0e14;
+  scrollbar-color: #213b6e #050d1f;
   scrollbar-width: thin;
 }
 
@@ -37,7 +96,7 @@ textarea {
 }
 
 :focus-visible {
-  outline: 2px solid #34d399;
+  outline: 2px solid #3b82f6;
   outline-offset: 2px;
 }
 

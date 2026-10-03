@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import axios from 'axios'
-import { Lock, User, ArrowRight, ShieldCheck, Flame, KeyRound } from 'lucide-react'
+import { Lock, User, ArrowRight, ShieldCheck, KeyRound } from 'lucide-react'
+import { BrandLogo } from '../../components/common/BrandLogo'
 import { Input } from '../../components/common/Input'
 import { Button } from '../../components/common/Button'
 import { useAuthStore } from '../../store/auth.store'
@@ -70,9 +71,7 @@ export const Login: React.FC = () => {
     <div className="max-w-md mx-auto py-8">
       <div className="bg-dark-card border border-dark-border rounded-3xl p-8 shadow-2xl space-y-6">
         <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 mx-auto flex items-center justify-center text-dark-bg shadow-md">
-            <Flame className="w-6 h-6 fill-current" />
-          </div>
+          <BrandLogo wordmark className="flex justify-center" textClassName="text-2xl font-black tracking-tight" />
           <h2 className="text-2xl font-black text-white">Welcome Back</h2>
           <p className="text-xs text-slate-400">Sign in with your username and password</p>
         </div>

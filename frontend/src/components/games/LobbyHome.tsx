@@ -33,7 +33,7 @@ const HeroCarousel: React.FC = () => {
         <span className="text-[11px] font-black tracking-[0.2em] text-white/70">{slide.kicker}</span>
         <h1 className="text-3xl sm:text-5xl font-black italic uppercase leading-none tracking-tight text-white">{slide.title}</h1>
         <p className="max-w-[60%] text-xs sm:text-sm text-white/75">{slide.sub}</p>
-        <Link to={to} className="mt-2 w-fit rounded-xl bg-brand-green px-4 py-2 text-xs font-black text-white shadow-lg hover:brightness-110">{slide.cta}</Link>
+        <Link to={to} className="mt-2 w-fit rounded-xl bg-brand-blue px-4 py-2 text-xs font-black text-white shadow-lg hover:brightness-110">{slide.cta}</Link>
       </div>
       <div className="absolute bottom-3 left-5 sm:left-10 z-10 flex gap-1.5 rounded-full bg-black/40 px-2 py-1">
         {SLIDES.map((s, i) => (

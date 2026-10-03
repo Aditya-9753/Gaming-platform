@@ -1,3 +1,6 @@
+const STEPS = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950]
+const scale = (name) => Object.fromEntries(STEPS.map((s) => [s, `rgb(var(--${name}-${s}) / <alpha-value>)`]))
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
@@ -19,13 +22,16 @@ export default {
         },
       },
       colors: {
-        // Rudra247 theme: neutral charcoal like popular casino lobbies
-        'dark-bg': '#141416',
-        'dark-card': '#1d1d20',
-        'dark-elevated': '#28282c',
-        'dark-border': '#323238',
+        // Values come from CSS variables (src/index.css): the site is dark navy + blue,
+        // while everything inside .game-theme (game pages) keeps the original charcoal + emerald.
+        'dark-bg': 'rgb(var(--dark-bg) / <alpha-value>)',
+        'dark-card': 'rgb(var(--dark-card) / <alpha-value>)',
+        'dark-elevated': 'rgb(var(--dark-elevated) / <alpha-value>)',
+        'dark-border': 'rgb(var(--dark-border) / <alpha-value>)',
         'brand-blue': '#2f7cf6',
         'brand-green': '#16a34a',
+        emerald: scale('emerald'),
+        teal: scale('teal'),
       },
     },
   },

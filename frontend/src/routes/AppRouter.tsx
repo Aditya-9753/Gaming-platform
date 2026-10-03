@@ -74,7 +74,7 @@ const CricketComingSoon: React.FC = () => (
     <span className="inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">Coming Soon</span>
     <h2 className="text-2xl font-black text-white">Sports</h2>
     <p className="text-sm text-slate-400">Sports betting is launching soon. Meanwhile, try Teen Patti, Aviator, Mines or Color Prediction.</p>
-    <Link to="/games/teen-patti" className="inline-block px-5 py-2.5 rounded-xl bg-brand-green hover:brightness-110 text-white font-extrabold text-xs">Play Teen Patti</Link>
+    <Link to="/games/teen-patti" className="inline-block px-5 py-2.5 rounded-xl bg-brand-blue hover:brightness-110 text-white font-extrabold text-xs">Play Teen Patti</Link>
   </div>
 )
 
@@ -148,14 +148,19 @@ function useSessionBootstrap() {
 // Main App Layout Shell
 // -------------------------------------------------------------------
 
+/** A single game page (not the /games lobby): keeps the original game colours. */
+const GAME_PAGE = /^\/games\/(aviator|color|mines|teen-patti|cricket)(\/|$)/
+
 const AppShell: React.FC = () => {
+  // The site uses the navy + blue theme; game pages keep their own look (see .game-theme in index.css)
+  const isGamePage = GAME_PAGE.test(useLocation().pathname)
   return <div className="min-h-screen bg-dark-bg flex flex-col dark">
     <AgeGateModal />
     <MaintenanceBanner />
     <Header />
     <div className="flex flex-1 overflow-hidden">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto p-4 sm:p-6 pb-20 md:pb-6">
+      <main className={`flex-1 overflow-y-auto p-4 sm:p-6 pb-20 md:pb-6 ${isGamePage ? 'game-theme bg-dark-bg' : ''}`}>
         <div className="max-w-7xl mx-auto">
           <ErrorBoundary>
             <Suspense fallback={<Loader text="Loading..." />}>

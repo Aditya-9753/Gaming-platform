@@ -96,7 +96,7 @@ export const Sidebar: React.FC = () => {
             ) : (
               <div className="flex flex-1 gap-2">
                 <Link to="/login" onClick={close} className="flex-1 rounded-xl bg-dark-elevated py-2.5 text-center text-sm font-bold text-white">Log in</Link>
-                <Link to="/register" onClick={close} className="flex-1 rounded-xl bg-brand-green py-2.5 text-center text-sm font-bold text-white">Sign up</Link>
+                <Link to="/register" onClick={close} className="flex-1 rounded-xl bg-brand-blue py-2.5 text-center text-sm font-bold text-white">Sign up</Link>
               </div>
             )}
             <button onClick={close} aria-label="Close menu" className="rounded-full bg-dark-elevated p-1.5 text-slate-300 hover:text-white lg:hidden">
