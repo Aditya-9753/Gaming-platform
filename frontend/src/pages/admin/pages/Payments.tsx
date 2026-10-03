@@ -73,7 +73,7 @@ const LimitsPanel: React.FC = () => {
       <section className="space-y-3 rounded-2xl border border-dark-border bg-dark-card p-5">
         <h3 className="text-sm font-black text-white">Limits & rules</h3>
         {!values ? <p className="text-xs text-slate-400">Loading…</p> : LIMITS.map(([k, label, kind]) => (
-          <label key={k} className="flex items-center justify-between gap-4 border-b border-dark-border/50 pb-2 text-xs text-slate-300">
+          <label key={k} className="flex flex-wrap items-center justify-between gap-2 border-b border-dark-border/50 pb-2 text-xs text-slate-300 sm:flex-nowrap sm:gap-4">
             <span>{label}</span>
             {kind === 'bool' ? (
               <input type="checkbox" checked={Boolean(draft[k])} onChange={(e) => setDraft((d) => ({ ...d, [k]: e.target.checked }))} className="h-4 w-4 accent-purple-500" />
@@ -110,8 +110,8 @@ const Lookup: React.FC<{ onDeposit: (id: string) => void; onWithdrawal: (id: str
   const empty = result && !result.deposits.length && !result.withdrawals.length && !result.bank_credits.length
   return (
     <>
-      <form onSubmit={run} className="flex gap-2">
-        <input className={`${inputCls} w-72`} placeholder="Find by UTR, deposit ref, payment / withdrawal id" value={q} onChange={(e) => setQ(e.target.value)} />
+      <form onSubmit={run} className="flex w-full gap-2 sm:w-auto">
+        <input className={`${inputCls} min-w-0 flex-1 sm:w-72 sm:flex-none`} placeholder="Find by UTR, deposit ref, payment / withdrawal id" value={q} onChange={(e) => setQ(e.target.value)} />
         <Button size="sm" variant="accent" type="submit" leftIcon={<Search className="h-4 w-4" />}>Find</Button>
       </form>
       <Modal open={Boolean(result)} title={`Results for "${q}"`} onClose={() => setResult(null)} wide>
@@ -199,10 +199,10 @@ export const AdminPayments: React.FC = () => {
         </div>
       )}
 
-      <div className="flex flex-wrap gap-2 rounded-xl bg-dark-elevated p-1">
+      <div className="-mx-1 flex gap-2 overflow-x-auto rounded-xl bg-dark-elevated p-1 sm:mx-0 sm:flex-wrap">
         {tabs.filter((t) => t.show).map((t) => (
           <button key={t.id} type="button" onClick={() => setTab(t.id)}
-            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold transition-all ${tab === t.id ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40' : 'text-slate-400 hover:text-white'}`}>
+            className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 text-xs font-bold transition-all ${tab === t.id ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40' : 'text-slate-400 hover:text-white'}`}>
             {t.icon}{t.label}
             {Boolean(t.badge) && <span className="rounded-full bg-amber-500 px-1.5 text-[10px] font-black text-dark-bg">{t.badge}</span>}
           </button>

@@ -60,7 +60,7 @@ export const WithdrawalDetail: React.FC<{ id: string; isSuper: boolean; canManag
           <StatusPill status={wd.status} /><span className="text-xs font-bold text-slate-400">{wd.state} · {wd.stage}</span>
           <span className={`ml-auto text-sm font-black ${riskTone(wd.risk_score)}`}>Risk {wd.risk_score}/100</span>
         </div>
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <Field label="Player">{wd.username ?? wd.user_id}</Field>
           <Field label="Pay to">{wd.payout_to}</Field>
           <Field label="Requested">{formatDateTime(wd.created_at)} ({ago(wd.created_at)})</Field>
@@ -169,8 +169,8 @@ export const WithdrawalsPanel: React.FC<{ isSuper: boolean; canManage: boolean; 
           <button key={f} type="button" onClick={() => { setFilter(f); setPage(1) }}
             className={`rounded-lg px-3 py-1.5 text-xs font-bold ${filter === f ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40' : 'bg-dark-elevated text-slate-400 hover:text-white'}`}>{f === 'ALL' ? 'All' : f[0] + f.slice(1).toLowerCase()}</button>
         ))}
-        <form className="ml-auto flex gap-2" onSubmit={(e) => { e.preventDefault(); setSearch(q); setPage(1) }}>
-          <input className={`${inputCls} w-56`} placeholder="Withdrawal id, payout UTR, username" value={q} onChange={(e) => setQ(e.target.value)} />
+        <form className="flex w-full gap-2 sm:ml-auto sm:w-auto" onSubmit={(e) => { e.preventDefault(); setSearch(q); setPage(1) }}>
+          <input className={`${inputCls} min-w-0 flex-1 sm:w-56 sm:flex-none`} placeholder="Withdrawal id, payout UTR, username" value={q} onChange={(e) => setQ(e.target.value)} />
           <Button size="sm" variant="secondary" type="submit" leftIcon={<Search className="h-4 w-4" />}>Search</Button>
         </form>
       </div>

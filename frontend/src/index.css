@@ -109,3 +109,17 @@ select,
 textarea {
   color-scheme: dark;
 }
+
+/* Admin panel on phones/tablets: wide tables scroll sideways inside their card
+   instead of stretching the page. */
+@media (max-width: 1023px) {
+  .admin-main table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .admin-main th {
+    white-space: nowrap;
+  }
+}

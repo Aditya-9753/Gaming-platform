@@ -221,7 +221,7 @@ export const LiveGames: React.FC = () => {
           </h2>
           {controls('mines')}
         </div>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           <Stat label="Active games" value={data.mines.active_sessions} />
           <Stat label="Total staked" value={formatPaiseToRupee(data.mines.total_stake)} />
           <Stat label="Potential payout" value={formatPaiseToRupee(data.mines.potential_payout)} tone="text-rose-300" />

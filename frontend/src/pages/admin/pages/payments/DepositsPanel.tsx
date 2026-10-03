@@ -59,7 +59,7 @@ export const DepositDetail: React.FC<{ id: string; isSuper: boolean; canManage: 
         <div className="flex flex-wrap items-center gap-2">
           <StatusPill status={dep.status} /><span className="text-xs font-bold text-slate-400">{dep.state} · {dep.stage}</span>
         </div>
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <Field label="Player">{dep.username ?? dep.user_id}</Field>
           <Field label="Requested">{formatPaiseToRupee(dep.amount_paise)}</Field>
           <Field label="Credited">{dep.credited_amount_paise != null ? formatPaiseToRupee(dep.credited_amount_paise) : '-'}</Field>
@@ -166,8 +166,8 @@ export const DepositsPanel: React.FC<{ isSuper: boolean; canManage: boolean; onC
           <button key={f.id} type="button" onClick={() => { setFilter(f.id); setPage(1) }}
             className={`rounded-lg px-3 py-1.5 text-xs font-bold ${filter === f.id ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40' : 'bg-dark-elevated text-slate-400 hover:text-white'}`}>{f.label}</button>
         ))}
-        <form className="ml-auto flex gap-2" onSubmit={(e) => { e.preventDefault(); setSearch(q); setPage(1) }}>
-          <input className={`${inputCls} w-56`} placeholder="Reference, UTR, deposit id, username" value={q} onChange={(e) => setQ(e.target.value)} />
+        <form className="flex w-full gap-2 sm:ml-auto sm:w-auto" onSubmit={(e) => { e.preventDefault(); setSearch(q); setPage(1) }}>
+          <input className={`${inputCls} min-w-0 flex-1 sm:w-56 sm:flex-none`} placeholder="Reference, UTR, deposit id, username" value={q} onChange={(e) => setQ(e.target.value)} />
           <Button size="sm" variant="secondary" type="submit" leftIcon={<Search className="h-4 w-4" />}>Search</Button>
         </form>
       </div>

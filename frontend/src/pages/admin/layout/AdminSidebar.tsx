@@ -25,6 +25,7 @@ import {
   Fingerprint,
   Gauge,
   Banknote,
+  X,
 } from 'lucide-react'
 import { useAuthStore } from '../../../store/auth.store'
 import { usePermission } from '../../../hooks/usePermission'
@@ -56,40 +57,60 @@ const adminLinks = [
   { name: 'Platform Settings', to: '/admin/settings', icon: <Settings className="w-4 h-4" />, superOnly: true },
 ]
 
-export const AdminSidebar: React.FC = () => {
+interface AdminSidebarProps {
+  /** Phones/tablets: the drawer is shown. Ignored on desktop, where the sidebar is always visible. */
+  open: boolean
+  onClose: () => void
+}
+
+export const AdminSidebar: React.FC<AdminSidebarProps> = ({ open, onClose }) => {
   const isSuper = useAuthStore((s) => s.user?.role === 'superadmin')
   const { hasPermission } = usePermission()
   // UI convenience only — every page's API enforces the same rules server-side
   const links = (adminLinks as Array<{ name: string; to: string; icon: React.ReactNode; superOnly?: boolean; perm?: string }>)
     .filter((l) => (l.superOnly ? isSuper : !l.perm || hasPermission(l.perm)))
   return (
-    <aside className="w-64 bg-dark-card border-r border-dark-border flex flex-col h-full shrink-0">
-      <div className="h-16 flex items-center px-6 border-b border-dark-border">
-        <span className="text-sm font-black tracking-wider text-purple-400">
-          ADMIN CONTROL
-        </span>
-      </div>
+    <>
+      {/* Backdrop behind the mobile drawer */}
+      <div
+        className={`fixed inset-0 z-40 bg-black/60 transition-opacity lg:hidden ${open ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col border-r border-dark-border bg-dark-card transition-transform duration-200 lg:static lg:z-auto lg:w-64 lg:max-w-none lg:shrink-0 lg:translate-x-0 ${
+          open ? 'translate-x-0' : '-translate-x-full'
+        }`}
+        aria-label="Admin navigation"
+      >
+        <div className="flex h-14 items-center justify-between border-b border-dark-border px-5 lg:h-16 lg:px-6">
+          <span className="text-sm font-black tracking-wider text-purple-400">ADMIN CONTROL</span>
+          <button type="button" onClick={onClose} aria-label="Close menu" className="rounded-lg p-1.5 text-slate-400 hover:bg-dark-elevated hover:text-white lg:hidden">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
 
-      <nav className="flex-1 overflow-y-auto p-4 space-y-1">
-        {links.map((link) => (
-          <NavLink
-            key={link.to}
-            to={link.to}
-            end
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                isActive
-                  ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
-                  : 'text-slate-400 hover:text-white hover:bg-dark-elevated'
-              }`
-            }
-          >
-            {link.icon}
-            <span>{link.name}</span>
-          </NavLink>
-        ))}
-      </nav>
-    </aside>
+        <nav className="flex-1 space-y-1 overflow-y-auto p-3 lg:p-4">
+          {links.map((link) => (
+            <NavLink
+              key={link.to}
+              to={link.to}
+              end
+              onClick={onClose}
+              className={({ isActive }) =>
+                `flex items-center gap-3 rounded-xl px-3.5 py-3 text-sm font-bold transition-all lg:py-2.5 lg:text-xs ${
+                  isActive
+                    ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
+                    : 'text-slate-400 hover:text-white hover:bg-dark-elevated'
+                }`
+              }
+            >
+              {link.icon}
+              <span>{link.name}</span>
+            </NavLink>
+          ))}
+        </nav>
+      </aside>
+    </>
   )
 }
-
