@@ -640,3 +640,42 @@ async def client_seed_rotate(
                   "previous_seed": (result["previous"] or {}).get("seed")}, request)
     await db.commit()
     return await seed_rotation.seed_state(db)
+
+
+# =====================================================================
+# Algorithm backtest — super admin only (read-only replay + statistics)
+# =====================================================================
+
+
+class BacktestRequest(BaseModel):
+    days: int = Field(30, ge=1, le=365)
+    max_rounds: int = Field(3000, ge=10, le=20000)   # per game
+    sim_scale: int = Field(1, ge=1, le=5)            # 1 = 100k WinGo / 200k Aviator / 20k Mines
+
+
+@router.post("/backtest/run")
+async def backtest_run(
+    payload: BacktestRequest,
+    request: Request,
+    actor: CurrentUser = Depends(require_superadmin),
+    db: AsyncSession = Depends(get_db),
+) -> Dict[str, Any]:
+    """Replay finished rounds from their revealed seeds and run the fairness statistics."""
+    from app.services import backtest
+
+    report = await backtest.run_backtest(db, payload.days, payload.max_rounds, payload.sim_scale, actor=actor.username)
+    await _audit(db, actor, "BACKTEST_RUN", "SYSTEM", "backtest",
+                 {"status": report["verdict"]["status"], "rounds": report["verdict"]["rounds_replayed"],
+                  "bets": report["verdict"]["bets_replayed"], "days": payload.days}, request)
+    await db.commit()
+    return report
+
+
+@router.get("/backtest/latest")
+async def backtest_latest(
+    _: CurrentUser = Depends(require_superadmin),
+    db: AsyncSession = Depends(get_db),
+) -> Dict[str, Any]:
+    from app.services import backtest
+
+    return await backtest.latest_report(db)

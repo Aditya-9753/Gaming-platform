@@ -927,3 +927,46 @@ async def test_client_seed_rotation_applies_to_new_rounds(admin_env):
     assert second["active"]["seed"] == "diwali-2026-seed" and second["history"][0]["seed"] == seed1
     assert (await client.post("/api/v1/admin/fairness/client-seed/rotate", headers=sup, json={"seed": "bad seed!"})).status_code == 400
     assert (await client.post("/api/v1/admin/fairness/client-seed/rotate", headers=admin_env["player_headers"], json={})).status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_backtest_replays_rounds_and_flags_bad_settlements(admin_env):
+    from app.games.wingo.rules import compute_outcome, payouts_from_config
+    from app.services.backtest import chi_square
+    from app.utils.rng import hash_server_seed
+
+    client, sup = admin_env["client"], admin_env["super_headers"]
+    seed = "a" * 64
+    drawn = compute_outcome(seed, "bt-client", 7)
+    other = (drawn.number + 1) % 10
+    async with admin_env["session_factory"]() as session:
+        session.add(Game(id="wingo_30s", name="WinGo 30s", type="wingo", is_active=True))
+        session.add(GameRound(id="bt_round", game_id="wingo_30s", round_no=7, status="HISTORY", server_seed=seed,
+                              server_seed_hash=hash_server_seed(seed), client_seed="bt-client",
+                              result={"number": drawn.number, "colours": list(drawn.colours), "size": drawn.size,
+                                      "payouts_x100": payouts_from_config(None)}))
+        # Correct win, correct loss, and one loss that should have been a win
+        session.add(GameEntry(id="bt_win", round_id="bt_round", user_id="target_player_id", bet_amount=100, payout_amount=900,
+                              status="WON", idempotency_key="bt_win", selection={"type": "NUMBER", "value": str(drawn.number)}))
+        session.add(GameEntry(id="bt_loss", round_id="bt_round", user_id="target_player_id", bet_amount=100, payout_amount=0,
+                              status="LOST", idempotency_key="bt_loss", selection={"type": "NUMBER", "value": str(other)}))
+        session.add(GameEntry(id="bt_wrong", round_id="bt_round", user_id="target_player_id", bet_amount=100, payout_amount=0,
+                              status="LOST", idempotency_key="bt_wrong", selection={"type": "NUMBER", "value": str(drawn.number)}))
+        await session.commit()
+
+    report = (await client.post("/api/v1/admin/backtest/run", headers=sup, json={"days": 30})).json()
+    wg = report["replay"]["games"]["wingo_30s"]
+    assert wg["rounds"] == 1 and wg["hash_ok"] == 1 and wg["outcome_ok"] == 1
+    assert wg["bets"] == 3 and wg["settled_ok"] == 2
+    assert wg["issues"][0]["entry_id"] == "bt_wrong" and "rules say WON" in wg["issues"][0]["problem"]
+    checks = {c["name"]: c["status"] for c in report["verdict"]["checks"]}
+    assert checks["Seed commitments"] == "pass" and checks["Bet settlement"] == "fail"
+    assert report["verdict"]["status"] == "fail"
+    assert sum(report["statistics"]["wingo"]["number_counts"]) == report["statistics"]["wingo"]["rounds"]
+
+    stored = (await client.get("/api/v1/admin/backtest/latest", headers=sup)).json()
+    assert stored["report"]["generated_at"] == report["generated_at"] and stored["history"][0]["status"] == "fail"
+    assert (await client.post("/api/v1/admin/backtest/run", headers=admin_env["player_headers"], json={})).status_code == 403
+
+    # chi-square helper against textbook values
+    assert chi_square([10] * 10, [10.0] * 10)["p_value"] == 1.0

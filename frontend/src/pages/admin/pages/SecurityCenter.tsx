@@ -5,8 +5,9 @@ import { apiClient } from '../../../services/api'
 import { getApiErrorMessage } from '../../../utils/apiError'
 import { formatPaiseToRupee } from '../../../utils/formatters'
 import { showToast } from '../../../components/common/Toast'
+import { BacktestTab } from '../components/BacktestReport'
 
-type Tab = 'hold' | 'integrity' | 'seed'
+type Tab = 'backtest' | 'hold' | 'integrity' | 'seed'
 
 // Validated categorical slot 1 (dark) on the #11151d card surface
 const SERIES = '#3987e5'
@@ -362,8 +363,8 @@ const SeedTab: React.FC = () => {
 }
 
 export const SecurityCenter: React.FC = () => {
-  const [tab, setTab] = useState<Tab>('hold')
-  const tabs: [Tab, string][] = [['hold', 'Hold Analyzer'], ['integrity', 'Ledger Integrity'], ['seed', 'Seed Rotation']]
+  const [tab, setTab] = useState<Tab>('backtest')
+  const tabs: [Tab, string][] = [['backtest', 'Backtest'], ['hold', 'Hold Analyzer'], ['integrity', 'Ledger Integrity'], ['seed', 'Seed Rotation']]
   return (
     <div className="space-y-6">
       <div>
@@ -375,6 +376,7 @@ export const SecurityCenter: React.FC = () => {
           <button key={id} type="button" onClick={() => setTab(id)} className={`whitespace-nowrap rounded-xl px-4 py-2 text-xs font-bold ${tab === id ? 'bg-emerald-500 text-black' : 'text-slate-300 hover:text-white'}`}>{label}</button>
         ))}
       </div>
+      {tab === 'backtest' && <BacktestTab />}
       {tab === 'hold' && <HoldTab />}
       {tab === 'integrity' && <IntegrityTab />}
       {tab === 'seed' && <SeedTab />}
