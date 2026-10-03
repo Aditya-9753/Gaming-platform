@@ -145,10 +145,26 @@ def _mines_entry_issue(entry: GameEntry, mines: set) -> Optional[str]:
     return None
 
 
+def _teen_patti_entry_issue(entry: GameEntry, winner: str, payout_x100: int) -> Optional[str]:
+    side = (entry.selection or {}).get("value")
+    if winner == "TIE":
+        if entry.status != "WON" or entry.payout_amount != entry.bet_amount:
+            return f"tie should refund {entry.bet_amount}, bet is {entry.status} paid {entry.payout_amount}"
+        return None
+    if side == winner:
+        expected = entry.bet_amount * payout_x100 // 100
+        if entry.status != "WON" or entry.payout_amount != expected:
+            return f"Player {side} won: expected {expected}, bet is {entry.status} paid {entry.payout_amount}"
+        return None
+    if entry.status != "LOST" or entry.payout_amount:
+        return f"Player {side} lost but bet is {entry.status} paid {entry.payout_amount}"
+    return None
+
+
 async def historical_replay(db: AsyncSession, days: int, max_rounds: int) -> Dict[str, Any]:
     since = datetime.now(timezone.utc) - timedelta(days=days)
     bot_ids = set((await db.execute(select(User.id).where(User.username.in_(BOT_NAMES)))).scalars().all())
-    groups = ["aviator", "mines", *MODES]
+    groups = ["aviator", "mines", *MODES, "teen_patti"]
     out: Dict[str, Any] = {}
     for game_id in groups:
         rounds = (await db.execute(
@@ -191,6 +207,19 @@ async def historical_replay(db: AsyncSession, days: int, max_rounds: int) -> Dic
                 payouts = result.get("payouts_x100") or payouts_from_config(None)
                 checker = lambda e, drawn=drawn, payouts=payouts: _wingo_entry_issue(e, drawn, payouts)  # noqa: E731
                 ev = lambda e, payouts=payouts: wingo_ev(str((e.selection or {}).get("type", "")), str((e.selection or {}).get("value", "")), payouts) or 0  # noqa: E731
+            elif game_id == "teen_patti":
+                from app.games.teen_patti.rules import compute_outcome as teen_patti_outcome
+
+                hand = teen_patti_outcome(seed, client, r.round_no)
+                g["outcomes"][hand.winner] += 1
+                if result.get("winner") == hand.winner and result.get("player_a") == hand.player_a and result.get("player_b") == hand.player_b:
+                    g["outcome_ok"] += 1
+                else:
+                    issue(r, f"stored winner {result.get('winner')}, seed gives {hand.winner}")
+                tp_payout = int(result.get("payout_x100") or 196)
+                checker = lambda e, w=hand.winner, p=tp_payout: _teen_patti_entry_issue(e, w, p)  # noqa: E731
+                # each side wins ~49.94% of hands, ties (~0.12%) refund the stake
+                ev = lambda e, p=tp_payout: 0.4994 * p / 100 + 0.0012  # noqa: E731
             elif game_id == "aviator":
                 edge = int(result.get("house_edge_bp", 300))
                 crash = compute_crash_point(seed, client, r.round_no, edge)

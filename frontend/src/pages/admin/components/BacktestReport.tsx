@@ -29,7 +29,7 @@ interface Report {
 }
 interface HistoryRow { generated_at: string; run_by: string | null; status: Status; rounds: number; bets: number; hold_pct: number | null; failed_checks: string[] }
 
-const GAME_LABEL: Record<string, string> = { aviator: 'Aviator', mines: 'Mines', wingo_30s: 'WinGo 30s', wingo_1m: 'WinGo 1m', wingo_3m: 'WinGo 3m', wingo_5m: 'WinGo 5m' }
+const GAME_LABEL: Record<string, string> = { aviator: 'Aviator', mines: 'Mines', teen_patti: 'Teen Patti', wingo_30s: 'WinGo 30s', wingo_1m: 'WinGo 1m', wingo_3m: 'WinGo 3m', wingo_5m: 'WinGo 5m' }
 const card = 'rounded-2xl border border-dark-border bg-dark-card p-5'
 const th = 'py-1.5 text-left font-semibold text-slate-400'
 
