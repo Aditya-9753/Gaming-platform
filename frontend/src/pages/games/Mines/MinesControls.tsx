@@ -41,7 +41,7 @@ export const MinesControls: React.FC<MinesControlsProps> = ({
   const setAmount = (n: number) => setBetRupees(String(Math.max(1, Math.round(n))))
 
   return (
-    <div className="space-y-3 sm:space-y-4 rounded-2xl sm:rounded-3xl border border-amber-400/30 bg-gradient-to-b from-[#2b0d3d] to-[#1a0826] p-3 sm:p-4 shadow-2xl">
+    <div className="min-w-0 space-y-3 sm:space-y-4 rounded-2xl sm:rounded-3xl border border-amber-400/30 bg-gradient-to-b from-[#2b0d3d] to-[#1a0826] p-3 sm:p-4 shadow-2xl">
       {isPlaying && (
         <div className="grid grid-cols-3 gap-2 text-center">
           <div className="rounded-xl bg-black/30 py-2"><p className="text-[10px] uppercase tracking-wider text-violet-300">Gems</p><p className="font-black text-amber-300">{gemsFound}</p></div>
@@ -54,9 +54,9 @@ export const MinesControls: React.FC<MinesControlsProps> = ({
       <div className={`space-y-2 ${isPlaying ? 'hidden lg:block' : ''}`}>
         <label className="text-xs font-bold uppercase tracking-wider text-violet-200">Bet amount</label>
         <div className="flex items-center rounded-full bg-black/40 px-1 py-1">
-          <button type="button" aria-label="Halve" disabled={isPlaying} onClick={() => setAmount(amount / 2)} className="w-9 h-8 rounded-full bg-white/10 text-xs font-bold text-white disabled:opacity-40">½</button>
-          <button type="button" aria-label="Decrease" disabled={isPlaying} onClick={() => setAmount(amount - 1)} className="ml-1 w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center disabled:opacity-40"><Minus className="w-3.5 h-3.5" /></button>
-          <span className="ml-2 font-bold text-amber-300">₹</span>
+          <button type="button" aria-label="Halve" disabled={isPlaying} onClick={() => setAmount(amount / 2)} className="h-8 w-8 shrink-0 rounded-full bg-white/10 text-xs font-bold text-white disabled:opacity-40 sm:w-9">½</button>
+          <button type="button" aria-label="Decrease" disabled={isPlaying} onClick={() => setAmount(amount - 1)} className="ml-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-white disabled:opacity-40"><Minus className="w-3.5 h-3.5" /></button>
+          <span className="ml-1.5 shrink-0 font-bold text-amber-300">₹</span>
           <input
             type="number"
             min="1"
@@ -64,10 +64,10 @@ export const MinesControls: React.FC<MinesControlsProps> = ({
             value={betRupees}
             onChange={(e) => setBetRupees(e.target.value)}
             aria-label="Bet amount in rupees"
-            className="min-w-0 flex-1 bg-transparent text-center font-mono text-lg font-black text-white focus:outline-none disabled:opacity-60"
+            className="w-0 min-w-0 flex-1 bg-transparent text-center font-mono text-lg font-black text-white focus:outline-none disabled:opacity-60"
           />
-          <button type="button" aria-label="Increase" disabled={isPlaying} onClick={() => setAmount(amount + 1)} className="mr-1 w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center disabled:opacity-40"><Plus className="w-3.5 h-3.5" /></button>
-          <button type="button" aria-label="Double" disabled={isPlaying} onClick={() => setAmount(amount * 2)} className="w-9 h-8 rounded-full bg-white/10 text-xs font-bold text-white disabled:opacity-40">2×</button>
+          <button type="button" aria-label="Increase" disabled={isPlaying} onClick={() => setAmount(amount + 1)} className="mr-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-white disabled:opacity-40"><Plus className="w-3.5 h-3.5" /></button>
+          <button type="button" aria-label="Double" disabled={isPlaying} onClick={() => setAmount(amount * 2)} className="h-8 w-8 shrink-0 rounded-full bg-white/10 text-xs font-bold text-white disabled:opacity-40 sm:w-9">2×</button>
         </div>
         <EditableQuickAmounts
           amounts={quick.amounts}

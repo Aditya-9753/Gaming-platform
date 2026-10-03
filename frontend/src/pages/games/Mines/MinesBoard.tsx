@@ -12,9 +12,11 @@ export interface MinesBoardProps {
   grid: CellState[]
   onCellClick: (index: number) => void
   disabled?: boolean
+  /** Tapped tiles waiting for the server, in order. */
+  pendingTiles?: number[]
 }
 
-export const MinesBoard: React.FC<MinesBoardProps> = ({ grid, onCellClick, disabled = false }) => (
+export const MinesBoard: React.FC<MinesBoardProps> = ({ grid, onCellClick, disabled = false, pendingTiles = [] }) => (
   <div className="mx-auto w-full max-w-[520px] grid grid-cols-5 gap-1.5 sm:gap-2.5 rounded-2xl sm:rounded-3xl bg-black/30 p-2 sm:p-4 touch-manipulation shadow-[inset_0_0_30px_rgba(0,0,0,0.5)] backdrop-blur-sm">
     {grid.map((cell, idx) => (
       <MinesCell
@@ -25,6 +27,7 @@ export const MinesBoard: React.FC<MinesBoardProps> = ({ grid, onCellClick, disab
         ghost={cell.ghost}
         onClick={() => onCellClick(idx)}
         disabled={disabled}
+        pending={pendingTiles.includes(idx)}
       />
     ))}
   </div>

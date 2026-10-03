@@ -4,6 +4,7 @@ import { apiClient } from '../../../services/api'
 import { useIdempotencyKey } from '../../../hooks/useIdempotencyKey'
 import { syncWalletBalance } from '../../../services/wallet.api'
 import { showToast } from '../../../components/common/Toast'
+import { playSound, playWinFor } from '../../../utils/sounds'
 import { formatPaiseToRupee } from '../../../utils/formatters'
 import { getApiErrorMessage } from '../../../utils/apiError'
 
@@ -44,6 +45,7 @@ export function useAviatorBet(round: AviatorState, label: string, onSettled?: ()
   useEffect(() => {
     const cashout = round.lastCashout
     if (!cashout || !entryId || cashout.entryId !== entryId) return
+    playWinFor(cashout.payout, betPaise ?? 0)
     clear()
     refreshWallet()
     onSettled?.()
@@ -57,6 +59,7 @@ export function useAviatorBet(round: AviatorState, label: string, onSettled?: ()
   // Plane flew away with this bet still riding
   useEffect(() => {
     if (round.phase !== 'crashed' || betPaise === null || roundId !== round.roundId) return
+    playSound('lose')
     showToast({ title: `${label}: flew away`, message: `Lost ${formatPaiseToRupee(betPaise)} at ${round.multiplier.toFixed(2)}x.`, type: 'error' })
     clear()
     refreshWallet()
@@ -90,6 +93,7 @@ export function useAviatorBet(round: AviatorState, label: string, onSettled?: ()
       setRoundId(round.roundId)
       setAutoCashout(auto ?? null)
       refreshWallet()
+      playSound('bet')
       showToast({ title: `${label}: bet placed`, message: `${formatPaiseToRupee(data.bet_amount)} on round #${round.roundNumber}${auto ? ` • auto ${auto.toFixed(2)}x` : ''}.`, type: 'success' })
     } catch (error) {
       showToast({ title: `${label}: bet rejected`, message: getApiErrorMessage(error, 'The server rejected this bet.'), type: 'error' })
@@ -104,6 +108,7 @@ export function useAviatorBet(round: AviatorState, label: string, onSettled?: ()
       const { data } = await apiClient.post<CashoutResponse>('/games/aviator/action', {
         action: 'cashout', round_id: roundId, entry_id: entryId,
       }, { headers: { 'Idempotency-Key': key } })
+      playWinFor(data.payout_amount, betPaise ?? 0)
       clear()
       refreshWallet()
       onSettled?.()

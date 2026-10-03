@@ -3,6 +3,7 @@ import { X } from 'lucide-react'
 import { WinGoBall } from './WinGoBall'
 import { pickLabel, type WingoPick } from './wingoRules'
 import { formatPaiseToRupee } from '../../../utils/formatters'
+import { playSound, playWinFor } from '../../../utils/sounds'
 import type { WingoResult } from './useWingoRound'
 
 export interface SettledBet { pick: WingoPick; amountPaise: number; winPaise: number }
@@ -24,6 +25,14 @@ export const WinGoResultPopup: React.FC<WinGoResultPopupProps> = ({ result, bets
   const totalStake = bets.reduce((s, b) => s + b.amountPaise, 0)
   const net = totalWin - totalStake
   const won = totalWin > 0
+
+  // Win / lose sound once per drawn result
+  useEffect(() => {
+    if (!result) return
+    if (won) playWinFor(totalWin, totalStake)
+    else playSound('lose')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [result])
 
   useEffect(() => {
     if (!result || !autoClose) return

@@ -6,6 +6,7 @@ import { ConnectionStatus } from '../../../components/games/ConnectionStatus'
 import { MyBetsHistory } from '../../../components/games/MyBetsHistory'
 import { EditableQuickAmounts, useQuickAmounts } from '../../../components/games/EditableQuickAmounts'
 import { showToast } from '../../../components/common/Toast'
+import { playSound, playWinFor } from '../../../utils/sounds'
 import { apiClient } from '../../../services/api'
 import { syncWalletBalance } from '../../../services/wallet.api'
 import { formatPaiseToRupee, rupeeToPaise } from '../../../utils/formatters'
@@ -57,6 +58,10 @@ export const TeenPatti: React.FC = () => {
       const won = res.winner === 'TIE'
         ? myBets.bets.reduce((s, b) => s + b.amount, 0)
         : myBets.bets.filter((b) => b.side === res.winner).reduce((s, b) => s + Math.floor((b.amount * round.payoutX100) / 100), 0)
+      const staked = myBets.bets.reduce((s, b) => s + b.amount, 0)
+      if (res.winner === 'TIE') playSound('cashout')
+      else if (won > 0) playWinFor(won, staked)
+      else playSound('lose')
       if (res.winner === 'TIE') showToast({ title: 'Tie — stakes refunded', message: `${formatPaiseToRupee(won)} returned to your wallet.`, type: 'info' })
       else if (won > 0) showToast({ title: `Player ${res.winner} wins!`, message: `You won ${formatPaiseToRupee(won)}.`, type: 'success' })
       else showToast({ title: `Player ${res.winner} wins`, message: 'Better luck next hand.', type: 'warning' })
@@ -71,6 +76,7 @@ export const TeenPatti: React.FC = () => {
     try {
       await apiClient.post('/games/teen-patti/action', { round_id: round.roundId, amount: paise, side }, { headers: { 'Idempotency-Key': newKey() } })
       setMyBets((m) => ({ roundId: round.roundId, bets: [...(m.roundId === round.roundId ? m.bets : []), { side, amount: paise }] }))
+      playSound('bet')
       void syncWalletBalance().catch(() => undefined)
     } catch (error) {
       showToast({ title: 'Bet not placed', message: getApiErrorMessage(error, 'The server rejected this bet.'), type: 'error' })

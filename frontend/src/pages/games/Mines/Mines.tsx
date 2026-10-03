@@ -7,9 +7,9 @@ import { ProvablyFairBadge } from '../../../components/games/ProvablyFairBadge'
 import { showToast } from '../../../components/common/Toast'
 import { rupeeToPaise, formatPaiseToRupee } from '../../../utils/formatters'
 import { apiClient } from '../../../services/api'
-import { useIdempotencyKey } from '../../../hooks/useIdempotencyKey'
 import { syncWalletBalance } from '../../../services/wallet.api'
 import { getApiErrorMessage } from '../../../utils/apiError'
+import { playSound, playWinFor } from '../../../utils/sounds'
 
 interface MinesSession {
   round_id: string
@@ -31,9 +31,12 @@ export const Mines: React.FC = () => {
   const [betRupees, setBetRupees] = useState('10')
   const [session, setSession] = useState<MinesSession | null>(null)
   const [busy, setBusy] = useState(false)
+  const [pendingTiles, setPendingTiles] = useState<number[]>([])
   const [historyKey, setHistoryKey] = useState(0)
-  const [key, rotateKey] = useIdempotencyKey()
   const busyRef = useRef(false)
+  // Taps made while a reveal is in flight wait here and are sent one by one
+  const queueRef = useRef<number[]>([])
+  const drainingRef = useRef(false)
 
   const isPlaying = session?.status === 'IN_PROGRESS'
 
@@ -59,18 +62,17 @@ export const Mines: React.FC = () => {
     busyRef.current = true
     setBusy(true)
     try {
+      // A fresh key per move: two quick moves must never share one (the server would treat the second as a replay)
       const { data } = await apiClient.post<MinesSession>('/games/mines/action', body, {
-        headers: { 'Idempotency-Key': key },
+        headers: { 'Idempotency-Key': crypto.randomUUID() },
       })
       setSession(data)
-      rotateKey()
       if (data.status !== 'IN_PROGRESS') setHistoryKey((k) => k + 1)
       if (body.action === 'start' || data.status !== 'IN_PROGRESS') {
         void syncWalletBalance().catch(() => showToast({ title: 'Wallet refresh delayed', message: 'The game action completed; refresh your wallet to see the latest balance.', type: 'warning' }))
       }
       return data
     } catch (error) {
-      rotateKey()
       showToast({ title: 'Action failed', message: getApiErrorMessage(error, 'The server could not process that move. Please retry.'), type: 'error' })
       return undefined
     } finally {
@@ -90,20 +92,45 @@ export const Mines: React.FC = () => {
       bet_amount: rupeeToPaise(amount),
       mine_count: mineCount,
     })
+    if (result) playSound('bet')
     if (result) showToast({ title: 'Game started', message: `${mineCount} mines hidden. Reveal gems and cash out before you hit one!`, type: 'info' })
   }
 
-  const handleCellClick = async (index: number) => {
-    if (!isPlaying || session?.revealed_tiles.includes(index)) return
-    const result = await sendAction({ action: 'reveal', tile_index: index })
-    if (result?.status === 'LOST') {
-      showToast({ title: 'Boom! Mine hit', message: `You lost ${formatPaiseToRupee(result.bet_amount)}. The mine layout is now revealed.`, type: 'error' })
+  const drainQueue = async () => {
+    if (drainingRef.current) return
+    drainingRef.current = true
+    try {
+      while (queueRef.current.length) {
+        const index = queueRef.current[0]
+        const result = await sendAction({ action: 'reveal', tile_index: index })
+        queueRef.current.shift()
+        if (result?.status === 'LOST') { playSound('bomb'); window.setTimeout(() => playSound('lose'), 450) }
+        else if (result) playSound('gem')
+        if (!result || result.status !== 'IN_PROGRESS') {
+          queueRef.current = [] // mine hit, round over or error: drop the remaining taps
+          if (result?.status === 'LOST') {
+            showToast({ title: 'Boom! Mine hit', message: `You lost ${formatPaiseToRupee(result.bet_amount)}. The mine layout is now revealed.`, type: 'error' })
+          }
+        }
+        setPendingTiles([...queueRef.current])
+      }
+    } finally {
+      drainingRef.current = false
     }
+  }
+
+  const handleCellClick = (index: number) => {
+    if (!isPlaying || session?.revealed_tiles.includes(index) || queueRef.current.includes(index)) return
+    queueRef.current.push(index)
+    setPendingTiles([...queueRef.current])
+    void drainQueue()
   }
 
   const handleCashout = async () => {
     const result = await sendAction({ action: 'cashout' })
     if (result?.status === 'WON') {
+      playSound('cashout')
+      window.setTimeout(() => playWinFor(result.current_payout, result.bet_amount), 150)
       showToast({
         title: 'Cashed out!',
         message: `You won ${formatPaiseToRupee(result.current_payout)} at ${result.current_multiplier.toFixed(2)}x.`,
@@ -129,9 +156,9 @@ export const Mines: React.FC = () => {
         <ProvablyFairBadge className="hidden sm:inline-flex" />
       </div>
 
-      <div className="grid gap-3 sm:gap-5 lg:grid-cols-[1fr_340px]">
-        <div className="space-y-3">
-          <MinesBoard grid={grid} onCellClick={handleCellClick} disabled={!isPlaying || busy} />
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-3 sm:gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="min-w-0 space-y-3">
+          <MinesBoard grid={grid} onCellClick={handleCellClick} disabled={!isPlaying} pendingTiles={pendingTiles} />
           {ended && (
             <div className={`rounded-2xl px-4 py-3 text-center font-black ${session.status === 'WON' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-black/40 text-rose-300'}`}>
               {session.status === 'WON'

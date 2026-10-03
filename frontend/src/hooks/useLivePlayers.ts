@@ -17,6 +17,21 @@ async function refresh() {
   } catch { /* keep the last known numbers */ }
 }
 
+// Staff-only preview numbers so admins can see how busy tiles look while testing.
+// Never shown to players: they always get the real counts above.
+const DEMO_BASE: Record<string, number> = { aviator: 1840, color: 2630, mines: 940, teen_patti: 1210 }
+
+export function demoPlayers(gameId: string, now = Date.now()): number {
+  const base = DEMO_BASE[gameId] ?? 500
+  const minutes = now / 60_000
+  const seed = [...gameId].reduce((a, c) => a + c.charCodeAt(0), 0)
+  const daily = Math.sin((minutes / 1440) * Math.PI * 2 + seed) * 0.25 // slow rise and fall over the day
+  const wave = Math.sin(minutes / 7 + seed) * 0.06                     // a few minutes of drift
+  const bucket = Math.floor(now / POLL_MS)
+  const jitter = (((bucket * 9301 + seed * 49297) % 233280) / 233280 - 0.5) * 0.04
+  return Math.max(12, Math.round(base * (1 + daily + wave + jitter)))
+}
+
 /** Real players active in each lobby game over the last few minutes. */
 export function useLivePlayers(): Counts {
   const [value, setValue] = useState<Counts>(counts)

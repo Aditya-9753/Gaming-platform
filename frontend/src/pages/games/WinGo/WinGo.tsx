@@ -14,6 +14,7 @@ import { syncWalletBalance } from '../../../services/wallet.api'
 import { useWalletStore } from '../../../store/wallet.store'
 import { useAuthStore } from '../../../store/auth.store'
 import { showToast } from '../../../components/common/Toast'
+import { playSound } from '../../../utils/sounds'
 import { BrandLogo } from '../../../components/common/BrandLogo'
 import { formatPaiseToRupee, rupeeToPaise } from '../../../utils/formatters'
 import { getApiErrorMessage } from '../../../utils/apiError'
@@ -134,6 +135,7 @@ export const WinGo: React.FC = () => {
       setPending(pendingRef.current)
       void syncWalletBalance().catch(() => undefined)
       setMyHistoryKey((k) => k + 1)
+      playSound('bet')
       showToast({ title: 'Bet placed', message: `₹${totalRupees} on ${pick.type === 'NUMBER' ? `number ${pick.value}` : pickLabel(pick)} • ${round.period}`, type: 'success', duration: 2500 })
       setPick(null)
     } catch (error) {

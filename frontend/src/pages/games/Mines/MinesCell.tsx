@@ -10,6 +10,8 @@ export interface MinesCellProps {
   ghost?: boolean
   onClick: () => void
   disabled?: boolean
+  /** Waiting for the server to answer this tap. */
+  pending?: boolean
 }
 
 export const MinesCell: React.FC<MinesCellProps> = ({
@@ -19,6 +21,7 @@ export const MinesCell: React.FC<MinesCellProps> = ({
   ghost = false,
   onClick,
   disabled = false,
+  pending = false,
 }) => {
   const base = 'relative w-full aspect-square rounded-xl sm:rounded-2xl flex items-center justify-center transition-all duration-200 select-none'
   if (!revealed) {
@@ -28,9 +31,12 @@ export const MinesCell: React.FC<MinesCellProps> = ({
         disabled={disabled}
         onClick={onClick}
         aria-label="Hidden tile"
-        className={`${base} bg-gradient-to-b from-[#5b2a86] to-[#3a1760] border-b-4 border-[#26103f] shadow-[inset_0_2px_0_rgba(255,255,255,0.15)] hover:from-[#6d34a0] hover:-translate-y-0.5 active:translate-y-0.5 active:border-b-2 disabled:cursor-not-allowed disabled:hover:translate-y-0`}
+        aria-busy={pending}
+        className={`${base} bg-gradient-to-b from-[#5b2a86] to-[#3a1760] border-b-4 border-[#26103f] shadow-[inset_0_2px_0_rgba(255,255,255,0.15)] hover:from-[#6d34a0] hover:-translate-y-0.5 active:translate-y-0.5 active:border-b-2 disabled:cursor-not-allowed disabled:hover:translate-y-0 ${pending ? 'from-[#7c3aed] to-[#4c1d95] ring-2 ring-amber-300' : ''}`}
       >
-        <span className="h-3 w-3 rounded-full bg-white/10" />
+        {pending
+          ? <span className="h-5 w-5 animate-spin rounded-full border-2 border-amber-200 border-t-transparent" />
+          : <span className="h-3 w-3 rounded-full bg-white/10" />}
       </button>
     )
   }

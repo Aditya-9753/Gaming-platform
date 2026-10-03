@@ -8,6 +8,7 @@ import { useUIStore } from '../../store/ui.store'
 import { formatPaiseToRupee } from '../../utils/formatters'
 import { Button } from '../common/Button'
 import { LanguageSwitcher } from '../common/LanguageSwitcher'
+import { SoundToggle } from '../common/SoundToggle'
 import { NotificationBell } from '../notifications/NotificationBell'
 import { walletApi } from '../../services/wallet.api'
 import { authApi } from '../../services/auth.api'
@@ -77,6 +78,7 @@ export const Header: React.FC = () => {
               {isStaffRole(user?.role) ? 'Wallet' : 'Deposit'}
             </Link>
 
+            <SoundToggle className="-mx-1" />
             <NotificationBell />
 
             {/* User Dropdown / Admin Link (desktop; phones use the Menu drawer) */}
