@@ -191,7 +191,7 @@ def deposit_out(
         link = upi_link(account, dep.amount_paise, dep.reference, display_name=brand or "Payment")
         out["payment"] = {
             "upi_link": link,
-            "qr": qr_data_url(link) if with_qr else None,
+            "qr": qr_data_url(link, label=brand or None) if with_qr else None,
         }
     if admin:
         names = names or {}

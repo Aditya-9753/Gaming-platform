@@ -22,6 +22,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import hmac
+import html
 import io
 import json
 import random
@@ -190,17 +191,50 @@ def upi_link(account: PaymentAccount, amount_paise: int, reference: str, display
     )
 
 
-def qr_data_url(text: str) -> Optional[str]:
-    """SVG QR code as a data URL (pure Python; None if the qrcode package is missing)."""
+def qr_data_url(text: str, label: Optional[str] = None) -> Optional[str]:
+    """SVG QR code as a data URL (pure Python; None if the qrcode package is missing).
+
+    With ``label`` the brand name is drawn in a badge at the centre and as a caption
+    underneath. High error correction keeps the code scannable with the badge on it.
+    """
     try:
         import qrcode
-        import qrcode.image.svg
+        from qrcode.constants import ERROR_CORRECT_H
     except ImportError:  # pragma: no cover - dependency listed in requirements.txt
         return None
-    img = qrcode.make(text, image_factory=qrcode.image.svg.SvgPathImage, box_size=10, border=2)
-    buf = io.BytesIO()
-    img.save(buf)
-    return "data:image/svg+xml;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
+    qr = qrcode.QRCode(error_correction=ERROR_CORRECT_H, border=4)  # full quiet zone above the caption
+    qr.add_data(text)
+    qr.make(fit=True)
+    matrix = qr.get_matrix()  # includes the quiet-zone border
+    n = len(matrix)
+    cell = 10
+    size = n * cell
+    caption = 30 if label else 0
+    path = "".join(
+        f"M{x * cell},{y * cell}h{cell}v{cell}h-{cell}z"
+        for y, row in enumerate(matrix) for x, dark in enumerate(row) if dark
+    )
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {size} {size + caption}" width="{size}" height="{size + caption}">',
+        f'<rect width="{size}" height="{size + caption}" fill="#ffffff"/>',
+        f'<path d="{path}" fill="#000000"/>',
+    ]
+    if label:
+        name = html.escape(label[:16])
+        # Centre badge sized to the text, capped so it covers well under level-H (30%) recovery
+        bh = size * 0.1
+        fs = bh * 0.45
+        bw = min(size * 0.42, len(label[:16]) * fs * 0.62 + fs * 1.2)
+        fs = min(fs, (bw - fs * 0.8) / (len(label[:16]) * 0.62))
+        bx, by = (size - bw) / 2, (size - bh) / 2
+        font = "font-family='Arial,Helvetica,sans-serif' font-weight='800'"
+        parts += [
+            f'<rect x="{bx:.1f}" y="{by:.1f}" width="{bw:.1f}" height="{bh:.1f}" rx="{bh / 4:.1f}" fill="#ffffff" stroke="#000000" stroke-width="3"/>',
+            f'<text x="{size / 2}" y="{size / 2}" {font} font-size="{fs:.1f}" text-anchor="middle" dominant-baseline="central" fill="#0b1b3f">{name}</text>',
+            f'<text x="{size / 2}" y="{size + caption / 2 - 12}" {font} font-size="22" text-anchor="middle" dominant-baseline="central" fill="#0b1b3f">{name}</text>',
+        ]
+    parts.append("</svg>")
+    return "data:image/svg+xml;base64," + base64.b64encode("".join(parts).encode("utf-8")).decode("ascii")
 
 
 async def _rate_limit(key: str, limit: int, window: int, message: str) -> None:
