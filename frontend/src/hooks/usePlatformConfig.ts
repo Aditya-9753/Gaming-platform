@@ -27,7 +27,11 @@ const DEFAULTS: PlatformConfig = {
 export const usePlatformConfigStore = create<ConfigState>((set) => ({
   config: DEFAULTS,
   loaded: false,
-  set: (config) => set({ config: { ...DEFAULTS, ...config }, loaded: true }),
+  set: (config) => {
+    const merged = { ...DEFAULTS, ...config }
+    if (typeof document !== 'undefined' && merged.platform_name) document.title = `${merged.platform_name} — Live Games`
+    set({ config: merged, loaded: true })
+  },
 }))
 
 let inflight: Promise<void> | null = null

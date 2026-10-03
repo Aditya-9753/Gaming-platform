@@ -1,6 +1,6 @@
 import React from 'react'
 
-/** Purple skull bomb with a lit fuse (GameZone original art). */
+/** Purple skull bomb with a lit fuse (Rudra247 original art). */
 export const SkullBomb: React.FC<{ className?: string; lit?: boolean }> = ({ className, lit = true }) => (
   <svg viewBox="0 0 100 100" className={className} aria-hidden>
     <defs>
