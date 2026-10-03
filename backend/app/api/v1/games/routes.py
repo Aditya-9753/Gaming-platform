@@ -81,6 +81,14 @@ async def list_games(db: AsyncSession = Depends(get_db)) -> List[Dict[str, Any]]
     ]
 
 
+@router.get("/live/players")
+async def live_players(db: AsyncSession = Depends(get_db)) -> Dict[str, Any]:
+    """Real players active in each lobby game over the last few minutes (bots and staff excluded)."""
+    from app.services.live_players import live_player_counts
+
+    return await live_player_counts(db)
+
+
 @router.get("/{game_id}")
 async def get_game_details(
     game_id: str, db: AsyncSession = Depends(get_db)

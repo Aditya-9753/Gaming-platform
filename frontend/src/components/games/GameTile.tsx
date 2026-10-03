@@ -2,11 +2,13 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import type { LobbyGame } from '../../utils/lobbyGames'
 import { GameArt, hasGameArt } from './GameArt'
+import { useLivePlayers } from '../../hooks/useLivePlayers'
 
 /** Portrait lobby tile (tag on top, big title, illustration). */
 export const GameTile: React.FC<{ game: LobbyGame; disabled?: boolean }> = ({ game, disabled = false }) => {
   const playable = Boolean(game.live && game.to && !disabled)
   const art = hasGameArt(game.id)
+  const players = useLivePlayers()[game.id] ?? 0
   const body = (
     <div className="space-y-1.5">
       <div className={`relative aspect-[3/4] overflow-hidden rounded-2xl bg-gradient-to-b ${game.gradient} shadow-lg transition-transform duration-200 ${playable ? 'group-hover:-translate-y-1 group-active:scale-[0.98]' : ''}`}>
@@ -32,7 +34,7 @@ export const GameTile: React.FC<{ game: LobbyGame; disabled?: boolean }> = ({ ga
       </div>
       <p className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400">
         {playable
-          ? <><span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />Live now</>
+          ? <><span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />{players > 0 ? `${players.toLocaleString('en-IN')} playing` : 'Live now'}</>
           : <><span className="h-1.5 w-1.5 rounded-full bg-slate-600" />{game.title}</>}
       </p>
     </div>

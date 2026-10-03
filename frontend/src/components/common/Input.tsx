@@ -1,4 +1,5 @@
-import React, { forwardRef } from 'react'
+import React, { forwardRef, useState } from 'react'
+import { Eye, EyeOff } from 'lucide-react'
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string
@@ -11,7 +12,22 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, success, helperText, leftElement, rightElement, className = '', ...props }, ref) => {
+  ({ label, error, success, helperText, leftElement, rightElement, className = '', type, ...props }, ref) => {
+    // Password fields get a show/hide button unless the caller supplies its own right element
+    const [reveal, setReveal] = useState(false)
+    const isPassword = type === 'password'
+    const toggle = isPassword && !rightElement ? (
+      <button
+        type="button"
+        onClick={() => setReveal((v) => !v)}
+        aria-label={reveal ? 'Hide password' : 'Show password'}
+        aria-pressed={reveal}
+        className="rounded-md p-1 text-slate-400 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+      >
+        {reveal ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+      </button>
+    ) : null
+    const right = rightElement ?? toggle
     return (
       <div className="w-full space-y-1.5 text-left">
         {label && (
@@ -27,9 +43,10 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           )}
           <input
             ref={ref}
+            type={isPassword && reveal ? 'text' : type}
             className={`w-full bg-dark-card border rounded-xl py-2.5 px-3.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 transition-all duration-200 ${
               leftElement ? 'pl-10' : ''
-            } ${rightElement ? 'pr-10' : ''} ${
+            } ${right ? 'pr-11' : ''} ${
               error
                 ? 'border-rose-500 focus:ring-rose-500/30'
                 : success
@@ -38,9 +55,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             } ${className}`}
             {...props}
           />
-          {rightElement && (
-            <div className="absolute right-3.5 flex items-center text-slate-400">
-              {rightElement}
+          {right && (
+            <div className="absolute right-2.5 flex items-center text-slate-400">
+              {right}
             </div>
           )}
         </div>
