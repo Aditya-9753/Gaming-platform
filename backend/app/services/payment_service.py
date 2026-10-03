@@ -182,9 +182,10 @@ def mask_vpa(vpa: str) -> str:
     return f"{name[:2]}{'•' * max(2, len(name) - 2)}@{handle}"
 
 
-def upi_link(account: PaymentAccount, amount_paise: int, reference: str) -> str:
+def upi_link(account: PaymentAccount, amount_paise: int, reference: str, display_name: Optional[str] = None) -> str:
+    """UPI intent. ``display_name`` replaces the account's payee name (players see the brand, not a person)."""
     return (
-        f"upi://pay?pa={quote(account.upi_id, safe='@.')}&pn={quote(account.payee_name)}"
+        f"upi://pay?pa={quote(account.upi_id, safe='@.')}&pn={quote(display_name or account.payee_name)}"
         f"&am={amount_paise / 100:.2f}&cu=INR&tn={reference}&tr={reference}"
     )
 

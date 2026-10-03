@@ -50,7 +50,6 @@ function useCountdown(until?: string) {
 const ActiveDeposit: React.FC<{ deposit: Deposit; onChange: (d: Deposit | null) => void }> = ({ deposit, onChange }) => {
   const [utr, setUtr] = useState(deposit.utr ?? '')
   const [busy, setBusy] = useState(false)
-  const [showStatic, setShowStatic] = useState(false)
   const countdown = useCountdown(deposit.status === 'PENDING' && !deposit.utr ? deposit.expires_at : undefined)
 
   // Poll while the payment is being verified
@@ -113,16 +112,12 @@ const ActiveDeposit: React.FC<{ deposit: Deposit; onChange: (d: Deposit | null) 
   return (
     <div className="grid gap-5 rounded-2xl border border-dark-border bg-dark-card p-5 md:grid-cols-[240px_1fr]">
       <div className="space-y-3 text-center">
-        {pay && (showStatic && pay.qr_image ? pay.qr_image : pay.qr) ? (
-          <img src={(showStatic && pay.qr_image) || pay.qr || ''} alt="Payment QR code" className="mx-auto w-full max-w-[240px] rounded-xl bg-white p-2" />
+        {pay?.qr ? (
+          <img src={pay.qr} alt="Payment QR code" className="mx-auto w-full max-w-[240px] rounded-xl bg-white p-2" />
         ) : (
           <div className="flex aspect-square items-center justify-center rounded-xl bg-dark-elevated text-slate-500"><QrCode className="h-16 w-16" /></div>
         )}
-        {pay?.qr_image && (
-          <button type="button" onClick={() => setShowStatic((v) => !v)} className="text-[11px] font-bold text-emerald-400 hover:underline">
-            {showStatic ? 'Show amount QR' : 'Show merchant QR'}
-          </button>
-        )}
+        <p className="text-[11px] text-slate-400">Scan to pay {formatPaiseToRupee(deposit.amount_paise)}</p>
         {pay && (
           <a href={pay.upi_link} className="block rounded-xl bg-emerald-500 px-3 py-2 text-sm font-black text-dark-bg md:hidden">Open UPI app</a>
         )}
@@ -133,12 +128,12 @@ const ActiveDeposit: React.FC<{ deposit: Deposit; onChange: (d: Deposit | null) 
           <h3 className="text-sm font-black text-white">Step 1 — Pay with any UPI app</h3>
           <StatusPill status={deposit.status} />
         </div>
-        <CopyRow label="Pay exactly" value={(deposit.amount_paise / 100).toFixed(2)} strong />
-        {deposit.amount_paise % 100 !== 0 && (
-          <p className="text-[11px] text-slate-400">The paise in this amount are unique to your request — paying the exact amount lets us credit you automatically.</p>
-        )}
-        {pay && <CopyRow label={`UPI ID · ${pay.payee_name}`} value={pay.upi_id} />}
-        <CopyRow label="Reference (add in UPI note)" value={deposit.reference} />
+        <div className="rounded-xl bg-dark-elevated px-3 py-2">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Amount</p>
+          <p className="text-2xl font-black text-white">{formatPaiseToRupee(deposit.amount_paise)}</p>
+        </div>
+        <p className="text-[11px] text-slate-400">Scan the QR with any UPI app (or tap "Open UPI app" on your phone). The amount is already filled in — don't change it.</p>
+        <CopyRow label="Reference (keep for support)" value={deposit.reference} />
 
         <div className="space-y-2 border-t border-dark-border pt-3">
           <h3 className="text-sm font-black text-white">Step 2 — Paid? Enter the UTR</h3>

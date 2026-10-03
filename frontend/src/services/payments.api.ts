@@ -6,13 +6,14 @@ import { apiClient } from './api'
 export type DepositStatus = 'PENDING' | 'SUCCESS' | 'REJECTED'
 export type WithdrawalStatus = 'PENDING' | 'COMPLETED' | 'REJECTED'
 
+/** Players get only the generated QR + intent link; staff responses also carry the account details. */
 export interface PaymentTarget {
-  payee_name: string
-  upi_id: string
-  bank_name: string | null
   upi_link: string
   qr: string | null
-  qr_image: string | null
+  payee_name?: string
+  upi_id?: string
+  bank_name?: string | null
+  qr_image?: string | null
 }
 
 export interface Deposit {

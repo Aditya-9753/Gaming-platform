@@ -158,7 +158,7 @@ def _iso(dt: Optional[datetime]) -> Optional[str]:
 
 def deposit_out(
     dep: Deposit, account: Optional[PaymentAccount] = None, *, admin: bool = False,
-    names: Optional[Dict[str, str]] = None, with_qr: bool = False,
+    names: Optional[Dict[str, str]] = None, with_qr: bool = False, brand: Optional[str] = None,
 ) -> Dict[str, Any]:
     out: Dict[str, Any] = {
         "id": dep.id,
@@ -175,15 +175,23 @@ def deposit_out(
         "can_submit_utr": dep.state in MATCHABLE_DEPOSIT_STATES,
         "can_cancel": dep.state == "PENDING",
     }
-    if account is not None and (admin or dep.state in MATCHABLE_DEPOSIT_STATES):
+    if account is not None and admin:
         link = upi_link(account, dep.amount_paise, dep.reference)
         out["payment"] = {
             "payee_name": account.payee_name,
             "upi_id": account.upi_id,
             "bank_name": account.bank_name,
             "upi_link": link,
+            "qr": None,
+            "qr_image": None,
+        }
+    elif account is not None and dep.state in MATCHABLE_DEPOSIT_STATES:
+        # Players get only a generated QR for this exact amount, labelled with the platform
+        # brand: no UPI id, payee name, bank or uploaded QR image in the response.
+        link = upi_link(account, dep.amount_paise, dep.reference, display_name=brand or "Payment")
+        out["payment"] = {
+            "upi_link": link,
             "qr": qr_data_url(link) if with_qr else None,
-            "qr_image": account.qr_image if with_qr else None,
         }
     if admin:
         names = names or {}

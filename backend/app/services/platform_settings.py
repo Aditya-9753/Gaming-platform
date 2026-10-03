@@ -28,7 +28,7 @@ SETTINGS_SCHEMA: Dict[str, tuple] = {
     "deposit_min_paise": (int, 10000, "Smallest deposit (paise)"),
     "deposit_max_paise": (int, 10000000, "Largest single deposit (paise)"),
     "deposit_expiry_minutes": (int, 30, "Minutes a deposit QR stays payable"),
-    "deposit_unique_paise": (bool, True, "Add a few random paise to each deposit so statement lines match automatically"),
+    "deposit_unique_paise": (bool, False, "Add a few random paise to each deposit so statement lines match automatically (off = exact amount)"),
     "manual_deposit_super_threshold_paise": (int, 2500000, "Manual deposit confirmations above this need the super admin (paise)"),
     "withdrawal_min_paise": (int, 20000, "Smallest withdrawal (paise)"),
     "withdrawal_max_paise": (int, 5000000, "Largest single withdrawal (paise)"),

@@ -45,7 +45,8 @@ def _idem(key: Optional[str]) -> str:
 
 async def _deposit_view(db: AsyncSession, dep: Deposit, with_qr: bool = False) -> Dict[str, Any]:
     account = await db.get(PaymentAccount, dep.payment_account_id)
-    return deposit_out(dep, account, with_qr=with_qr)
+    brand = (await platform_settings.get_all(db))["platform_name"]
+    return deposit_out(dep, account, with_qr=with_qr, brand=brand)
 
 
 async def _page(db: AsyncSession, model, user_id: str, page: int, page_size: int):

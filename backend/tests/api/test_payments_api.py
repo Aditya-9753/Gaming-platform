@@ -191,10 +191,12 @@ async def test_deposit_intent_is_idempotent_and_has_qr(env):
     again = await deposit(env, key=key)
     assert first["id"] == again["id"]
     assert first["status"] == "PENDING"
-    assert first["amount_paise"] // 100 == 500 and first["amount_paise"] % 100 != 0  # unique paise
-    assert first["payment"]["upi_id"] == "collect@okaxis"
-    assert first["payment"]["qr"].startswith("data:image/svg+xml;base64,")
-    assert f"tn={first['reference']}" in first["payment"]["upi_link"]
+    assert first["amount_paise"] == 50_000  # exact amount by default
+    payment = first["payment"]
+    assert set(payment) == {"upi_link", "qr"}  # no UPI id, payee name, bank or uploaded QR for players
+    assert "Rudra%20Collections" not in payment["upi_link"] and "pn=Rudra247" in payment["upi_link"]
+    assert payment["qr"].startswith("data:image/svg+xml;base64,")
+    assert f"tn={first['reference']}" in payment["upi_link"]
 
 
 async def test_signed_webhook_credits_exactly_once(env):
@@ -246,6 +248,9 @@ async def test_statement_import_matches_player_utr(env):
 
 
 async def test_statement_line_matches_by_unique_amount(env):
+    async with env["db"]() as s:
+        await platform_settings.update(s, {"deposit_unique_paise": True}, None)
+        await s.commit()
     acct = await make_account(env)
     dep = await deposit(env)
     headers = await step(env, "sa", SA_SECRET)
@@ -324,7 +329,7 @@ async def test_admin_qr_needs_approval_and_routing_uses_only_active(env):
     assert (await env["client"].post(f"/api/v1/admin/payments/accounts/{acct['id']}/review", headers=await step(env, "sa", SA_SECRET),
                                      json={"approve": True})).json()["status"] == "ACTIVE"
     dep = await deposit(env)
-    assert dep["payment"]["upi_id"] == "collect@okaxis"
+    assert "pa=collect@okaxis" in dep["payment"]["upi_link"]
     # Changing the UPI id sends an admin's QR back for approval
     r = await env["client"].patch(f"/api/v1/admin/payments/accounts/{acct['id']}", headers=await step(env, "a1", A1_SECRET),
                                   json={"upi_id": "other@okicici"})
