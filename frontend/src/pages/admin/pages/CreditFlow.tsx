@@ -16,6 +16,7 @@ interface Overview {
 
 const WINDOWS: Array<[number, string]> = [[1, 'Today (24h)'], [7, '7 days'], [30, '30 days'], [3650, 'All time']]
 const GAME_LABEL: Record<string, string> = {
+  teen_patti: 'Teen Patti',
   aviator: 'Aviator', mines: 'Mines', color: 'Color (legacy)', wingo_30s: 'WinGo 30s', wingo_1m: 'WinGo 1m', wingo_3m: 'WinGo 3m', wingo_5m: 'WinGo 5m',
 }
 const TX_LABEL: Record<string, string> = {

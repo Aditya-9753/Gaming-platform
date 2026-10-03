@@ -287,6 +287,12 @@ class FairnessService:
                 "colours": list(outcome.colours),
             }
 
+        elif game_id == "teen_patti":
+            from app.games.teen_patti.rules import compute_outcome as teen_patti_outcome
+
+            outcome = teen_patti_outcome(server_seed, client_seed, nonce)
+            return {"player_a": outcome.player_a, "player_b": outcome.player_b, "winner": outcome.winner}
+
         elif "mines" in game_id:
             # Mines: the mine positions are a shuffled grid
             from app.utils.rng import derive_shuffled_indices

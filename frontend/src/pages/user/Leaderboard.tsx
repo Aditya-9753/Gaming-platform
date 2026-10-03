@@ -22,6 +22,7 @@ interface RecentWin {
 }
 
 const GAME_LABEL: Record<string, string> = {
+  teen_patti: 'Teen Patti',
   aviator: 'Aviator', mines: 'Mines', color: 'Color',
   wingo_30s: 'WinGo 30s', wingo_1m: 'WinGo 1m', wingo_3m: 'WinGo 3m', wingo_5m: 'WinGo 5m',
 }

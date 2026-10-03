@@ -98,6 +98,19 @@ GAMES_DATA = [
     },
 ]
 
+GAMES_DATA.append(
+    {
+        "id": "teen_patti",
+        "name": "Teen Patti",
+        "type": "CARD",
+        "description": "Live Teen Patti: bet on Player A or Player B. New hand every ~30 seconds.",
+        "min_bet": 100,
+        "max_bet": 500_000,
+        "house_edge_percent": 200,
+        "config": {"payout": 1.96},
+    }
+)
+
 # WinGo modes (colour / number / big-small) — the "Color Prediction" lobby card
 for _game_id, _label, _desc in [
     ("wingo_30s", "WinGo 30sec", "New period every 30 seconds."),

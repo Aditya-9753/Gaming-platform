@@ -152,6 +152,22 @@ class SimulatedPlayers:
                 logger.debug("Bot wingo bet skipped", error=str(exc))
                 return
 
+    async def _teen_patti(self, round_id: str) -> None:
+        from app.games.teen_patti.service import TeenPattiBetRequest, TeenPattiService
+
+        for bot in random.sample(self.bots, k=random.randint(2, 6)):
+            await asyncio.sleep(random.uniform(0.3, 2.0))
+            try:
+                async with self.session_factory() as session:
+                    await TeenPattiService(session, redis=self.redis).place_bet(
+                        bot,
+                        TeenPattiBetRequest(round_id=round_id, amount=_amount(10, 300), side=random.choice(["A", "B"])),
+                        f"bot:{round_id}:{bot}",
+                    )
+            except Exception as exc:
+                logger.debug("Bot teen patti bet skipped", error=str(exc))
+                return
+
     async def _mines(self) -> None:
         from app.games.mines.service import MinesService
 
@@ -198,7 +214,9 @@ class SimulatedPlayers:
                         served.add(snapshot.round_id)
                     if game_id == "aviator":
                         self._spawn(self._aviator(snapshot.round_id))
-                    else:
+                    elif game_id == "teen_patti":
+                        self._spawn(self._teen_patti(snapshot.round_id))
+                    elif game_id.startswith("wingo_"):
                         self._spawn(self._wingo(game_id, snapshot.round_id))
                 if random.random() < 0.08:
                     self._spawn(self._mines())

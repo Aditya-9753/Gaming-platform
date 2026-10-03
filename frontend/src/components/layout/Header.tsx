@@ -40,20 +40,20 @@ export const Header: React.FC = () => {
   }
 
   return (
-    <header className="sticky top-0 z-40 h-16 bg-dark-card/90 backdrop-blur-md border-b border-dark-border px-2 sm:px-6 flex items-center justify-between gap-2">
+    <header className="sticky top-0 z-40 h-16 bg-[#101012]/95 backdrop-blur-md border-b border-dark-border px-3 sm:px-6 flex items-center justify-between gap-2">
       <div className="flex min-w-0 items-center gap-1.5 sm:gap-3">
         <button
           onClick={toggleSidebar}
           aria-label="Open menu"
-          className="lg:hidden p-2 text-slate-400 hover:text-white rounded-xl hover:bg-dark-elevated transition-colors"
+          className="hidden p-2 text-slate-400 hover:text-white rounded-xl hover:bg-dark-elevated transition-colors"
         >
           <Menu className="w-5 h-5" />
         </button>
 
         <Link to="/" className="flex items-center gap-2">
           <BrandLogo
-            iconClassName="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-dark-bg shadow-md shadow-emerald-500/20"
-            textClassName="hidden sm:inline text-lg font-black tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent"
+            iconClassName="hidden sm:flex w-8 h-8 rounded-lg bg-gradient-to-tr from-orange-500 to-amber-400 text-white"
+            textClassName="text-xl sm:text-2xl font-black italic tracking-tight text-white"
           />
         </Link>
       </div>
@@ -63,23 +63,23 @@ export const Header: React.FC = () => {
 
         {isAuthenticated ? (
           <>
-            {/* Wallet pill */}
+            {/* Balance + wallet button */}
+            <Link to="/wallet" className="text-right leading-tight">
+              <span className="block text-[10px] font-bold text-slate-400">INR</span>
+              <span className="block text-sm font-black text-white">{formatPaiseToRupee(balance.realBalancePaise)}</span>
+            </Link>
             <Link
               to="/wallet"
-              className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-xl bg-dark-elevated border border-emerald-500/30 hover:border-emerald-500/50 transition-all shadow-sm"
+              className="flex items-center gap-1.5 rounded-xl bg-brand-green px-3 sm:px-4 py-2 text-xs sm:text-sm font-black text-white shadow-md hover:brightness-110"
             >
-              <Wallet className="w-4 h-4 text-emerald-400" />
-              <div className="text-left">
-                <span className="text-xs font-mono font-black text-emerald-400">
-                  {formatPaiseToRupee(balance.realBalancePaise)}
-                </span>
-              </div>
+              <Wallet className="hidden sm:block w-4 h-4" />
+              Wallet
             </Link>
 
             <NotificationBell />
 
-            {/* User Dropdown / Admin Link */}
-            <div className="flex items-center gap-1 sm:gap-2">
+            {/* User Dropdown / Admin Link (desktop; phones use the Menu drawer) */}
+            <div className="hidden lg:flex items-center gap-1 sm:gap-2">
               {isStaffRole(user?.role) && (
                 <Link
                   to="/admin/dashboard"

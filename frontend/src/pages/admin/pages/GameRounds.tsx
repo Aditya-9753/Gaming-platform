@@ -38,6 +38,7 @@ interface RoundDetails {
 const GAMES: Array<{ id: string; label: string }> = [
   { id: '', label: 'All games' },
   { id: 'aviator', label: 'Aviator' },
+  { id: 'teen_patti', label: 'Teen Patti' },
   { id: 'wingo_30s', label: 'WinGo 30s' },
   { id: 'wingo_1m', label: 'WinGo 1m' },
   { id: 'wingo_3m', label: 'WinGo 3m' },

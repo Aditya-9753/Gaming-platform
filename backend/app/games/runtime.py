@@ -60,6 +60,33 @@ async def _cricket_sync_loop(
         await asyncio.sleep(CRICKET_SYNC_INTERVAL_SEC)
 
 
+async def ensure_teen_patti_game(session_factory: async_sessionmaker[AsyncSession]) -> None:
+    """Create the Teen Patti catalog row + settings on first start (idempotent)."""
+    from app.games.teen_patti.rules import DEFAULT_PAYOUT, GAME_ID
+    from app.models.game import Game, GameSetting
+
+    async with session_factory() as session:
+        game = await session.get(Game, GAME_ID)
+        if game is None:
+            session.add(Game(
+                id=GAME_ID,
+                name="Teen Patti",
+                type="CARD",
+                description="Live Teen Patti: bet on Player A or Player B. New hand every ~30 seconds.",
+                is_active=True,
+            ))
+            await session.flush()
+        from sqlalchemy import select
+
+        has_settings = (await session.execute(select(GameSetting.id).where(GameSetting.game_id == GAME_ID))).first()
+        if not has_settings:
+            session.add(GameSetting(
+                game_id=GAME_ID, min_bet=100, max_bet=500_000, house_edge_percent=200,
+                config={"payout": DEFAULT_PAYOUT},
+            ))
+        await session.commit()
+
+
 async def run_game_runtime(
     session_factory: async_sessionmaker[AsyncSession], redis: Redis
 ) -> None:
@@ -71,12 +98,13 @@ async def run_game_runtime(
     # Import games so their engines self-register
     import app.games.aviator.engine  # noqa: F401
     import app.games.wingo.engine  # noqa: F401  (replaces the legacy colour engine)
+    import app.games.teen_patti.engine  # noqa: F401
 
     from app.games.wingo.rules import MODES as WINGO_MODES
 
     # Engines this runtime drives. The legacy "color" engine is retired in
     # favour of WinGo but stays registered (imported by the colour package).
-    active_codes = ["aviator", *WINGO_MODES]
+    active_codes = ["aviator", *WINGO_MODES, "teen_patti"]
 
     leader = LeaderElection(redis, lock_name="global_game_engine_leader", ttl_seconds=10)
 
@@ -90,6 +118,10 @@ async def run_game_runtime(
             game_ids=[*active_codes, "color"]
         )
         logger.info("Acquired engine leadership; starting games", recovered_rounds=recovered)
+        try:
+            await ensure_teen_patti_game(session_factory)
+        except Exception as exc:
+            logger.error("Could not create the Teen Patti game row", error=str(exc))
 
         engine_registry.instantiate_all(session_factory, redis, codes=active_codes)
         await engine_registry.start_all()

@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     # Email (admin 2-step verification codes, password reset)
     EMAIL_PROVIDER: Optional[str] = None  # brevo | resend | smtp | console (auto by keys)
     EMAIL_FROM: Optional[str] = None
-    EMAIL_FROM_NAME: str = "GameZone"
+    EMAIL_FROM_NAME: str = "Rudra247"
     BREVO_API_KEY: Optional[str] = None
     RESEND_API_KEY: Optional[str] = None
     SMTP_HOST: Optional[str] = None

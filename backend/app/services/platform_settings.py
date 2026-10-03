@@ -17,7 +17,7 @@ from app.models.system_setting import SystemSetting
 
 # key -> (type, default, description)
 SETTINGS_SCHEMA: Dict[str, tuple] = {
-    "platform_name": (str, "GameZone", "Brand name shown across the site"),
+    "platform_name": (str, "Rudra247", "Brand name shown across the site"),
     "platform_logo_url": (str, "", "Logo image URL (empty = default flame logo)"),
     "maintenance_mode": (bool, False, "Block new bets for everyone except staff"),
     "maintenance_message": (str, "We are upgrading the platform. Betting resumes shortly.", "Banner text during maintenance"),

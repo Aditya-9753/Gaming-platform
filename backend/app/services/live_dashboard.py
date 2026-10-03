@@ -40,6 +40,11 @@ def _outcome_label(game_id: str, outcome: Optional[Dict[str, Any]]) -> Optional[
         return f"{float(o['crash_point']):.2f}x"
     if "crash_point_x100" in o:
         return f"{int(o['crash_point_x100']) / 100:.2f}x"
+    if o.get("winner") in ("A", "B", "TIE"):
+        if o["winner"] == "TIE":
+            return f"Tie · {o.get('hand_a', '')}"
+        hand = o.get("hand_a") if o["winner"] == "A" else o.get("hand_b")
+        return f"Player {o['winner']} · {hand}"
     if o.get("number") is not None:
         colours = "/".join(str(c).title() for c in (o.get("colours") or []))
         return f"{o['number']} · {colours} · {str(o.get('size', '')).title()}".strip(" ·")

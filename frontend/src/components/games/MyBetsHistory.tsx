@@ -19,6 +19,7 @@ export interface BetHistoryItem {
 interface Page { items: BetHistoryItem[]; total_pages: number }
 
 const GAME_LABEL: Record<string, string> = {
+  teen_patti: 'Teen Patti',
   aviator: 'Aviator',
   mines: 'Mines',
   color: 'Color',
@@ -31,6 +32,7 @@ const GAME_LABEL: Record<string, string> = {
 /** Human readable pick for any game. */
 export function describeSelection(item: BetHistoryItem): string {
   const s = item.selection ?? {}
+  if (s.type === 'SIDE' && typeof s.value === 'string') return `Player ${s.value}`
   if (typeof s.type === 'string' && typeof s.value === 'string') {
     return s.type === 'NUMBER' ? `Number ${s.value}` : String(s.value).charAt(0) + String(s.value).slice(1).toLowerCase()
   }

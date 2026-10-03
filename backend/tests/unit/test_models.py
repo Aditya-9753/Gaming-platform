@@ -54,10 +54,10 @@ async def test_seed_database_operations(in_memory_session: AsyncSession):
     # 2. Verify the 4 core games + 4 WinGo modes are seeded
     games_res = await in_memory_session.execute(select(Game))
     games = games_res.scalars().all()
-    assert len(games) == 8
+    assert len(games) == 9  # aviator, color, mines, cricket, teen_patti + 4 WinGo modes
     game_ids = {g.id for g in games}
     assert game_ids == {
-        "aviator", "mines", "color", "cricket",
+        "aviator", "mines", "color", "cricket", "teen_patti",
         "wingo_30s", "wingo_1m", "wingo_3m", "wingo_5m",
     }
 

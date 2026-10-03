@@ -24,6 +24,7 @@ from app.games.color.schemas import ColorActionRequest, ColorBetRequest, ColorBe
 from app.games.color.service import ColorService
 from app.games.wingo.rules import MODES as WINGO_MODES
 from app.games.wingo.service import WingoBetRequest, WingoBetResponse, WingoService
+from app.games.teen_patti.service import TeenPattiBetRequest, TeenPattiBetResponse, TeenPattiService
 from app.games.cricket.schemas import CricketPredictionRequest
 from app.games.cricket.market_service import CricketMarketService, get_cricket_provider
 from app.games.mines.schemas import (
@@ -309,6 +310,20 @@ async def wingo_action(
     """Place a WinGo bet on a colour, a number (0-9) or Big/Small."""
     await _check_self_exclusion(db, current_user.id, getattr(current_user, "role", None))
     return await WingoService(db, redis=get_redis_client()).place_bet(
+        current_user.id, payload, idempotency_key
+    )
+
+
+@router.post("/teen-patti/action", response_model=TeenPattiBetResponse)
+async def teen_patti_action(
+    payload: TeenPattiBetRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    idempotency_key: str = Header(..., alias="Idempotency-Key", min_length=1, max_length=100),
+) -> TeenPattiBetResponse:
+    """Place a Teen Patti bet on Player A or Player B."""
+    await _check_self_exclusion(db, current_user.id, getattr(current_user, "role", None))
+    return await TeenPattiService(db, redis=get_redis_client()).place_bet(
         current_user.id, payload, idempotency_key
     )
 

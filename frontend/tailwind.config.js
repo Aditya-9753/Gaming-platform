@@ -19,10 +19,13 @@ export default {
         },
       },
       colors: {
-        'dark-bg': '#0b0e14',
-        'dark-card': '#11151d',
-        'dark-elevated': '#181d27',
-        'dark-border': '#252b37',
+        // Rudra247 theme: neutral charcoal like popular casino lobbies
+        'dark-bg': '#141416',
+        'dark-card': '#1d1d20',
+        'dark-elevated': '#28282c',
+        'dark-border': '#323238',
+        'brand-blue': '#2f7cf6',
+        'brand-green': '#16a34a',
       },
     },
   },

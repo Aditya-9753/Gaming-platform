@@ -1,10 +1,12 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { ShieldCheck, HeartHandshake } from 'lucide-react'
+import { usePlatformConfig } from '../../hooks/usePlatformConfig'
 
 export const Footer: React.FC = () => {
+  const { platform_name: platformName } = usePlatformConfig()
   return (
-    <footer className="bg-dark-card border-t border-dark-border text-slate-400 py-8 px-4 sm:px-6">
+    <footer className="bg-dark-card border-t border-dark-border text-slate-400 py-8 px-4 sm:px-6 pb-24 lg:pb-8">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-xs">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5 text-emerald-400 font-bold">
@@ -30,7 +32,7 @@ export const Footer: React.FC = () => {
         </div>
 
         <p className="text-slate-500 text-[11px]">
-          © {new Date().getFullYear()} GameZone. All rights reserved.
+          © {new Date().getFullYear()} {platformName}. All rights reserved.
         </p>
       </div>
     </footer>

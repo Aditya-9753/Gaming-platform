@@ -42,6 +42,7 @@ const Support = lazy(() => import('../pages/user/Support').then((m) => ({ defaul
 const Aviator = lazy(() => import('../pages/games/Aviator/Aviator').then((m) => ({ default: m.Aviator })))
 const WinGo = lazy(() => import('../pages/games/WinGo/WinGo').then((m) => ({ default: m.WinGo })))
 const Mines = lazy(() => import('../pages/games/Mines/Mines').then((m) => ({ default: m.Mines })))
+const TeenPatti = lazy(() => import('../pages/games/TeenPatti/TeenPatti').then((m) => ({ default: m.TeenPatti })))
 
 const AdminLayout = lazy(() => import('../pages/admin/layout/AdminLayout').then((m) => ({ default: m.AdminLayout })))
 const AdminDashboard = lazy(() => import('../pages/admin/pages/Dashboard').then((m) => ({ default: m.Dashboard })))
@@ -71,9 +72,9 @@ const AdminSettings = lazy(() => import('../pages/admin/pages/Settings').then((m
 const CricketComingSoon: React.FC = () => (
   <div className="max-w-md mx-auto mt-10 p-8 rounded-2xl bg-dark-card border border-blue-500/30 text-center space-y-3">
     <span className="inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">Coming Soon</span>
-    <h2 className="text-2xl font-black text-white">Cricket Live</h2>
-    <p className="text-sm text-slate-400">Cricket predictions are launching soon. Meanwhile, try Mines, Aviator or Color Prediction.</p>
-    <Link to="/games/mines" className="inline-block px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-dark-bg font-extrabold text-xs">Play Mines</Link>
+    <h2 className="text-2xl font-black text-white">Sports</h2>
+    <p className="text-sm text-slate-400">Sports betting is launching soon. Meanwhile, try Teen Patti, Aviator, Mines or Color Prediction.</p>
+    <Link to="/games/teen-patti" className="inline-block px-5 py-2.5 rounded-xl bg-brand-green hover:brightness-110 text-white font-extrabold text-xs">Play Teen Patti</Link>
   </div>
 )
 
@@ -215,6 +216,7 @@ export const router = createBrowserRouter([
       { path: '/games/aviator', element: <RequireAuth><Aviator /></RequireAuth> },
       { path: '/games/color', element: <WinGo /> },
       { path: '/games/mines', element: <RequireAuth><Mines /></RequireAuth> },
+      { path: '/games/teen-patti', element: <RequireAuth><TeenPatti /></RequireAuth> },
       { path: '/games/cricket', element: <CricketComingSoon /> },
       {
         path: '/wallet',

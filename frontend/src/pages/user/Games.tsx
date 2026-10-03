@@ -1,25 +1,16 @@
-import React, { useEffect } from 'react'
-import { GameGrid } from '../../components/games/GameGrid'
+import React from 'react'
 import { Gamepad2 } from 'lucide-react'
-import { useGames } from '../../hooks/useGames'
+import { LobbyHome } from '../../components/games/LobbyHome'
 
-export const Games: React.FC = () => {
-  const { gamesList, fetchGames } = useGames()
-  useEffect(() => { void fetchGames() }, [fetchGames])
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Gamepad2 className="w-6 h-6 text-emerald-400" />
-        <div>
-          <h2 className="text-2xl font-black text-white">Game Lobby</h2>
-          <p className="text-xs text-slate-400">
-            All live games • Provably fair • Real-time multiplayer
-          </p>
-        </div>
+export const Games: React.FC = () => (
+  <div className="space-y-5">
+    <div className="flex items-center gap-3">
+      <Gamepad2 className="w-6 h-6 text-brand-blue" />
+      <div>
+        <h2 className="text-2xl font-black text-white">Casino</h2>
+        <p className="text-xs text-slate-400">4 live games • more coming soon</p>
       </div>
-
-      <GameGrid games={gamesList} />
     </div>
-  )
-}
+    <LobbyHome showHero={false} />
+  </div>
+)
