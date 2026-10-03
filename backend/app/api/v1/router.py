@@ -13,6 +13,7 @@ from app.api.v1.history.routes import router as history_router
 from app.api.v1.leaderboard.router import router as leaderboard_router
 from app.api.v1.notifications.router import router as notifications_router
 from app.api.v1.responsible_play.router import router as responsible_play_router
+from app.api.v1.risk.router import router as risk_router
 from app.api.v1.support.routes import router as support_router
 from app.api.v1.users.routes import router as users_router
 from app.api.v1.wallet.router import router as wallet_router
@@ -56,3 +57,6 @@ api_router.include_router(support_router)
 api_router.include_router(admin_router)
 api_router.include_router(superadmin_router)
 api_router.include_router(system_router)
+
+# Risk exposure controls & yield backtesting (super admin only)
+api_router.include_router(risk_router)

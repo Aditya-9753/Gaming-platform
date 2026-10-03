@@ -29,6 +29,7 @@ from app.games.aviator.schemas import AviatorBetResponse, AviatorCashoutResponse
 from app.repositories.entry_repo import EntryRepository
 from app.repositories.game_repo import GameRepository
 from app.repositories.round_repo import RoundRepository
+from app.services import risk_engine
 from app.services.wallet_service import WalletService
 
 logger = get_logger("aviator_service")
@@ -142,6 +143,18 @@ class AviatorService:
             raise BadRequestException(f"Maximum bet is {settings.max_bet} paise")
         if auto_cashout is not None and not 1.01 <= auto_cashout <= 100:
             raise BadRequestException("Auto-cashout must be between 1.01x and 100x")
+
+        decision = await risk_engine.enforce_bet(
+            self.session,
+            game_id="aviator",
+            user_id=user_id,
+            requested_paise=amount,
+            game_min_bet=settings.min_bet,
+            game_max_bet=settings.max_bet,
+            round_id=round_id,
+        )
+        if not decision.allowed:
+            raise BadRequestException(risk_engine.limit_message(decision))
 
         selection = {"auto_cashout": auto_cashout} if auto_cashout is not None else {}
         try:

@@ -23,6 +23,7 @@ from app.games.wingo.rules import MODES, normalise_selection
 from app.repositories.entry_repo import EntryRepository
 from app.repositories.game_repo import GameRepository
 from app.repositories.round_repo import RoundRepository
+from app.services import risk_engine
 from app.services.wallet_service import WalletService
 
 logger = get_logger("wingo_service")
@@ -125,6 +126,18 @@ class WingoService:
             raise BadRequestException(f"Minimum bet is ₹{game.settings.min_bet / 100:g}")
         if payload.amount > game.settings.max_bet:
             raise BadRequestException(f"Maximum bet is ₹{game.settings.max_bet / 100:g}")
+
+        decision = await risk_engine.enforce_bet(
+            self.session,
+            game_id=payload.game_id,
+            user_id=user_id,
+            requested_paise=payload.amount,
+            game_min_bet=game.settings.min_bet,
+            game_max_bet=game.settings.max_bet,
+            round_id=payload.round_id,
+        )
+        if not decision.allowed:
+            raise BadRequestException(risk_engine.limit_message(decision))
 
         period = (round_obj.result or {}).get("period")
         selection["period"] = period

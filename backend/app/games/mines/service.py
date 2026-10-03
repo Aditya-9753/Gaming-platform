@@ -24,6 +24,7 @@ from app.models.game import GameEntry, GameRound
 from app.repositories.entry_repo import EntryRepository
 from app.repositories.game_repo import GameRepository
 from app.repositories.round_repo import RoundRepository
+from app.services import risk_engine
 from app.services.fairness_service import FairnessService
 from app.services.wallet_service import WalletService
 
@@ -99,6 +100,18 @@ class MinesService:
         game = await self.game_repo.get_by_id("mines")
         if not game or not game.is_active:
             raise BadRequestException("Mines is currently disabled")
+
+        decision = await risk_engine.enforce_bet(
+            self.session,
+            game_id="mines",
+            user_id=user_id,
+            requested_paise=bet_amount,
+            game_min_bet=settings.min_bet if settings else 0,
+            game_max_bet=settings.max_bet if settings else bet_amount,
+            round_id=None,  # fresh solo round: no pool yet
+        )
+        if not decision.allowed:
+            raise BadRequestException(risk_engine.limit_message(decision))
 
         # 3. Create provably fair seed commitment
         latest_round = await self.round_repo.get_latest_round("mines")

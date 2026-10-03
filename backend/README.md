@@ -59,6 +59,14 @@ need outside production:
   round, WinGo period (payout if each number is drawn) and Mines session, with
   pause/resume and *void & refund*. Results are provably fair and are never
   steered by stakes.
+- **Risk controls** (`/admin/risk/controls`, super admin only): a dedicated
+  ON/OFF switch per game family (WinGo / Aviator / Mines). ON enforces strict
+  exposure ceilings — a whole-round stake cap and a per-player round stake cap
+  — so the house's worst-case liability stays bounded. A read-only **yield
+  backtest** (`/admin/risk/backtest`) replays settled bets and reports the hold
+  actually achieved per game against the configured target. The switch changes
+  *what stakes are accepted*, never a round result — outcomes stay provably
+  fair and are never steered.
 - **Credit flow** (`/admin/finance/overview`, super admin only): wagered, paid,
   house result per game and ledger movements. Virtual credits only — no real
   deposits, withdrawals or payment gateways.
