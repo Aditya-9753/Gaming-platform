@@ -494,21 +494,37 @@ async def latest_backtest(db: AsyncSession) -> Dict[str, Any]:
 # ---------------------------------------------------------------- enforcement
 
 
+def _rupees(paise: int) -> str:
+    """Player-facing amount, e.g. 150050 -> "₹1,500.50" (whole rupees drop the decimals)."""
+    rupees, rem = divmod(max(0, int(paise)), 100)
+    return f"₹{rupees:,}" + (f".{rem:02d}" if rem else "")
+
+
 def limit_message(decision: RiskDecision) -> str:
     """Player-facing reason a stake was declined under an ON control."""
     if decision.reason == "ROUND_POOL_CAP":
+        if decision.effective_max_bet <= 0:
+            return "This round has reached its staking limit. Please join the next round."
         return (f"This round has reached its staking limit. "
-                f"You can still stake up to {decision.effective_max_bet} paise.")
+                f"You can still stake up to {_rupees(decision.effective_max_bet)}.")
     if decision.reason == "PLAYER_ROUND_CAP":
+        if decision.effective_max_bet <= 0:
+            return "You have reached your staking limit for this round."
         return (f"You have reached your staking limit for this round. "
-                f"The most you can add is {decision.effective_max_bet} paise.")
+                f"The most you can add is {_rupees(decision.effective_max_bet)}.")
     if decision.reason == "ABOVE_GAME_MAX_BET":
         return "That stake is above the maximum bet for this game."
     return "That stake is not allowed under the current risk limits."
 
 
+# Stakes that were handed back no longer count towards a round's exposure
+_RELEASED_STATUSES: Tuple[str, ...] = ("REFUNDED", "CANCELLED")
+
+
 async def _round_stake(db: AsyncSession, round_id: str, user_id: Optional[str] = None) -> int:
-    stmt = select(func.coalesce(func.sum(GameEntry.bet_amount), 0)).where(GameEntry.round_id == round_id)
+    stmt = select(func.coalesce(func.sum(GameEntry.bet_amount), 0)).where(
+        GameEntry.round_id == round_id, GameEntry.status.notin_(_RELEASED_STATUSES)
+    )
     if user_id is not None:
         stmt = stmt.where(GameEntry.user_id == user_id)
     return int((await db.execute(stmt)).scalar() or 0)

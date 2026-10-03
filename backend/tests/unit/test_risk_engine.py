@@ -220,3 +220,27 @@ async def test_enforce_bet_solo_round_uses_caps(db):
         game_min_bet=100, game_max_bet=100_000, round_id=None,
     )
     assert ok.allowed
+
+def test_limit_message_uses_rupees():
+    room = risk_engine.RiskDecision(False, "ROUND_POOL_CAP", 150050, 150050, None)
+    assert "₹1,500.50" in risk_engine.limit_message(room) and "paise" not in risk_engine.limit_message(room)
+    whole = risk_engine.RiskDecision(False, "PLAYER_ROUND_CAP", 50000, None, 50000)
+    assert "₹500." in risk_engine.limit_message(whole) or "₹500" in risk_engine.limit_message(whole)
+    full = risk_engine.RiskDecision(False, "ROUND_POOL_CAP", 0, 0, None)
+    assert "next round" in risk_engine.limit_message(full)
+
+
+@pytest.mark.asyncio
+async def test_refunded_stakes_do_not_count_towards_caps(db):
+    await _seed_activity(db)  # r1 pool = 2000 paise
+    db.add(GameEntry(id="refunded", round_id="r1", user_id="u9", bet_amount=5000, payout_amount=5000,
+                     status="REFUNDED", idempotency_key="refunded"))
+    await db.commit()
+    await risk_engine.update_controls(db, "wingo", {"status": "ON", "max_round_pool_paise": 3000})
+    await db.commit()
+    # Without the fix the refunded 5000 would fill the cap; 1000 of room must remain
+    decision = await risk_engine.enforce_bet(
+        db, game_id="wingo_1m", user_id="u1", requested_paise=1000,
+        game_min_bet=100, game_max_bet=1_000_000, round_id="r1",
+    )
+    assert decision.allowed and decision.round_room == 1000
