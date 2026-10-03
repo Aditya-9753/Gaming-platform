@@ -1,7 +1,6 @@
 import React from 'react'
 import { NavLink } from 'react-router-dom'
 import {
-  ShieldCheck,
   LayoutDashboard,
   Users,
   Gamepad2,
@@ -23,6 +22,7 @@ import {
   Landmark,
   UserPlus,
   ShieldCheck,
+  Fingerprint,
 } from 'lucide-react'
 import { useAuthStore } from '../../../store/auth.store'
 import { usePermission } from '../../../hooks/usePermission'
@@ -39,7 +39,7 @@ const adminLinks = [
   { name: 'Vault & Wallets', to: '/admin/wallets', icon: <Wallet className="w-4 h-4" />, perm: 'ledger:read' },
   { name: 'Manual Adjustment', to: '/admin/wallet-adjustment', icon: <Coins className="w-4 h-4" />, perm: 'wallet:adjust' },
   { name: 'Credit Flow', to: '/admin/credit-flow', icon: <Landmark className="w-4 h-4" />, superOnly: true },
-  { name: 'Security & Fairness', to: '/admin/security', icon: <ShieldCheck className="w-4 h-4" />, superOnly: true },
+  { name: 'Security & Fairness', to: '/admin/security', icon: <Fingerprint className="w-4 h-4" />, superOnly: true },
   { name: 'Reports & Analytics', to: '/admin/reports', icon: <BarChart3 className="w-4 h-4" />, perm: 'report:export' },
   { name: 'Broadcast Alerts', to: '/admin/notifications', icon: <Bell className="w-4 h-4" />, perm: 'notification:manage' },
   { name: 'Support Tickets', to: '/admin/support', icon: <Headphones className="w-4 h-4" />, perm: 'ticket:manage' },
