@@ -23,9 +23,24 @@ SETTINGS_SCHEMA: Dict[str, tuple] = {
     "maintenance_message": (str, "We are upgrading the platform. Betting resumes shortly.", "Banner text during maintenance"),
     "signup_bonus_paise": (int, 10000, "Virtual credits given at sign-up (paise)"),
     "daily_claim_amount_paise": (int, 1000, "Daily bonus amount (paise)"),
+    # Payments
+    "payments_enabled": (bool, True, "Accept new deposits and withdrawal requests"),
+    "deposit_min_paise": (int, 10000, "Smallest deposit (paise)"),
+    "deposit_max_paise": (int, 10000000, "Largest single deposit (paise)"),
+    "deposit_expiry_minutes": (int, 30, "Minutes a deposit QR stays payable"),
+    "deposit_unique_paise": (bool, True, "Add a few random paise to each deposit so statement lines match automatically"),
+    "manual_deposit_super_threshold_paise": (int, 2500000, "Manual deposit confirmations above this need the super admin (paise)"),
+    "withdrawal_min_paise": (int, 20000, "Smallest withdrawal (paise)"),
+    "withdrawal_max_paise": (int, 5000000, "Largest single withdrawal (paise)"),
+    "withdrawal_daily_count": (int, 3, "Withdrawal requests allowed per player per day"),
+    "withdrawal_daily_amount_paise": (int, 10000000, "Withdrawal total allowed per player per day (paise)"),
+    "withdrawal_high_value_paise": (int, 2500000, "Withdrawals at or above this need maker-checker: another admin initiates first (paise)"),
+    "withdrawal_requires_deposit": (bool, True, "Only players with a successful deposit can withdraw"),
+    "withdrawal_turnover_pct": (int, 100, "Players must wager this % of their deposits before withdrawing"),
+    "beneficiary_cooling_hours": (int, 24, "Hours before a new payout account (or changed PIN) can be used"),
 }
 # daily_claim_amount_paise is public so the claim card shows the amount the server really credits
-PUBLIC_KEYS = ("platform_name", "platform_logo_url", "maintenance_mode", "maintenance_message", "daily_claim_amount_paise")
+PUBLIC_KEYS = ("platform_name", "platform_logo_url", "maintenance_mode", "maintenance_message", "daily_claim_amount_paise", "payments_enabled")
 
 _CACHE_TTL = 5.0
 _cache: Dict[str, Any] = {}

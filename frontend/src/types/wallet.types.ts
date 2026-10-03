@@ -7,7 +7,9 @@ export interface WalletBalance {
   lastClaimDate?: string
 }
 
-export type TransactionType = 'deposit' | 'withdrawal' | 'bet' | 'win' | 'bonus' | 'admin_adjustment' | 'refund'
+export type TransactionType =
+  | 'deposit' | 'withdrawal' | 'bet' | 'win' | 'bonus' | 'admin_adjustment' | 'refund'
+  | 'deposit_reversal' | 'withdrawal_hold' | 'withdrawal_settle' | 'withdrawal_release'
 export type TransactionStatus = 'pending' | 'completed' | 'failed' | 'rejected'
 
 export interface WalletTransaction {

@@ -38,6 +38,9 @@ class User(Base):
     totp_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     # "totp" (authenticator app) or "email" (one-time code by email); None = not set up
     two_factor_method: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
+    # Transaction PIN (Argon2id) required for withdrawals and payout-account changes
+    transaction_pin_hash: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    transaction_pin_set_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     last_login_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(

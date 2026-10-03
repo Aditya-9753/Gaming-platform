@@ -4,7 +4,8 @@ import { WalletCard } from '../../components/wallet/WalletCard'
 import { DailyClaimCard } from '../../components/wallet/DailyClaimCard'
 import { TransactionList } from '../../components/wallet/TransactionList'
 import { useWalletStore } from '../../store/wallet.store'
-import { Wallet as WalletIcon, History } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Wallet as WalletIcon, History, ArrowDownLeft, ArrowUpRight } from 'lucide-react'
 import type { WalletTransaction } from '../../types/wallet.types'
 import { walletApi } from '../../services/wallet.api'
 
@@ -32,6 +33,15 @@ export const WalletPage: React.FC = () => {
 
       {/* Balance Summary */}
       {balanceError ? <p className="rounded-xl border border-rose-500/30 bg-rose-950/20 p-4 text-sm text-rose-300">Wallet balance could not be loaded.</p> : <BalanceCard balance={balance} />}
+
+      <div className="grid grid-cols-2 gap-3">
+        <Link to="/payments?tab=deposit" className="flex items-center justify-center gap-2 rounded-xl bg-emerald-500 py-3 text-sm font-black text-dark-bg hover:brightness-110">
+          <ArrowDownLeft className="h-4 w-4" />Deposit
+        </Link>
+        <Link to="/payments?tab=withdraw" className="flex items-center justify-center gap-2 rounded-xl border border-dark-border bg-dark-card py-3 text-sm font-black text-white hover:border-slate-500">
+          <ArrowUpRight className="h-4 w-4" />Withdraw
+        </Link>
+      </div>
 
       {/* Daily Claim */}
       <DailyClaimCard />

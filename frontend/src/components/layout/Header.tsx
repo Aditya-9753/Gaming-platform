@@ -70,11 +70,11 @@ export const Header: React.FC = () => {
               <span className="block text-sm font-black text-white">{formatPaiseToRupee(balance.realBalancePaise)}</span>
             </Link>
             <Link
-              to="/wallet"
+              to={isStaffRole(user?.role) ? '/wallet' : '/payments'}
               className="flex items-center gap-1.5 rounded-xl bg-brand-blue px-3 sm:px-4 py-2 text-xs sm:text-sm font-black text-white shadow-md hover:brightness-110"
             >
               <Wallet className="hidden sm:block w-4 h-4" />
-              Wallet
+              {isStaffRole(user?.role) ? 'Wallet' : 'Deposit'}
             </Link>
 
             <NotificationBell />

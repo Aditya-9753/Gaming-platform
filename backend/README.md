@@ -68,8 +68,63 @@ need outside production:
   *what stakes are accepted*, never a round result — outcomes stay provably
   fair and are never steered.
 - **Credit flow** (`/admin/finance/overview`, super admin only): wagered, paid,
-  house result per game and ledger movements. Virtual credits only — no real
-  deposits, withdrawals or payment gateways.
+  house result per game and ledger movements.
+- **Payments** (`/admin/payments`): deposits, withdrawals, bank credits and
+  UPI QR collection accounts — see below.
+
+## Payments (deposits and withdrawals)
+
+Implements the *Payment & Wallet Security Architecture v2*: deposit status is
+set by the system from bank evidence, withdrawal completion only by the super
+admin. Code: `app/services/payment_service.py`, APIs in `app/api/v1/payments/`.
+
+**Deposit** (`/payments` page for players):
+1. The player picks an amount; the server creates an intent with a unique
+   reference (`RD…`), an expiry, and a random 1-99 paise added to the amount,
+   routed to an approved staff QR account (least-loaded, within its limits).
+   The page shows a UPI QR with amount + reference pre-filled.
+2. The player pays and may enter the UTR — a lookup hint, never proof.
+3. The deposit becomes **SUCCESS** only when a *bank credit* is matched to it:
+   a signed provider webhook, a bank-statement line imported by the account
+   owner, or the owner confirming the credit they can see in their own bank
+   (manual check, step-up code, UTR mandatory and globally unique). Matching
+   is by reference in the remark, then the player's UTR, then the unique amount.
+   Amount or account mismatches go to manual review instead of crediting.
+4. Unpaid intents expire (**REJECTED**); bank chargebacks reverse a deposit
+   and freeze the wallet if the money was already spent.
+
+**Withdrawal**: the player sets a transaction PIN, adds a payout account
+(bank or UPI, encrypted at rest, usable after a cooling period) and requests a
+withdrawal. The amount moves from `balance` to `pending_withdrawal`
+immediately (WITHDRAWAL_HOLD). Risk flags (first withdrawal, new or shared
+payout account, deposit-then-withdraw, velocity, bonus-heavy) are shown to
+reviewers. Only the **super admin** completes it (step-up code + unique bank
+payout UTR, WITHDRAWAL_SETTLE) or rejects it (funds returned,
+WITHDRAWAL_RELEASE). Above `withdrawal_high_value_paise` another admin must
+first mark "payout initiated" (maker-checker). The player can cancel while it
+awaits approval.
+
+**Roles**: super admin, auditor and support see everything; an admin adds
+their own QR (live after super-admin approval; changing the UPI id sends it
+back for approval) and sees/acts on deposits paid into it; admins see the
+withdrawal queue with masked payout details. Full bank details are shown to
+the super admin only, and every view is audited.
+
+**Controls**: idempotency keys on deposit and withdrawal requests, row locks
+plus a version column (optimistic lock) on every state change, a transition
+table with a `payment_status_history` row per change, audit-log entries for
+staff actions, rate limits on UTR/PIN/withdrawal endpoints, and an integrity
+check (`/admin/payments/integrity`). Limits live in platform settings and are
+editable on the admin Payments page.
+
+**Provider webhook**: `POST /api/v1/payments/webhook/{provider}` with
+`X-Webhook-Timestamp` and `X-Webhook-Signature` = hex HMAC-SHA256(secret,
+`"{timestamp}." + body`); configure `PAYMENT_WEBHOOK_SECRETS`. Event types:
+`payment.credit` (utr, amount_paise, reference/remark, account_vpa),
+`payment.failed` (reference), `payment.reversed` (utr). Replays are ignored.
+
+Before handling real money, confirm the payment provider's terms and the
+KYC/AML, payments and gaming rules that apply where you operate.
 
 ## Fairness architecture (outcomes are independent of operators)
 

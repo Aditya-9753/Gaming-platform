@@ -18,6 +18,7 @@ import {
   Gift,
   LogOut,
   Shield,
+  Banknote,
 } from 'lucide-react'
 import { useUIStore } from '../../store/ui.store'
 import { useAuthStore } from '../../store/auth.store'
@@ -41,6 +42,7 @@ const navItems: NavItem[] = [
   { name: 'Mines', to: '/games/mines', icon: <Bomb className="w-5 h-5" />, badge: 'LIVE' },
   { name: 'Sports', to: '/games/cricket', icon: <Activity className="w-5 h-5" />, badge: 'SOON' },
   { name: 'My Bets', to: '/history', icon: <History className="w-5 h-5" />, authRequired: true },
+  { name: 'Deposit & Withdraw', to: '/payments', icon: <Banknote className="w-5 h-5" />, authRequired: true },
   { name: 'Wallet', to: '/wallet', icon: <Wallet className="w-5 h-5" />, authRequired: true },
   { name: 'Leaderboard', to: '/leaderboard', icon: <Trophy className="w-5 h-5" /> },
   { name: 'My Profile', to: '/profile', icon: <User className="w-5 h-5" />, authRequired: true },

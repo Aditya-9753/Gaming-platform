@@ -33,6 +33,7 @@ const NotFound = lazy(() => import('../pages/public/NotFound').then((m) => ({ de
 const Dashboard = lazy(() => import('../pages/user/Dashboard').then((m) => ({ default: m.Dashboard })))
 const Games = lazy(() => import('../pages/user/Games').then((m) => ({ default: m.Games })))
 const WalletPage = lazy(() => import('../pages/user/Wallet').then((m) => ({ default: m.WalletPage })))
+const PaymentsPage = lazy(() => import('../pages/user/Payments').then((m) => ({ default: m.PaymentsPage })))
 const Profile = lazy(() => import('../pages/user/Profile').then((m) => ({ default: m.Profile })))
 const Leaderboard = lazy(() => import('../pages/user/Leaderboard').then((m) => ({ default: m.Leaderboard })))
 const FairnessPage = lazy(() => import('../pages/user/Fairness').then((m) => ({ default: m.FairnessPage })))
@@ -67,6 +68,7 @@ const CreditFlow = lazy(() => import('../pages/admin/pages/CreditFlow').then((m)
 const RiskControls = lazy(() => import('../pages/admin/pages/RiskControls').then((m) => ({ default: m.RiskControls })))
 const SecurityCenter = lazy(() => import('../pages/admin/pages/SecurityCenter').then((m) => ({ default: m.SecurityCenter })))
 const Setup2FA = lazy(() => import('../pages/admin/pages/Setup2FA').then((m) => ({ default: m.Setup2FA })))
+const AdminPayments = lazy(() => import('../pages/admin/pages/Payments').then((m) => ({ default: m.AdminPayments })))
 const AdminSettings = lazy(() => import('../pages/admin/pages/Settings').then((m) => ({ default: m.AdminSettings })))
 
 /** Cricket is not open yet; its page stays in the codebase for later. */
@@ -232,6 +234,7 @@ export const router = createBrowserRouter([
           </RequireAuth>
         ),
       },
+      { path: '/payments', element: <RequireAuth><PaymentsPage /></RequireAuth> },
       {
         path: '/profile',
         element: (
@@ -267,6 +270,7 @@ export const router = createBrowserRouter([
       { path: 'fairness', element: <RequireSuperAdmin><FairnessPage /></RequireSuperAdmin> },
       { path: 'rounds', element: <GameRounds /> },
       { path: 'transactions', element: <AdminTransactions /> },
+      { path: 'payments', element: <AdminPayments /> },
       { path: 'wallets', element: <AdminWallet /> },
       { path: 'wallet-adjustment', element: <WalletAdjustment /> },
       { path: 'reports', element: <AdminReports /> },

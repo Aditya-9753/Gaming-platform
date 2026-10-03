@@ -39,6 +39,10 @@ PERMISSIONS_DATA: List[Dict[str, str]] = [
     {"code": PermissionCode.ROLE_MANAGE.value, "name": "Manage Roles", "description": "Assign roles and manage administrator accounts"},
     {"code": PermissionCode.NOTIFICATION_MANAGE.value, "name": "Manage Notifications", "description": "Send and manage platform notifications"},
     {"code": PermissionCode.REPORT_EXPORT.value, "name": "Export Reports", "description": "Generate and export platform reports"},
+    {"code": PermissionCode.PAYMENT_DEPOSIT.value, "name": "Deposit", "description": "Create deposit requests and submit payment UTRs"},
+    {"code": PermissionCode.PAYMENT_WITHDRAW.value, "name": "Withdraw", "description": "Add payout accounts and request withdrawals"},
+    {"code": PermissionCode.PAYMENT_READ.value, "name": "View Payments", "description": "View deposits, withdrawals and bank credits"},
+    {"code": PermissionCode.PAYMENT_MANAGE.value, "name": "Manage Payments", "description": "Own QR collection accounts; verify or reject deposits paid into them"},
 ]
 
 # The 4 default games and their settings (amounts in integer paise: 100 paise = 1 Credit)

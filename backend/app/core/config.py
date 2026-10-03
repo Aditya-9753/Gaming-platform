@@ -47,6 +47,15 @@ class Settings(BaseSettings):
     # AES-256-GCM key (64 hex characters) sealing ledger and audit rows against tampering
     AUDIT_ENCRYPTION_KEY: Optional[str] = None
 
+    # AES-256-GCM key (64 hex) for payout bank details / UPI ids at rest.
+    # Falls back to AUDIT_ENCRYPTION_KEY; required in production once payouts are used.
+    PII_ENCRYPTION_KEY: Optional[str] = None
+    # Payment provider webhooks: "provider:secret,provider2:secret" (HMAC-SHA256)
+    PAYMENT_WEBHOOK_SECRETS: str = ""
+    # Optional comma separated source IPs allowed to call the webhook (empty = any)
+    PAYMENT_WEBHOOK_IPS: str = ""
+    PAYMENT_WEBHOOK_TOLERANCE_SECONDS: int = 300
+
     # Real worldwide cricket from CricketData.org (free key at cricketdata.org)
     CRICAPI_KEY: Optional[str] = None
     CRICAPI_LIVE_REFRESH_SECONDS: int = 1000
@@ -143,6 +152,15 @@ class Settings(BaseSettings):
     @property
     def admin_otp_emails(self) -> set[str]:
         return {e.strip().lower() for e in self.ADMIN_OTP_EMAILS.split(",") if e.strip()}
+
+    @property
+    def payment_webhook_secrets(self) -> dict[str, str]:
+        pairs = (item.split(":", 1) for item in self.PAYMENT_WEBHOOK_SECRETS.split(",") if ":" in item)
+        return {name.strip().lower(): secret.strip() for name, secret in pairs if name.strip() and secret.strip()}
+
+    @property
+    def payment_webhook_ips(self) -> set[str]:
+        return {ip.strip() for ip in self.PAYMENT_WEBHOOK_IPS.split(",") if ip.strip()}
 
     @property
     def is_development(self) -> bool:

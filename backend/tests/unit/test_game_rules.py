@@ -12,18 +12,22 @@ from app.core.constants import (
 
 
 def test_virtual_currency_rules():
-    """Verify non-negotiable rule: 100 paise = 1 Credit and only virtual credit transaction types exist."""
+    """100 paise = 1 Credit; the ledger has exactly the known movement types.
+
+    Deposit / withdrawal movements exist only for the bank-verified payment flow
+    (app.services.payment_service); there is no generic cash-out type.
+    """
     assert PAISE_PER_CREDIT == 100
 
-    # Ensure forbidden real-money transaction types do NOT exist
-    forbidden_terms = ["DEPOSIT", "WITHDRAWAL", "CASHOUT", "FIAT", "INR", "USD"]
-    tx_names = [t.name for t in TransactionType]
-    for term in forbidden_terms:
+    tx_names = {t.name for t in TransactionType}
+    for term in ["CASHOUT", "FIAT", "INR", "USD"]:
         assert term not in tx_names
 
-    # Ensure allowed virtual movements exist
-    expected = {"BET", "WIN", "REFUND", "FAUCET", "BONUS", "ADJUSTMENT"}
-    assert set(tx_names) == expected
+    expected = {
+        "BET", "WIN", "REFUND", "FAUCET", "BONUS", "ADJUSTMENT",
+        "DEPOSIT", "DEPOSIT_REVERSAL", "WITHDRAWAL_HOLD", "WITHDRAWAL_SETTLE", "WITHDRAWAL_RELEASE",
+    }
+    assert tx_names == expected
 
 
 def test_game_types_and_statuses():

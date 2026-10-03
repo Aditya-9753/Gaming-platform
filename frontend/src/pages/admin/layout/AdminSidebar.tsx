@@ -24,6 +24,7 @@ import {
   ShieldCheck,
   Fingerprint,
   Gauge,
+  Banknote,
 } from 'lucide-react'
 import { useAuthStore } from '../../../store/auth.store'
 import { usePermission } from '../../../hooks/usePermission'
@@ -37,6 +38,7 @@ const adminLinks = [
   { name: 'Risk Controls', to: '/admin/risk-controls', icon: <Gauge className="w-4 h-4" />, superOnly: true },
   { name: 'Provably Fair', to: '/admin/fairness', icon: <ShieldCheck className="w-4 h-4" />, superOnly: true },
   { name: 'Game Rounds', to: '/admin/rounds', icon: <History className="w-4 h-4" />, perm: 'game:manage' },
+  { name: 'Payments', to: '/admin/payments', icon: <Banknote className="w-4 h-4" />, perm: 'payment:read' },
   { name: 'Transactions', to: '/admin/transactions', icon: <Receipt className="w-4 h-4" />, perm: 'ledger:read' },
   { name: 'Vault & Wallets', to: '/admin/wallets', icon: <Wallet className="w-4 h-4" />, perm: 'ledger:read' },
   { name: 'Manual Adjustment', to: '/admin/wallet-adjustment', icon: <Coins className="w-4 h-4" />, perm: 'wallet:adjust' },

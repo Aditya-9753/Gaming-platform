@@ -37,6 +37,8 @@ class Wallet(Base):
     # Balance stored as BigInteger in paise (100 paise = 1 Credit) - NEVER FLOAT
     balance: Mapped[int] = mapped_column(BigInteger, default=0, nullable=False)
     locked_balance: Mapped[int] = mapped_column(BigInteger, default=0, nullable=False)
+    # Already removed from balance; reserved for withdrawals awaiting super-admin payout
+    pending_withdrawal: Mapped[int] = mapped_column(BigInteger, default=0, server_default="0", nullable=False)
     currency: Mapped[str] = mapped_column(String(10), default="VIRTUAL", nullable=False)
 
     is_frozen: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
@@ -53,6 +55,7 @@ class Wallet(Base):
     __table_args__ = (
         CheckConstraint("balance >= 0", name="chk_wallet_positive_balance"),
         CheckConstraint("locked_balance >= 0", name="chk_wallet_positive_locked_balance"),
+        CheckConstraint("pending_withdrawal >= 0", name="chk_wallet_positive_pending_withdrawal"),
     )
 
     # Relationships

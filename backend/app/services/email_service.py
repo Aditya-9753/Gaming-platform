@@ -25,7 +25,10 @@ class EmailDeliveryError(RuntimeError):
 
 
 def _otp_bodies(code: str, purpose: str, brand: str) -> tuple[str, str, str]:
-    action = "finish setting up two-step verification" if purpose == "setup" else "sign in to the admin panel"
+    action = {
+        "setup": "finish setting up two-step verification",
+        "payment": "approve a payment action",
+    }.get(purpose, "sign in to the admin panel")
     subject = f"{brand} verification code: {code}"
     text = (
         f"Your {brand} verification code is {code}\n\n"

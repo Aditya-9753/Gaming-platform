@@ -43,6 +43,10 @@ services:
         sync: false
       - key: CRICKET_DATA_API_KEY
         sync: false
+      - key: PII_ENCRYPTION_KEY
+        sync: false
+      - key: PAYMENT_WEBHOOK_SECRETS
+        sync: false
 
   - type: worker
     name: gaming-platform-engine

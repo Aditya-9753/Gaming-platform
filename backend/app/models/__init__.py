@@ -7,6 +7,15 @@ from app.models.game_archive import GameArchive
 from app.models.cricket import CricketMatchRecord, CricketPrediction
 from app.models.leaderboard import Leaderboard
 from app.models.notification import Notification
+from app.models.payment import (
+    BankCredit,
+    Beneficiary,
+    Deposit,
+    PaymentAccount,
+    PaymentStatusHistory,
+    PaymentWebhookEvent,
+    Withdrawal,
+)
 from app.models.refresh_token import RefreshToken
 from app.models.role import Permission, Role, RolePermission
 from app.models.self_exclusion import SelfExclusion
@@ -42,4 +51,11 @@ __all__ = [
     "SelfExclusion",
     "AuditLog",
     "SystemSetting",
+    "PaymentAccount",
+    "Deposit",
+    "BankCredit",
+    "PaymentWebhookEvent",
+    "Beneficiary",
+    "Withdrawal",
+    "PaymentStatusHistory",
 ]

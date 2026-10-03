@@ -12,6 +12,8 @@ from app.api.v1.health import router as health_router
 from app.api.v1.history.routes import router as history_router
 from app.api.v1.leaderboard.router import router as leaderboard_router
 from app.api.v1.notifications.router import router as notifications_router
+from app.api.v1.payments.admin import router as admin_payments_router
+from app.api.v1.payments.router import router as payments_router
 from app.api.v1.responsible_play.router import router as responsible_play_router
 from app.api.v1.risk.router import router as risk_router
 from app.api.v1.support.routes import router as support_router
@@ -28,6 +30,10 @@ api_router.include_router(auth_router)
 
 # Virtual credit wallet & ledger
 api_router.include_router(wallet_router)
+
+# Deposits, withdrawals, payout accounts, provider webhook
+api_router.include_router(payments_router)
+api_router.include_router(admin_payments_router)
 
 # Provably Fair verification
 api_router.include_router(fairness_router)

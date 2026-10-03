@@ -1,8 +1,9 @@
 """Application-wide constants, enums, and role-based permissions.
 
 NON-NEGOTIABLE:
-- Virtual credits only (no real money, deposits, withdrawals, or cash-outs).
-- Balances are represented in paise (100 paise = 1 Credit).
+- Balances are represented in paise (100 paise = 1 Credit / 1 rupee).
+- Deposits are credited only from verified bank credits and withdrawals are
+  completed only by a super admin (see app.services.payment_service).
 """
 
 from enum import Enum
@@ -48,6 +49,12 @@ class PermissionCode(str, Enum):
     NOTIFICATION_MANAGE = "notification:manage"
     REPORT_EXPORT = "report:export"
 
+    # Payments (deposits / withdrawals)
+    PAYMENT_DEPOSIT = "payment:deposit"
+    PAYMENT_WITHDRAW = "payment:withdraw"
+    PAYMENT_READ = "payment:read"
+    PAYMENT_MANAGE = "payment:manage"
+
 
 # Mapping from UserRole to granted PermissionCodes
 ROLE_PERMISSIONS: Dict[UserRole, Set[PermissionCode]] = {
@@ -56,10 +63,13 @@ ROLE_PERMISSIONS: Dict[UserRole, Set[PermissionCode]] = {
         PermissionCode.WALLET_CLAIM,
         PermissionCode.GAME_PLAY,
         PermissionCode.HISTORY_READ,
+        PermissionCode.PAYMENT_DEPOSIT,
+        PermissionCode.PAYMENT_WITHDRAW,
     },
     UserRole.SUPPORT: {
         PermissionCode.WALLET_READ,
         PermissionCode.HISTORY_READ,
+        PermissionCode.PAYMENT_READ,
         PermissionCode.USER_READ,
         PermissionCode.TICKET_MANAGE,
         PermissionCode.SESSION_READ,
@@ -70,6 +80,7 @@ ROLE_PERMISSIONS: Dict[UserRole, Set[PermissionCode]] = {
         PermissionCode.USER_READ,
         PermissionCode.AUDIT_READ,
         PermissionCode.LEDGER_READ,
+        PermissionCode.PAYMENT_READ,
     },
     UserRole.ADMIN: {
         PermissionCode.WALLET_READ,
@@ -87,16 +98,15 @@ ROLE_PERMISSIONS: Dict[UserRole, Set[PermissionCode]] = {
         PermissionCode.LEDGER_READ,
         PermissionCode.NOTIFICATION_MANAGE,
         PermissionCode.REPORT_EXPORT,
+        PermissionCode.PAYMENT_READ,
+        PermissionCode.PAYMENT_MANAGE,
     },
     UserRole.SUPERADMIN: set(PermissionCode),  # All permissions
 }
 
 
 class TransactionType(str, Enum):
-    """Virtual credit ledger movement types.
-
-    Strictly virtual credits only.
-    """
+    """Wallet ledger movement types."""
 
     BET = "BET"
     WIN = "WIN"
@@ -104,6 +114,11 @@ class TransactionType(str, Enum):
     FAUCET = "FAUCET"
     BONUS = "BONUS"
     ADJUSTMENT = "ADJUSTMENT"
+    DEPOSIT = "DEPOSIT"
+    DEPOSIT_REVERSAL = "DEPOSIT_REVERSAL"
+    WITHDRAWAL_HOLD = "WITHDRAWAL_HOLD"
+    WITHDRAWAL_SETTLE = "WITHDRAWAL_SETTLE"
+    WITHDRAWAL_RELEASE = "WITHDRAWAL_RELEASE"
 
 
 class TransactionStatus(str, Enum):
