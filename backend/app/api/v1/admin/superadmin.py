@@ -495,3 +495,148 @@ async def finance_overview(
         },
         "demo_credits": {"count": demo[0], "amount": int(demo[1])},
     }
+
+
+# =====================================================================
+# Ledger & audit integrity (AES-256-GCM seals) — super admin only
+# =====================================================================
+
+
+class IntegrityRequest(BaseModel):
+    kind: str = Field(..., pattern="^(ledger|audit)$")
+    limit: int = Field(5000, ge=1, le=50000)
+
+
+@router.get("/integrity/status")
+async def integrity_status(
+    _: CurrentUser = Depends(require_superadmin),
+    db: AsyncSession = Depends(get_db),
+) -> Dict[str, Any]:
+    from app.security import integrity
+
+    return await integrity.status(db)
+
+
+@router.post("/integrity/verify")
+async def integrity_verify(
+    payload: IntegrityRequest,
+    request: Request,
+    actor: CurrentUser = Depends(require_superadmin),
+    db: AsyncSession = Depends(get_db),
+) -> Dict[str, Any]:
+    """Re-check rows against their seals; any edit made outside the app shows up as tampered."""
+    from app.security import integrity
+
+    try:
+        result = await integrity.verify(db, payload.kind, payload.limit)
+    except RuntimeError as exc:
+        raise BadRequestException(str(exc)) from exc
+    await _audit(db, actor, "INTEGRITY_VERIFIED", "SYSTEM", payload.kind,
+                 {"checked": result["checked"], "ok": result["ok"], "tampered": result["tampered"], "unsealed": result["unsealed"]}, request)
+    await db.commit()
+    return result
+
+
+@router.post("/integrity/seal-existing")
+async def integrity_seal_existing(
+    payload: IntegrityRequest,
+    request: Request,
+    actor: CurrentUser = Depends(require_superadmin),
+    db: AsyncSession = Depends(get_db),
+) -> Dict[str, Any]:
+    """Seal rows written before the key was configured (they are taken as correct as they stand)."""
+    from app.security import integrity
+
+    try:
+        sealed = await integrity.seal_unsealed(db, payload.kind)
+    except RuntimeError as exc:
+        raise BadRequestException(str(exc)) from exc
+    await _audit(db, actor, "INTEGRITY_BACKFILLED", "SYSTEM", payload.kind, {"sealed": sealed}, request)
+    await db.commit()
+    return {"kind": payload.kind, "sealed": sealed}
+
+
+# =====================================================================
+# Fair Hold Analyzer — super admin only (read-only analysis + simulation)
+# =====================================================================
+
+
+class SimulationRequest(BaseModel):
+    game: str = Field(..., pattern="^(wingo|aviator|mines)$")
+    rounds: int = Field(10_000, ge=100, le=100_000)
+    payouts: Optional[Dict[str, float]] = None      # WinGo multipliers (e.g. {"NUMBER": 8.5})
+    use_bet_mix: bool = True                         # WinGo: weight picks like real players
+    house_edge_bp: int = Field(300, ge=0, le=5000)   # Aviator / Mines
+    cashout_at: float = Field(2.0, ge=1.01, le=100)  # Aviator
+    mine_count: int = Field(3, ge=1, le=24)          # Mines
+    reveal: int = Field(3, ge=1, le=24)              # Mines tiles opened
+
+
+@router.get("/hold/analysis")
+async def hold_analysis(
+    days: int = Query(7, ge=1, le=90),
+    include_bots: bool = Query(False),
+    _: CurrentUser = Depends(require_superadmin),
+    db: AsyncSession = Depends(get_db),
+) -> Dict[str, Any]:
+    from app.services import hold_analyzer
+
+    return await hold_analyzer.analysis(db, days=days, include_bots=include_bots)
+
+
+@router.post("/hold/simulate")
+async def hold_simulate(
+    payload: SimulationRequest,
+    _: CurrentUser = Depends(require_superadmin),
+    db: AsyncSession = Depends(get_db),
+) -> Dict[str, Any]:
+    """Replay the real provably-fair RNG with a fresh seed; changes nothing in live games."""
+    import asyncio
+
+    from app.services import hold_analyzer
+
+    mix = await hold_analyzer.wingo_bet_mix(db) if payload.game == "wingo" and payload.use_bet_mix else None
+    try:
+        return await asyncio.to_thread(hold_analyzer.run_simulation, payload.model_dump(), mix)
+    except ValueError as exc:
+        raise BadRequestException(str(exc)) from exc
+
+
+# =====================================================================
+# Public client-seed rotation — super admin only
+# =====================================================================
+
+
+class SeedRotateRequest(BaseModel):
+    seed: Optional[str] = Field(None, max_length=64)
+
+
+@router.get("/fairness/client-seed")
+async def client_seed_state(
+    _: CurrentUser = Depends(require_superadmin),
+    db: AsyncSession = Depends(get_db),
+) -> Dict[str, Any]:
+    from app.services import seed_rotation
+
+    return await seed_rotation.seed_state(db)
+
+
+@router.post("/fairness/client-seed/rotate")
+async def client_seed_rotate(
+    payload: SeedRotateRequest,
+    request: Request,
+    actor: CurrentUser = Depends(require_superadmin),
+    db: AsyncSession = Depends(get_db),
+) -> Dict[str, Any]:
+    """New rounds use the new public client seed; existing rounds and outcomes are untouched."""
+    from app.services import seed_rotation
+
+    try:
+        result = await seed_rotation.rotate(db, actor.id, actor.username, payload.seed or None)
+    except ValueError as exc:
+        raise BadRequestException(str(exc)) from exc
+    await _audit(db, actor, "CLIENT_SEED_ROTATED", "SYSTEM", "fairness.client_seed",
+                 {"new_seed": result["active"]["seed"],
+                  "previous_seed": (result["previous"] or {}).get("seed")}, request)
+    await db.commit()
+    return await seed_rotation.seed_state(db)

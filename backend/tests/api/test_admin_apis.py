@@ -832,3 +832,98 @@ async def test_live_dashboard_drilldowns_and_game_detail(admin_env):
     assert bet["round"]["server_seed"] is None          # round still running: seed stays secret
     assert (await client.get("/api/v1/admin/dashboard/live/games/cricket", headers=sup)).status_code == 200
     assert (await client.get("/api/v1/admin/dashboard/live/games/aviator", headers=admin_env["player_headers"])).status_code == 403
+
+
+TEST_AUDIT_KEY = "11" * 32
+
+
+@pytest.mark.asyncio
+async def test_integrity_seals_detect_direct_database_edits(admin_env, monkeypatch):
+    from sqlalchemy import update
+
+    from app.core.config import get_settings
+    from app.models.wallet import WalletTransaction
+
+    settings = get_settings()
+
+    client, sup = admin_env["client"], admin_env["super_headers"]
+    status = (await client.get("/api/v1/admin/integrity/status", headers=sup)).json()
+    assert status["configured"] is False
+    assert (await client.post("/api/v1/admin/integrity/verify", headers=sup, json={"kind": "ledger"})).status_code == 400
+
+    monkeypatch.setattr(settings, "AUDIT_ENCRYPTION_KEY", TEST_AUDIT_KEY)
+    async with admin_env["session_factory"]() as session:
+        wallet = (await session.execute(select(Wallet))).scalars().first()
+        tx = WalletTransaction(wallet_id=wallet.id, idempotency_key="seal-test", type="BET", amount=500,
+                               balance_before=1000, balance_after=500, status="COMPLETED", reference="seal")
+        session.add(tx)
+        session.add(AuditLog(action="SEAL_TEST", target_type="SYSTEM"))
+        await session.commit()
+        assert tx.integrity_seal and tx.integrity_seal.startswith("v1.")
+        tx_id = tx.id
+
+    ok = (await client.post("/api/v1/admin/integrity/verify", headers=sup, json={"kind": "ledger"})).json()
+    assert ok["ok"] == 1 and ok["tampered"] == 0
+    audit = (await client.post("/api/v1/admin/integrity/verify", headers=sup, json={"kind": "audit"})).json()
+    assert audit["ok"] >= 1 and audit["tampered"] == 0
+
+    # Someone edits the ledger straight in the database
+    async with admin_env["session_factory"]() as session:
+        await session.execute(update(WalletTransaction).where(WalletTransaction.id == tx_id).values(amount=50))
+        await session.commit()
+    bad = (await client.post("/api/v1/admin/integrity/verify", headers=sup, json={"kind": "ledger"})).json()
+    assert bad["tampered"] == 1
+    assert bad["tampered_rows"][0]["changes"]["amount"] == {"sealed": 500, "now": 50}
+
+    sealed = (await client.post("/api/v1/admin/integrity/seal-existing", headers=sup, json={"kind": "audit"})).json()
+    assert sealed["sealed"] >= 0
+    after = (await client.get("/api/v1/admin/integrity/status", headers=sup)).json()
+    assert after["configured"] is True and after["tables"]["audit"]["unsealed"] == 0
+    assert (await client.get("/api/v1/admin/integrity/status", headers=admin_env["player_headers"])).status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_hold_analyzer_and_simulation(admin_env):
+    client, sup = admin_env["client"], admin_env["super_headers"]
+    async with admin_env["session_factory"]() as session:
+        session.add(Game(id="wingo_1m", name="WinGo 1 Min", type="wingo", is_active=True))
+        session.add(GameRound(id="wg_round", game_id="wingo_1m", round_no=1, status="COMPLETED", server_seed_hash="h" * 64))
+        for i, (status, payout) in enumerate([("WON", 900), ("LOST", 0), ("LOST", 0)]):
+            session.add(GameEntry(id=f"wg_{i}", round_id="wg_round", user_id="target_player_id", bet_amount=100,
+                                  payout_amount=payout, status=status, idempotency_key=f"wg_{i}",
+                                  selection={"type": "NUMBER", "value": str(i)}))
+        await session.commit()
+
+    report = (await client.get("/api/v1/admin/hold/analysis", headers=sup)).json()
+    wingo = next(g for g in report["games"] if g["game_id"] == "wingo_1m")
+    assert wingo["wagered"] == 300 and wingo["paid"] == 900
+    assert wingo["actual_hold_pct"] == -200.0 and wingo["expected_hold_pct"] == 10.0
+
+    sim = (await client.post("/api/v1/admin/hold/simulate", headers=sup,
+                             json={"game": "wingo", "rounds": 5000, "payouts": {"NUMBER": 8.5}, "use_bet_mix": False})).json()
+    assert sim["rounds"] == 5000 and sum(sim["number_counts"]) == 5000 and len(sim["server_seed"]) == 64
+    assert abs(sim["simulated_hold_pct"] - sim["expected_hold_pct"]) < 5
+    avi = (await client.post("/api/v1/admin/hold/simulate", headers=sup, json={"game": "aviator", "rounds": 2000, "cashout_at": 2})).json()
+    assert 0 < avi["win_rate_pct"] < 100
+    bad = await client.post("/api/v1/admin/hold/simulate", headers=sup, json={"game": "mines", "mine_count": 20, "reveal": 10})
+    assert bad.status_code == 400
+    assert (await client.get("/api/v1/admin/hold/analysis", headers=admin_env["player_headers"])).status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_client_seed_rotation_applies_to_new_rounds(admin_env):
+    from app.services.fairness_service import FairnessService
+
+    client, sup = admin_env["client"], admin_env["super_headers"]
+    first = (await client.post("/api/v1/admin/fairness/client-seed/rotate", headers=sup, json={})).json()
+    seed1 = first["active"]["seed"]
+    assert len(seed1) == 32 and first["history"] == []
+
+    async with admin_env["session_factory"]() as session:
+        new_round = await FairnessService(session).create_round_seed("aviator", 999)
+        assert new_round.client_seed == seed1
+
+    second = (await client.post("/api/v1/admin/fairness/client-seed/rotate", headers=sup, json={"seed": "diwali-2026-seed"})).json()
+    assert second["active"]["seed"] == "diwali-2026-seed" and second["history"][0]["seed"] == seed1
+    assert (await client.post("/api/v1/admin/fairness/client-seed/rotate", headers=sup, json={"seed": "bad seed!"})).status_code == 400
+    assert (await client.post("/api/v1/admin/fairness/client-seed/rotate", headers=admin_env["player_headers"], json={})).status_code == 403

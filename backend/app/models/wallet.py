@@ -4,6 +4,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING, List, Optional
 from sqlalchemy import (
+    Text,
     BigInteger,
     Boolean,
     CheckConstraint,
@@ -90,6 +91,8 @@ class WalletTransaction(Base):
     status: Mapped[str] = mapped_column(String(50), default="COMPLETED", nullable=False, index=True)
     reference: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, index=True)
     description: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    # AES-256-GCM seal of this row (see app.security.integrity)
+    integrity_seal: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

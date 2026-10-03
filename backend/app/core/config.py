@@ -44,6 +44,9 @@ class Settings(BaseSettings):
     # Comma separated: only these addresses may receive admin login codes (empty = any)
     ADMIN_OTP_EMAILS: str = ""
 
+    # AES-256-GCM key (64 hex characters) sealing ledger and audit rows against tampering
+    AUDIT_ENCRYPTION_KEY: Optional[str] = None
+
     # Real worldwide cricket from CricketData.org (free key at cricketdata.org)
     CRICAPI_KEY: Optional[str] = None
     CRICAPI_LIVE_REFRESH_SECONDS: int = 1000

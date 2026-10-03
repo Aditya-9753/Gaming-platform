@@ -15,6 +15,9 @@ from app.models.system_setting import SystemSetting
 from app.models.user import User
 from app.models.wallet import Wallet, WalletTransaction
 
+# Seal ledger and audit rows on write (needs the models above)
+import app.security.integrity  # noqa: E402,F401
+
 __all__ = [
     "Base",
     "Role",

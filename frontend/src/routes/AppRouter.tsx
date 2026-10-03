@@ -63,6 +63,7 @@ const Permissions = lazy(() => import('../pages/admin/pages/Permissions').then((
 const AuditLogs = lazy(() => import('../pages/admin/pages/AuditLogs').then((m) => ({ default: m.AuditLogs })))
 const AddAdmin = lazy(() => import('../pages/admin/pages/AddAdmin').then((m) => ({ default: m.AddAdmin })))
 const CreditFlow = lazy(() => import('../pages/admin/pages/CreditFlow').then((m) => ({ default: m.CreditFlow })))
+const SecurityCenter = lazy(() => import('../pages/admin/pages/SecurityCenter').then((m) => ({ default: m.SecurityCenter })))
 const Setup2FA = lazy(() => import('../pages/admin/pages/Setup2FA').then((m) => ({ default: m.Setup2FA })))
 const AdminSettings = lazy(() => import('../pages/admin/pages/Settings').then((m) => ({ default: m.AdminSettings })))
 
@@ -262,6 +263,7 @@ export const router = createBrowserRouter([
       { path: 'wallet-adjustment', element: <WalletAdjustment /> },
       { path: 'reports', element: <AdminReports /> },
       { path: 'credit-flow', element: <RequireSuperAdmin><CreditFlow /></RequireSuperAdmin> },
+      { path: 'security', element: <RequireSuperAdmin><SecurityCenter /></RequireSuperAdmin> },
       { path: 'notifications', element: <AdminNotifications /> },
       { path: 'support', element: <AdminSupport /> },
       { path: 'admin-users', element: <RequireSuperAdmin><AdminUsersStaff /></RequireSuperAdmin> },

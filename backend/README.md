@@ -85,6 +85,20 @@ round finished ──► serverSeed revealed → anyone re-hashes it and recompu
 - Players verify on `/fairness`, either through the API or entirely in the
   browser (WebCrypto re-implementation, cross-checked against the Python code).
 
+## Security & Fairness page (`/admin/security`, super admin only)
+
+- **Hold Analyzer**: actual hold per game from settled bets vs the hold the
+  payout table / house edge predicts, with an approximate 95% range. The
+  what-if simulator replays the engines' own provably-fair functions with a
+  fresh random seed (returned, so runs are reproducible); it never touches a
+  live round. Margin is set only through payouts / house edge for everyone.
+- **Ledger integrity**: every `wallet_transactions` and `audit_logs` row is
+  sealed with AES-256-GCM (row id as associated data) when
+  `AUDIT_ENCRYPTION_KEY` (64 hex chars) is set. "Verify" flags rows edited
+  outside the app.
+- **Seed rotation**: rotate the public client seed used by new rounds; old
+  values stay listed so finished rounds remain verifiable.
+
 ## Super-admin login provisioning
 
 Account passwords are stored as Argon2 hashes and cannot be read back from the

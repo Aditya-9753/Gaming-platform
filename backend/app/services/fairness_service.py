@@ -61,7 +61,12 @@ class FairnessService:
         server_seed = generate_server_seed(32)
         server_seed_hash = hash_server_seed(server_seed)
         round_id = str(uuid.uuid4())
-        cs = client_seed or round_id  # default client_seed is the round UUID itself
+        if not client_seed:
+            from app.services.seed_rotation import active_client_seed
+
+            # Platform seed set by a super admin rotation; otherwise the round UUID itself
+            client_seed = await active_client_seed(self._db)
+        cs = client_seed or round_id
 
         game_round = GameRound(
             id=round_id,

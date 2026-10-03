@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Dict, Optional
-from sqlalchemy import JSON, DateTime, ForeignKey, Index, String, func
+from sqlalchemy import JSON, DateTime, ForeignKey, Index, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -28,6 +28,8 @@ class AuditLog(Base):
     target_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     details: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON, nullable=True)
     ip_address: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    # AES-256-GCM seal of this row (see app.security.integrity)
+    integrity_seal: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
