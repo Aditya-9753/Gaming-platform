@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import { AlertTriangle, Gamepad2, Info, Palette, Save, Wrench } from 'lucide-react'
+import { AlertTriangle, Gamepad2, Info, Palette, Percent, Save, Wrench } from 'lucide-react'
 import { apiClient } from '../../../services/api'
 import { showToast } from '../../../components/common/Toast'
 import { Button } from '../../../components/common/Button'
@@ -24,6 +24,15 @@ const PAYOUT_FIELDS: Array<[string, string]> = [
   ['GREEN', 'Green (1,3,7,9)'], ['RED', 'Red (2,4,6,8)'], ['COLOR_HALF', 'Green on 5 / Red on 0'],
   ['VIOLET', 'Violet (0,5)'], ['NUMBER', 'Exact number'], ['SIZE', 'Big / Small'],
 ]
+// Games whose margin is a single number. Aviator / Mines: house edge (basis points).
+// Teen Patti: the winning side's payout (2 equal sides, so margin = 1 - payout / 2).
+const MARGIN_GAMES: Array<{ id: string; label: string; hint: string }> = [
+  { id: 'aviator', label: 'Aviator', hint: 'Crash points are scaled so players get back this much less on average.' },
+  { id: 'mines', label: 'Mines', hint: 'Every gem multiplier is reduced by this margin.' },
+  { id: 'teen_patti', label: 'Teen Patti', hint: 'Sets the winning side payout: 2 × (1 − margin).' },
+]
+const MAX_MARGIN_PCT = 50
+
 const DEFAULT_PAYOUTS: Record<string, number> = { GREEN: 2, RED: 2, COLOR_HALF: 1.5, VIOLET: 4.5, NUMBER: 9, SIZE: 1.96 }
 
 const Section: React.FC<{ title: string; icon: React.ReactNode; children: React.ReactNode; hint?: string }> = ({ title, icon, children, hint }) => (
@@ -50,6 +59,7 @@ export const AdminSettings: React.FC = () => {
   const [games, setGames] = useState<Record<string, GameSettings>>({})
   const [payouts, setPayouts] = useState<Record<string, number>>(DEFAULT_PAYOUTS)
   const [saving, setSaving] = useState<string | null>(null)
+  const [margins, setMargins] = useState<Record<string, string>>({})
 
   const load = useCallback(async () => {
     try {
@@ -59,6 +69,17 @@ export const AdminSettings: React.FC = () => {
       const map: Record<string, GameSettings> = {}
       loaded.forEach((g) => { if (g) map[g.game_id] = g })
       setGames(map)
+      // House margins: Aviator / Mines house edge, Teen Patti from its payout
+      const marginRows = await Promise.all(MARGIN_GAMES.map(({ id }) => apiClient.get<GameSettings>(`/admin/games/${id}/settings`).then((r) => r.data).catch(() => null)))
+      const next: Record<string, string> = {}
+      marginRows.forEach((g) => {
+        if (!g) return
+        if (g.game_id === 'teen_patti') {
+          const payout = Number((g.config?.payout as number | undefined) ?? 1.96)
+          next[g.game_id] = String(Math.round((1 - payout / 2) * 10000) / 100)
+        } else next[g.game_id] = String(g.house_edge_percent / 100)
+      })
+      setMargins(next)
       const wingoPayouts = map.wingo_30s?.config?.payouts as Record<string, number> | undefined
       setPayouts({ ...DEFAULT_PAYOUTS, ...(wingoPayouts ?? {}) })
     } catch (error) {
@@ -93,6 +114,33 @@ export const AdminSettings: React.FC = () => {
       await load()
     } catch (error) {
       showToast({ title: 'Could not save limits', message: getApiErrorMessage(error, 'Check that min is below max.'), type: 'error' })
+    } finally {
+      setSaving(null)
+    }
+  }
+
+  const saveMargins = async () => {
+    for (const { id, label } of MARGIN_GAMES) {
+      const pct = Number(margins[id])
+      if (margins[id] === undefined) continue
+      if (!Number.isFinite(pct) || pct < 0 || pct > MAX_MARGIN_PCT) {
+        showToast({ title: `${label}: invalid margin`, message: `Enter a margin between 0% and ${MAX_MARGIN_PCT}%.`, type: 'error' })
+        return
+      }
+    }
+    setSaving('margins')
+    try {
+      for (const { id } of MARGIN_GAMES) {
+        if (margins[id] === undefined) continue
+        const bp = Math.round(Number(margins[id]) * 100)
+        const body: Record<string, unknown> = { house_edge_percent: bp }
+        if (id === 'teen_patti') body.config = { payout: Math.round(2 * (1 - bp / 10000) * 100) / 100 }
+        await apiClient.patch(`/admin/games/${id}/settings`, body)
+      }
+      showToast({ title: 'House margins saved', message: 'Applied from the next round and recorded in the audit log.', type: 'success' })
+      await load()
+    } catch (error) {
+      showToast({ title: 'Could not save margins', message: getApiErrorMessage(error, 'Check the values.'), type: 'error' })
     } finally {
       setSaving(null)
     }
@@ -176,6 +224,36 @@ export const AdminSettings: React.FC = () => {
           </table>
         </div>
         <Button type="button" leftIcon={<Save className="h-4 w-4" />} isLoading={saving === 'limits'} onClick={() => void saveLimits()}>Save limits</Button>
+      </Section>
+
+      <Section title="House margin" icon={<Percent className="h-4 w-4 text-amber-400" />} hint="The share of stakes the house keeps on average (RTP = 100% − margin). Applies from the next round. WinGo's margin comes from its multipliers below.">
+        <div className="grid gap-3 md:grid-cols-3">
+          {MARGIN_GAMES.map(({ id, label, hint }) => {
+            const pct = Number(margins[id] ?? 0)
+            const loaded = margins[id] !== undefined
+            return (
+              <div key={id} className="space-y-2 rounded-xl bg-dark-elevated p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-bold text-white">{label}</span>
+                  {loaded && <span className="rounded-full bg-dark-card px-2 py-0.5 text-[11px] font-bold text-emerald-300">RTP {(100 - pct).toFixed(1)}%</span>}
+                </div>
+                <label className="flex items-center gap-2 text-xs text-slate-400">
+                  <input
+                    type="number" step="0.1" min={0} max={MAX_MARGIN_PCT} disabled={!loaded}
+                    value={margins[id] ?? ''} placeholder={loaded ? '' : 'n/a'}
+                    onChange={(e) => setMargins((m) => ({ ...m, [id]: e.target.value }))}
+                    aria-label={`${label} house margin percent`}
+                    className="w-24 rounded-lg border border-dark-border bg-dark-card px-2 py-1.5 text-white disabled:opacity-50"
+                  />
+                  % margin
+                </label>
+                {id === 'teen_patti' && loaded && <p className="text-[11px] text-slate-300">Winning side pays {(2 * (1 - pct / 100)).toFixed(2)}x</p>}
+                <p className="text-[11px] text-slate-500">{hint}</p>
+              </div>
+            )
+          })}
+        </div>
+        <Button type="button" leftIcon={<Save className="h-4 w-4" />} isLoading={saving === 'margins'} onClick={() => void saveMargins()}>Save margins</Button>
       </Section>
 
       <Section title="WinGo reward multipliers" icon={<Gamepad2 className="h-4 w-4 text-rose-400" />} hint="Payout for a winning pick (x stake). Applies to every WinGo mode from the next period; result popups use the live table.">

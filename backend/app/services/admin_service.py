@@ -544,6 +544,10 @@ class AdminService:
                     raise ValueError("Color payout_multipliers has an unknown color")
                 for colour in ColourResult:
                     configured_payout_x100(colour, multipliers)
+            elif game_id == "teen_patti":
+                from app.games.teen_patti.rules import payout_from_config
+
+                payout_from_config(effective_config)
             elif game_id.startswith("wingo_"):
                 from app.games.wingo.rules import payouts_from_config
 
