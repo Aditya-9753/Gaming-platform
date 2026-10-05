@@ -16,19 +16,23 @@ interface SystemValues {
   daily_claim_amount_paise: number
 }
 
-interface GameSettings { game_id: string; name: string; is_active: boolean; min_bet: number; max_bet: number; house_edge_percent: number; config: Record<string, unknown> }
+interface GameSettings { game_id: string; name: string; is_active: boolean; min_bet: number; max_bet: number; house_edge_percent: number; config: Record<string, unknown>; supports_margin?: boolean }
 
-const LIMIT_GAMES = ['aviator', 'mines', 'wingo_30s', 'wingo_1m', 'wingo_3m', 'wingo_5m', 'cricket']
+const LIMIT_GAMES = ['aviator', 'mines', 'color', 'wingo_30s', 'wingo_1m', 'wingo_3m', 'wingo_5m', 'cricket']
 const WINGO = ['wingo_30s', 'wingo_1m', 'wingo_3m', 'wingo_5m']
+
 const PAYOUT_FIELDS: Array<[string, string]> = [
   ['GREEN', 'Green (1,3,7,9)'], ['RED', 'Red (2,4,6,8)'], ['COLOR_HALF', 'Green on 5 / Red on 0'],
   ['VIOLET', 'Violet (0,5)'], ['NUMBER', 'Exact number'], ['SIZE', 'Big / Small'],
 ]
-// Games whose margin is a single number. Aviator / Mines: house edge (basis points).
-// Teen Patti: the winning side's payout (2 equal sides, so margin = 1 - payout / 2).
-const MARGIN_GAMES: Array<{ id: string; label: string; hint: string }> = [
+// One margin per game, sent as house_edge_percent (basis points). Aviator / Mines use it in
+// their formula; the server recalculates WinGo, Color and Teen Patti payouts from it.
+// Teen Patti also has 2 equal sides, so its margin is read back as 1 - payout / 2.
+const MARGIN_GAMES: Array<{ id: string; label: string; hint: string; targets?: string[] }> = [
   { id: 'aviator', label: 'Aviator', hint: 'Crash points are scaled so players get back this much less on average.' },
   { id: 'mines', label: 'Mines', hint: 'Every gem multiplier is reduced by this margin.' },
+  { id: 'wingo_30s', label: 'WinGo (all modes)', hint: 'Every pick’s multiplier is recalculated to this margin (overwrites the table below).', targets: WINGO },
+  { id: 'color', label: 'Color Prediction', hint: 'Red, Green and Violet payouts are recalculated to this margin.' },
   { id: 'teen_patti', label: 'Teen Patti', hint: 'Sets the winning side payout: 2 × (1 − margin).' },
 ]
 const MAX_MARGIN_PCT = 50
@@ -130,12 +134,12 @@ export const AdminSettings: React.FC = () => {
     }
     setSaving('margins')
     try {
-      for (const { id } of MARGIN_GAMES) {
+      for (const { id, targets } of MARGIN_GAMES) {
         if (margins[id] === undefined) continue
         const bp = Math.round(Number(margins[id]) * 100)
         const body: Record<string, unknown> = { house_edge_percent: bp }
-        if (id === 'teen_patti') body.config = { payout: Math.round(2 * (1 - bp / 10000) * 100) / 100 }
-        await apiClient.patch(`/admin/games/${id}/settings`, body)
+        if (id === 'teen_patti') body.config = { payout: Math.floor(2 * (1 - bp / 10000) * 100) / 100 }
+        for (const target of targets ?? [id]) await apiClient.patch(`/admin/games/${target}/settings`, body)
       }
       showToast({ title: 'House margins saved', message: 'Applied from the next round and recorded in the audit log.', type: 'success' })
       await load()
@@ -158,6 +162,7 @@ export const AdminSettings: React.FC = () => {
       setSaving(null)
     }
   }
+
 
   const setGame = (id: string, field: 'min_bet' | 'max_bet', rupees: string) =>
     setGames((g) => ({ ...g, [id]: { ...g[id], [field]: Math.round(Number(rupees) * 100) || 0 } }))
@@ -226,8 +231,8 @@ export const AdminSettings: React.FC = () => {
         <Button type="button" leftIcon={<Save className="h-4 w-4" />} isLoading={saving === 'limits'} onClick={() => void saveLimits()}>Save limits</Button>
       </Section>
 
-      <Section title="House margin" icon={<Percent className="h-4 w-4 text-amber-400" />} hint="The share of stakes the house keeps on average (RTP = 100% − margin). Applies from the next round. WinGo's margin comes from its multipliers below.">
-        <div className="grid gap-3 md:grid-cols-3">
+      <Section title="House margin" icon={<Percent className="h-4 w-4 text-amber-400" />} hint="The share of stakes the house keeps on average (RTP = 100% − margin). Only payouts change; results stay seed-driven and never look at bets. Applies from the next round.">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {MARGIN_GAMES.map(({ id, label, hint }) => {
             const pct = Number(margins[id] ?? 0)
             const loaded = margins[id] !== undefined
@@ -256,7 +261,7 @@ export const AdminSettings: React.FC = () => {
         <Button type="button" leftIcon={<Save className="h-4 w-4" />} isLoading={saving === 'margins'} onClick={() => void saveMargins()}>Save margins</Button>
       </Section>
 
-      <Section title="WinGo reward multipliers" icon={<Gamepad2 className="h-4 w-4 text-rose-400" />} hint="Payout for a winning pick (x stake). Applies to every WinGo mode from the next period; result popups use the live table.">
+      <Section title="WinGo reward multipliers" icon={<Gamepad2 className="h-4 w-4 text-rose-400" />} hint="Payout for a winning pick (x stake). Applies to every WinGo mode from the next period; result popups use the live table. Saving a WinGo house margin above recalculates these.">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {PAYOUT_FIELDS.map(([key, label]) => (
             <label key={key} className="flex flex-col gap-1 rounded-xl bg-dark-elevated p-3 text-xs text-slate-300">

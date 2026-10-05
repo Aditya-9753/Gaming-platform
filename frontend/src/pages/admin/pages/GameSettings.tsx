@@ -4,6 +4,8 @@ import { Input } from '../../../components/common/Input'
 import { Button } from '../../../components/common/Button'
 import { showToast } from '../../../components/common/Toast'
 import { apiClient } from '../../../services/api'
+import { usePermission } from '../../../hooks/usePermission'
+import { getApiErrorMessage } from '../../../utils/apiError'
 
 export const GameSettings: React.FC = () => {
   const [selectedGame, setSelectedGame] = useState('aviator')
@@ -13,11 +15,15 @@ export const GameSettings: React.FC = () => {
   const [countdown, setCountdown] = useState('6')
   const [isActive, setIsActive] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [supportsMargin, setSupportsMargin] = useState(true)
+  // House margin and payouts are super-admin only (enforced by the API too)
+  const canSetMargin = usePermission().isSuperAdmin() && supportsMargin
 
   useEffect(() => {
-    apiClient.get<{ house_edge_percent: number; min_bet: number; max_bet: number; config: Record<string, unknown>; is_active: boolean }>(`/admin/games/${selectedGame}/settings`)
+    apiClient.get<{ house_edge_percent: number; min_bet: number; max_bet: number; config: Record<string, unknown>; is_active: boolean; supports_margin?: boolean }>(`/admin/games/${selectedGame}/settings`)
       .then(({ data }) => {
         setHouseEdge((data.house_edge_percent / 100).toString())
+        setSupportsMargin(data.supports_margin ?? true)
         setMinBet((data.min_bet / 100).toString())
         setMaxBet((data.max_bet / 100).toString())
         setCountdown(String(data.config.betting_duration_sec ?? 6))
@@ -31,10 +37,10 @@ export const GameSettings: React.FC = () => {
     setIsSaving(true)
     try {
       await apiClient.patch(`/admin/games/${selectedGame}/settings`, {
-        house_edge_percent: Math.round(Number(houseEdge) * 100),
+        ...(canSetMargin ? { house_edge_percent: Math.round(Number(houseEdge) * 100) } : {}),
         min_bet: Math.round(Number(minBet) * 100),
         max_bet: Math.round(Number(maxBet) * 100),
-        config: { betting_duration_sec: Number(countdown) },
+        ...(selectedGame === 'aviator' ? { config: { betting_duration_sec: Number(countdown) } } : {}),
         is_active: isActive,
       })
       showToast({
@@ -42,8 +48,8 @@ export const GameSettings: React.FC = () => {
         message: `Updated parameters for ${selectedGame.toUpperCase()}`,
         type: 'success',
       })
-    } catch {
-      showToast({ title: 'Settings rejected', message: 'Please check limits, timers, and your game-management permission.', type: 'error' })
+    } catch (error) {
+      showToast({ title: 'Settings rejected', message: getApiErrorMessage(error, 'Please check limits, timers, and your game-management permission.'), type: 'error' })
     } finally {
       setIsSaving(false)
     }
@@ -66,19 +72,28 @@ export const GameSettings: React.FC = () => {
           >
             <option value="aviator">Aviator Crash</option>
             <option value="color">Color Prediction</option>
+            <option value="wingo_30s">WinGo 30sec</option>
+            <option value="wingo_1m">WinGo 1 Min</option>
+            <option value="wingo_3m">WinGo 3 Min</option>
+            <option value="wingo_5m">WinGo 5 Min</option>
             <option value="mines">Mines</option>
             <option value="cricket">Cricket Live</option>
           </select>
         </div>
 
-        <Input
-          label="House Edge (%)"
-          type="number"
-          step="0.1"
-          value={houseEdge}
-          onChange={(e) => setHouseEdge(e.target.value)}
-          helperText={`Theoretical RTP: ${(100 - Number(houseEdge)).toFixed(1)}%`}
-        />
+        {supportsMargin ? (
+          <Input
+            label="House Margin (%)"
+            type="number"
+            step="0.1"
+            value={houseEdge}
+            disabled={!canSetMargin}
+            onChange={(e) => setHouseEdge(e.target.value)}
+            helperText={canSetMargin ? `Applies from the next round. Theoretical RTP: ${(100 - Number(houseEdge)).toFixed(1)}%` : 'Only the super admin can change the house margin'}
+          />
+        ) : (
+          <p className="text-xs text-slate-400">A house margin does not apply to this game.</p>
+        )}
 
         <label className="flex items-center justify-between rounded-xl border border-dark-border bg-dark-elevated p-3 text-sm text-white">
           Game enabled
@@ -100,12 +115,12 @@ export const GameSettings: React.FC = () => {
           />
         </div>
 
-        <Input
+        {selectedGame === 'aviator' && <Input
           label="Inter-Round Countdown (Seconds)"
           type="number"
           value={countdown}
           onChange={(e) => setCountdown(e.target.value)}
-        />
+        />}
 
         <Button
           type="submit"

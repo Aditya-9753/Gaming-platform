@@ -58,7 +58,7 @@ GAMES_DATA = [
         "description": "Multiplayer crash game with real-time curve and provably fair multiplier.",
         "min_bet": 100,  # 1 Credit
         "max_bet": 500000,  # 5,000 Credits
-        "house_edge_percent": 300,  # 3.00%
+        "house_edge_percent": 1000,  # 10.00%
         "config": {
             "tick_rate_ms": 50,
             "betting_duration_sec": 6,

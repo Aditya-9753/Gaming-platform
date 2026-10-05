@@ -425,6 +425,7 @@ async def update_game_settings(
         config=payload.config,
         is_active=payload.is_active,
         ip_address=ip_addr,
+        actor_is_superadmin=current_user.role == UserRole.SUPERADMIN.value,
     )
     await db.commit()
     return {

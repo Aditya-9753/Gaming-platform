@@ -27,6 +27,7 @@ from app.core.constants import RoundStatus
 from app.core.database import Base
 from app.core.exceptions import ForbiddenException, NotFoundException
 from app.games.aviator.rules import (
+    CURRENT_CRASH_FORMULA,
     DEFAULT_HOUSE_EDGE_BP as AVIATOR_EDGE_BP,
     compute_crash_point,
     crash_x100_to_float,
@@ -216,12 +217,33 @@ def test_aviator_house_edge_approximation():
     """
     hits_2x = sum(
         1 for n in range(100_000)
-        if compute_crash_point("bench", "player", n) >= 200
+        if compute_crash_point("bench", "player", n, AVIATOR_EDGE_BP, CURRENT_CRASH_FORMULA) >= 200
     )
-    # Expected: (1 - 3%) × 0.5 × 100% ≈ 48.5% (geometric distribution)
-    # Allow generous band: 45%–52%
+    # Expected: (1 - 3%) / 2 = 48.5%; the 100k-round standard error is ~0.16pp
     pct = hits_2x / 100_000
-    assert 0.43 <= pct <= 0.55, f"P(crash >= 2x) = {pct:.3f}"
+    assert 0.48 <= pct <= 0.49, f"P(crash >= 2x) = {pct:.3f}"
+
+
+@pytest.mark.parametrize("edge_bp", [300, 1000])
+def test_aviator_real_margin_equals_configured_margin(edge_bp):
+    """Every cash-out target returns (1 - edge): the margin is applied once, not twice."""
+    n = 100_000
+    crashes = [compute_crash_point("margin", "player", i, edge_bp, CURRENT_CRASH_FORMULA) for i in range(n)]
+    for target in (150, 200, 500, 1000):
+        rtp = sum(c >= target for c in crashes) / n * target / 100
+        se = (target / 100) * ((1 - edge_bp / 10_000) * 100 / target * (1 - (1 - edge_bp / 10_000) * 100 / target) / n) ** 0.5
+        assert abs(rtp - (1 - edge_bp / 10_000)) < 5 * se + 0.002, (target, rtp)
+
+
+def test_legacy_rounds_still_verify_with_their_formula():
+    """Rounds opened before the fix recompute with the legacy formula they used."""
+    from app.games.aviator.rules import CRASH_FORMULA_V1
+
+    legacy = [compute_crash_point("old", "player", i, 300, formula=CRASH_FORMULA_V1) for i in range(2_000)]
+    current = [compute_crash_point("old", "player", i, 300, CURRENT_CRASH_FORMULA) for i in range(2_000)]
+    assert legacy != current
+    # the legacy rule only ever adds instant crashes; other rounds are unchanged
+    assert all(a == b or a == 100 for a, b in zip(legacy, current))
 
 
 # =========================================================================
@@ -367,6 +389,7 @@ async def test_verify_completed_round(session_factory):
         game_round.result = {
             "crash_point_x100": crash_x100,
             "crash_point": format_crash(crash_x100),
+            "crash_formula": 2,
         }
         game_round.status = RoundStatus.COMPLETED.value
         db.add(game_round)

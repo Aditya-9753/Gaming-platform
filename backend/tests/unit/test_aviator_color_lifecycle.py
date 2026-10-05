@@ -112,7 +112,7 @@ async def test_aviator_cashout_is_rejected_at_crash_time(monkeypatch):
     )
     monkeypatch.setattr(
         "app.games.aviator.service.compute_crash_point",
-        lambda *args: 200,
+        lambda *args, **kwargs: 200,
     )
 
     with pytest.raises(BadRequestException, match="crashed"):
@@ -133,7 +133,7 @@ async def test_aviator_cashout_before_crash_and_double_cashout(monkeypatch):
     )
     monkeypatch.setattr(
         "app.games.aviator.service.compute_crash_point",
-        lambda *args: 200,
+        lambda *args, **kwargs: 200,
     )
 
     result = await service.cashout(
@@ -168,7 +168,7 @@ async def test_aviator_auto_cashout_uses_stored_target(monkeypatch):
     entry.selection = {"auto_cashout": 1.5}
     monkeypatch.setattr(
         "app.games.aviator.service.compute_crash_point",
-        lambda *args: 200,
+        lambda *args, **kwargs: 200,
     )
 
     result = await service.cashout(

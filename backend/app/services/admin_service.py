@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.constants import UserRole
-from app.core.exceptions import BadRequestException, ConflictException, IdempotencyException, NotFoundException
+from app.core.exceptions import BadRequestException, ConflictException, ForbiddenException, IdempotencyException, NotFoundException
 from app.core.security import hash_password
 from app.models.audit_log import AuditLog
 from app.models.game import Game, GameEntry, GameRound, GameSetting
@@ -29,6 +29,9 @@ from app.services.notification_service import NotificationService
 from app.services.wallet_service import WalletService
 from app.websocket.manager import ws_manager
 from app.utils.money import MAX_SINGLE_TRANSACTION_PAISE
+
+# Game-config keys that set what a win pays; changing them is super-admin only
+PAYOUT_CONFIG_KEYS = frozenset({"payout", "payouts", "payout_multipliers", "winner_odds_bp", "home_odds_bp", "away_odds_bp"})
 
 
 class AdminService:
@@ -468,6 +471,8 @@ class AdminService:
         game = await self.game_repo.get_by_id(game_id)
         if not game:
             raise NotFoundException(f"Game '{game_id}' not found")
+        from app.games.margin import supports_margin
+
         settings = game.settings
         return {
             "game_id": game.id,
@@ -477,6 +482,7 @@ class AdminService:
             "max_bet": settings.max_bet if settings else 100000,
             "house_edge_percent": settings.house_edge_percent if settings else 300,
             "config": settings.config if settings else {},
+            "supports_margin": supports_margin(game.id),
         }
 
     async def update_game_settings(
@@ -489,8 +495,15 @@ class AdminService:
         config: Optional[dict] = None,
         is_active: Optional[bool] = None,
         ip_address: Optional[str] = None,
+        actor_is_superadmin: bool = False,
     ) -> GameSetting:
-        """Update game settings with input validation and before/after audit log."""
+        """Update game settings with input validation and before/after audit log.
+
+        House margin and payout/odds tables are super-admin only; other staff
+        with GAME_MANAGE may still change limits, timers and on/off.
+        """
+        from app.games.margin import payout_config_for_margin, supports_margin
+
         game = await self.game_repo.get_by_id(game_id)
         if not game:
             raise NotFoundException(f"Game '{game_id}' not found")
@@ -498,6 +511,23 @@ class AdminService:
         current_settings = game.settings
         if not current_settings:
             raise NotFoundException(f"Settings for '{game_id}' not found")
+
+        edge_changed = house_edge_percent is not None and house_edge_percent != current_settings.house_edge_percent
+        touches_payouts = bool(set(config or {}) & PAYOUT_CONFIG_KEYS)
+        if (edge_changed or touches_payouts) and not actor_is_superadmin:
+            raise ForbiddenException("Only the super admin can change the house margin or payouts")
+        if not actor_is_superadmin:
+            house_edge_percent = None  # forms resend the current value
+        # A super admin re-saving the same margin still rebuilds the payout table below
+        if house_edge_percent is not None:
+            if not supports_margin(game_id):
+                raise BadRequestException("A house margin does not apply to this game")
+            try:
+                payout_patch = payout_config_for_margin(game_id, house_edge_percent)
+            except ValueError as exc:
+                raise BadRequestException(str(exc)) from exc
+            if payout_patch:
+                config = {**(config or {}), **payout_patch}
 
         # Validation
         effective_min = min_bet if min_bet is not None else current_settings.min_bet

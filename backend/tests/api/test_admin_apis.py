@@ -365,12 +365,21 @@ async def test_admin_games_management_and_audit(admin_env):
     update_payload = {
         "min_bet": 200,
         "max_bet": 60000,
-        "house_edge_percent": 350,
+        "house_edge_percent": 300,  # unchanged value is accepted from a plain admin
         "config": {"tick_rate_ms": 60},
     }
     res = await client.patch("/api/v1/admin/games/aviator/settings", headers=admin_headers, json=update_payload)
     assert res.status_code == 200
     assert res.json()["min_bet"] == 200
+
+    # House margin and payout tables are super-admin only
+    res = await client.patch("/api/v1/admin/games/aviator/settings", headers=admin_headers, json={"house_edge_percent": 350})
+    assert res.status_code == 403
+    res = await client.patch("/api/v1/admin/games/aviator/settings", headers=admin_headers, json={"config": {"payouts": {"NUMBER": 8}}})
+    assert res.status_code == 403
+    res = await client.patch("/api/v1/admin/games/aviator/settings", headers=admin_env["super_headers"], json={"house_edge_percent": 350})
+    assert res.status_code == 200
+    assert res.json()["house_edge_percent"] == 350
 
     # 4. Disable game -> triggers audit log
     res = await client.patch("/api/v1/admin/games/aviator/status", headers=admin_headers, json={"is_active": False})
