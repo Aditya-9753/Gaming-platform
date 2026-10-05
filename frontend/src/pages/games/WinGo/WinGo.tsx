@@ -25,10 +25,13 @@ interface GameLimits { min_bet: number; max_bet: number }
 const pad2 = (n: number) => String(n).padStart(2, '0')
 
 /** Best-case multiplier (x100) for a pick, used for the "max win" preview. */
-const maxPayoutX100 = (pick: WingoPick) =>
-  pick.type === 'NUMBER' ? DEFAULT_PAYOUTS_X100.NUMBER
-    : pick.type === 'SIZE' ? DEFAULT_PAYOUTS_X100.SIZE
-      : pick.value === 'VIOLET' ? DEFAULT_PAYOUTS_X100.VIOLET : DEFAULT_PAYOUTS_X100[pick.value]
+const maxPayoutX100 = (pick: WingoPick, p: Record<string, number>) =>
+  pick.type === 'NUMBER' ? p.NUMBER
+    : pick.type === 'SIZE' ? p.SIZE
+      : pick.value === 'VIOLET' ? p.VIOLET : p[pick.value]
+
+/** "1.89x" from a x100 payout. */
+const fmtX = (x100: number | undefined) => `${((x100 ?? 0) / 100).toFixed(2).replace(/\.?0+$/, '')}x`
 
 const chipClass = (pick: WingoPick) =>
   pick.type === 'SIZE' ? (pick.value === 'BIG' ? 'bg-amber-400' : 'bg-sky-500')
@@ -66,6 +69,14 @@ let betSeq = 0
 export const WinGo: React.FC = () => {
   const [modeIndex, setModeIndex] = useState(0)
   const mode = WINGO_MODES[modeIndex]
+  // Payout table each mode really pays, from the server (rules text and win preview use it)
+  const [livePayouts, setLivePayouts] = useState<Record<string, Record<string, number>>>({})
+  useEffect(() => {
+    apiClient.get<Array<{ game_id: string; payouts_x100?: Record<string, number> }>>('/games/wingo/modes')
+      .then(({ data }) => setLivePayouts(Object.fromEntries(data.filter((m) => m.payouts_x100).map((m) => [m.game_id, m.payouts_x100!]))))
+      .catch(() => undefined)
+  }, [])
+  const payouts = livePayouts[mode.gameId] ?? DEFAULT_PAYOUTS_X100
   const round = useWingoRound(mode.gameId)
   const { isAuthenticated } = useAuthStore()
   const balance = useWalletStore((s) => s.balance.realBalancePaise)
@@ -154,7 +165,7 @@ export const WinGo: React.FC = () => {
   const canBet = isAuthenticated && !round.locked && round.roundId !== null
   const slip = pending.filter((b) => b.gameId === mode.gameId)
   const slipTotal = slip.reduce((s, b) => s + b.amountPaise, 0)
-  const slipMaxWin = slip.reduce((s, b) => s + Math.floor((b.amountPaise * maxPayoutX100(b.pick)) / 100), 0)
+  const slipMaxWin = slip.reduce((s, b) => s + Math.floor((b.amountPaise * maxPayoutX100(b.pick, payouts)) / 100), 0)
 
   return (
     <div className="mx-auto w-full max-w-xl lg:max-w-6xl">
@@ -322,11 +333,11 @@ export const WinGo: React.FC = () => {
             <h3 className="mb-3 text-center text-lg font-black text-rose-500">How to play</h3>
             <p>Every {mode.label} period draws one number from 0 to 9. Betting closes 5 seconds before the draw.</p>
             <ul className="mt-3 list-disc space-y-1 pl-5">
-              <li><b className="text-emerald-600">Green</b>: 1, 3, 7, 9 pay 2x · 5 pays 1.5x</li>
-              <li><b className="text-rose-600">Red</b>: 2, 4, 6, 8 pay 2x · 0 pays 1.5x</li>
-              <li><b className="text-violet-600">Violet</b>: 0 or 5 pays 4.5x</li>
-              <li><b>Number</b>: exact number pays 9x</li>
-              <li><b className="text-amber-500">Big</b> (5-9) / <b className="text-sky-600">Small</b> (0-4): 1.96x</li>
+              <li><b className="text-emerald-600">Green</b>: 1, 3, 7, 9 pay {fmtX(payouts.GREEN)} · 5 pays {fmtX(payouts.COLOR_HALF)}</li>
+              <li><b className="text-rose-600">Red</b>: 2, 4, 6, 8 pay {fmtX(payouts.RED)} · 0 pays {fmtX(payouts.COLOR_HALF)}</li>
+              <li><b className="text-violet-600">Violet</b>: 0 or 5 pays {fmtX(payouts.VIOLET)}</li>
+              <li><b>Number</b>: exact number pays {fmtX(payouts.NUMBER)}</li>
+              <li><b className="text-amber-500">Big</b> (5-9) / <b className="text-sky-600">Small</b> (0-4): {fmtX(payouts.SIZE)}</li>
             </ul>
             <p className="mt-3">Your total bet = amount × quantity. You can place several bets in one period. Results are provably fair: the server seed hash is published before betting and revealed after the draw.</p>
             <button type="button" onClick={() => setShowRules(false)} className="mt-4 w-full rounded-full bg-gradient-to-r from-rose-500 to-orange-400 py-2.5 font-bold text-white">Got it</button>

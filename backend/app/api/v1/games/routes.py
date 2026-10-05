@@ -300,10 +300,19 @@ async def cashout_aviator_bet(
 
 
 @router.get("/wingo/modes")
-async def list_wingo_modes() -> List[Dict[str, Any]]:
-    """WinGo modes with their period length and betting lock window."""
+async def list_wingo_modes(db: AsyncSession = Depends(get_db)) -> List[Dict[str, Any]]:
+    """WinGo modes with their period length, betting lock window and the live payout table (x100)."""
+    from sqlalchemy import select
+
+    from app.games.wingo.rules import payouts_from_config
+    from app.models.game import GameSetting
+
+    configs = dict((await db.execute(
+        select(GameSetting.game_id, GameSetting.config).where(GameSetting.game_id.in_(list(WINGO_MODES)))
+    )).all())
     return [
-        {"game_id": game_id, "label": label, "duration": duration, "lock_seconds": lock}
+        {"game_id": game_id, "label": label, "duration": duration, "lock_seconds": lock,
+         "payouts_x100": payouts_from_config(configs.get(game_id))}
         for game_id, (duration, lock, label, _code) in WINGO_MODES.items()
     ]
 
