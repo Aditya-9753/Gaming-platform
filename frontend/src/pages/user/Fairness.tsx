@@ -58,6 +58,7 @@ export const FairnessPage: React.FC = () => {
   const [clientSeed, setClientSeed] = useState('')
   const [nonce, setNonce] = useState('')
   const [edge, setEdge] = useState('300')
+  const [formula, setFormula] = useState('2')
   const [manual, setManual] = useState<ManualVerification | null>(null)
 
   useEffect(() => {
@@ -89,6 +90,8 @@ export const FairnessPage: React.FC = () => {
     setNonce(String(r.round_no))
     const bp = (r.result ?? {}).house_edge_bp
     if (typeof bp === 'number') setEdge(String(bp))
+    const f = (r.result ?? {}).crash_formula
+    setFormula(typeof f === 'number' ? String(f) : '1') // rounds from before versioning used formula 1
     setManual(null)
     document.getElementById('manual-verify')?.scrollIntoView({ behavior: 'smooth' })
   }
@@ -96,7 +99,7 @@ export const FairnessPage: React.FC = () => {
   const runManual = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      setManual(await verifyManually({ game: mGame, serverSeed, serverSeedHash: seedHash, clientSeed, nonce: Number(nonce), houseEdgeBp: Number(edge) }))
+      setManual(await verifyManually({ game: mGame, serverSeed, serverSeedHash: seedHash, clientSeed, nonce: Number(nonce), houseEdgeBp: Number(edge), crashFormula: Number(formula) }))
     } catch {
       showToast({ title: 'Could not compute', message: 'Your browser blocked WebCrypto (open the site over https).', type: 'error' })
     }
@@ -195,6 +198,15 @@ export const FairnessPage: React.FC = () => {
           <Input label="Client seed" value={clientSeed} onChange={(e) => setClientSeed(e.target.value)} required spellCheck={false} />
           <Input label="Nonce (round number)" type="number" value={nonce} onChange={(e) => setNonce(e.target.value)} required />
           {mGame === 'aviator' && <Input label="House edge (bp)" type="number" value={edge} onChange={(e) => setEdge(e.target.value)} />}
+          {mGame === 'aviator' && (
+            <label className="block space-y-1.5 text-left">
+              <span className="block text-xs font-semibold text-slate-300">Crash formula</span>
+              <select value={formula} onChange={(e) => setFormula(e.target.value)} className="w-full rounded-xl border border-dark-border bg-dark-card px-3.5 py-2.5 text-sm text-white">
+                <option value="2">v2 — current (edge applied once)</option>
+                <option value="1">v1 — rounds before the fix</option>
+              </select>
+            </label>
+          )}
         </div>
         <Button type="submit" className="w-full" disabled={!serverSeed || !seedHash || !clientSeed || nonce === ''}>Check fairness</Button>
 

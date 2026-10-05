@@ -1,29 +1,22 @@
 """Aviator crash-point rules — provably fair, pure functions.
 
-Crash point derivation algorithm
----------------------------------
-This mirrors the industry-standard Aviator / Bustabit formula:
+Crash point derivation
+----------------------
+1. r = derive_float(server_seed, client_seed, nonce)  (HMAC-SHA256, uniform in [0, 1))
+2. crash = (1 - edge) / (1 - r), floored to 2 decimals, clamped to [1.00x, 100.00x]
 
-1. Compute h = HMAC-SHA256(key=server_seed, msg="{client_seed}:{nonce}")
-2. Convert the first 8 hex characters (32 bits) to integer E.
-3. Apply the house-edge formula:
+With edge = house_edge_bp / 10_000, P(crash >= x) = (1 - edge) / x for every x >= 1,
+so a player cashing out at any target gets back (1 - edge) of their stake on
+average: the configured edge is the real edge. Rounds with r < edge land below
+1.00x and are clamped to an instant 1.00x crash.
 
-       If E % HOUSE_MODULUS == 0 → crash = 1.00x  (instant crash, prob = 1/HOUSE_MODULUS)
-       Else:
-           crash = PAYOUT_BASE / (1 - E / 2^32)    ... capped at MAX_CRASH
+Formula versions (stored per round as ``crash_formula`` so every past round
+still verifies with the formula it was played with):
 
-   With house_edge_percent in basis points (e.g. 300 bp = 3.00%):
-       HOUSE_MODULUS = floor(100_00 / house_edge_bp)
-       PAYOUT_BASE   = (HOUSE_MODULUS - 1) / HOUSE_MODULUS × BASE_MULTIPLIER
-
-4. Result rounded DOWN to 2 decimal places (platform-favourable).
-
-The formula guarantees:
-   E[crash] = PAYOUT_BASE / (1 - 1/HOUSE_MODULUS)^(-1)
-            = 1 / (1 - house_edge_bp / 10_000)
-
-Verifiable by the player: they supply server_seed after round settlement and
-recompute with the same (client_seed, nonce).
+* v1 (rounds created before the fix): an extra instant-crash rule
+  (E % floor(10_000 / edge) == 0 -> 1.00x) on top of the (1 - edge) scaling, so
+  the edge was applied twice: 10% configured gave ~19% in practice.
+* v2 (current): the scaling above only; edge applied once.
 """
 
 from __future__ import annotations
@@ -41,26 +34,37 @@ DEFAULT_HOUSE_EDGE_BP: int = 300
 MAX_CRASH_X100: int = 10_000  # 100.00x in basis points
 MIN_CRASH_X100: int = 100     # 1.00x
 
+CRASH_FORMULA_V1: int = 1  # legacy: instant-crash rule + (1 - edge) scaling (edge applied twice)
+CRASH_FORMULA_V2: int = 2  # (1 - edge) / (1 - r) only (edge applied once)
+CURRENT_CRASH_FORMULA: int = CRASH_FORMULA_V2
+
+
+def crash_formula_of(parameters: dict | None) -> int:
+    """Formula a stored round was played with (rounds from before versioning are v1)."""
+    try:
+        return int((parameters or {}).get("crash_formula", CRASH_FORMULA_V1))
+    except (TypeError, ValueError):
+        return CRASH_FORMULA_V1
+
+
 # Internal resolution: we work in integer "centimultipliers" (x100)
 # 1.00x → 100,  2.50x → 250,  100.00x → 10000
 _UINT32_MAX: int = 2**32
 
 
-def _crash_from_float(r: float, house_edge_bp: int) -> int:
+def _crash_from_float(r: float, house_edge_bp: int, formula: int = CRASH_FORMULA_V1) -> int:
     """Derive crash multiplier (x100 integer) from a uniform [0,1) float.
 
     Uses the standard provably-fair Aviator formula.
     Returns an integer in [100, MAX_CRASH_X100] (representing 1.00x … 100.00x).
     """
-    # house_modulus: inverse of instant-crash probability
-    # house_edge_bp = 300 → modulus = 33 → P(instant) ≈ 3.03%
-    house_modulus = 10_000 // house_edge_bp if house_edge_bp else None
-
-    # 1/house_modulus chance of instant crash at 1.00x
-    # We simulate this by checking if the discrete uniform equivalent is 0
-    discrete = int(r * _UINT32_MAX)
-    if house_modulus and discrete % house_modulus == 0:
-        return MIN_CRASH_X100
+    if formula == CRASH_FORMULA_V1:
+        # Legacy extra instant-crash rule (1 / house_modulus chance of 1.00x).
+        # house_edge_bp = 300 → modulus = 33 → P(instant) ≈ 3.03%
+        house_modulus = 10_000 // house_edge_bp if house_edge_bp else None
+        discrete = int(r * _UINT32_MAX)
+        if house_modulus and discrete % house_modulus == 0:
+            return MIN_CRASH_X100
 
     # Standard crash formula: payout = (1 - house_edge) / (1 - r)
     # Scaled to basis points and capped
@@ -76,6 +80,7 @@ def compute_crash_point(
     client_seed: str,
     nonce: int,
     house_edge_bp: int = DEFAULT_HOUSE_EDGE_BP,
+    formula: int = CRASH_FORMULA_V1,
 ) -> int:
     """Compute the crash multiplier for an Aviator round.
 
@@ -87,16 +92,20 @@ def compute_crash_point(
         client_seed:    Public client seed (can be any string the client provides).
         nonce:          Round counter to ensure unique output per round.
         house_edge_bp:  House edge in basis points (300 = 3.00%).
+        formula:        Crash formula version the round was created with
+                        (``crash_formula_of(round.result)``; new rounds use CURRENT_CRASH_FORMULA).
 
     Returns:
         Integer crash multiplier × 100 in range [100, 10000].
     """
     if not 0 <= house_edge_bp < 10_000:
         raise ValueError("House edge must be between 0 and 9999 basis points")
+    if formula not in (CRASH_FORMULA_V1, CRASH_FORMULA_V2):
+        raise ValueError(f"Unknown crash formula version {formula}")
     from app.utils.rng import derive_float
 
     r = derive_float(server_seed, client_seed, nonce)
-    return _crash_from_float(r, house_edge_bp)
+    return _crash_from_float(r, house_edge_bp, formula)
 
 
 def crash_x100_to_float(crash_x100: int) -> float:
@@ -166,6 +175,7 @@ def simulate_house_edge(
     house_edge_bp: int = DEFAULT_HOUSE_EDGE_BP,
     server_seed: str = "benchmark_seed",
     client_seed: str = "benchmark_client",
+    formula: int = CURRENT_CRASH_FORMULA,
 ) -> float:
     """Simulate n_rounds and return the realised RTP (Return to Player) as a float.
 
@@ -176,7 +186,7 @@ def simulate_house_edge(
     total_payout = 0
 
     for nonce in range(n_rounds):
-        crash = compute_crash_point(server_seed, client_seed, nonce, house_edge_bp)
+        crash = compute_crash_point(server_seed, client_seed, nonce, house_edge_bp, formula)
         # A player who cashes out at exactly 1.00x always wins their bet back
         # For simulation purposes we model a random cashout between 1.00x and crash
         # using a uniform draw to get a realistic average payout.

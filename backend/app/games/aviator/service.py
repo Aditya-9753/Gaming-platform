@@ -20,6 +20,7 @@ from app.core.exceptions import (
 from app.core.logging import get_logger
 from app.games.aviator.rules import (
     compute_crash_point,
+    crash_formula_of,
     crash_elapsed_seconds,
     crash_x100_to_float,
     elapsed_since,
@@ -267,6 +268,7 @@ class AviatorService:
                 round_obj.client_seed or round_obj.id,
                 round_obj.round_no,
                 house_edge_bp,
+                crash_formula_of(parameters),
             )
             elapsed = elapsed_since(round_obj.started_at, self.clock())
             current_x100 = min(

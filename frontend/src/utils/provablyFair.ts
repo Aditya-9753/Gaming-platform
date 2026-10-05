@@ -34,11 +34,17 @@ export function wingoNumber(r: number): number {
   return Math.min(9, Math.floor(r * 10))
 }
 
-/** Aviator crash point ×100 (100 = 1.00x … 10000 = 100.00x), house edge in basis points. */
-export function aviatorCrashX100(r: number, houseEdgeBp = 300): number {
-  const modulus = houseEdgeBp ? Math.floor(10_000 / houseEdgeBp) : 0
-  const discrete = Math.trunc(r * 2 ** 32)
-  if (modulus && discrete % modulus === 0) return 100
+/**
+ * Aviator crash point ×100 (100 = 1.00x … 10000 = 100.00x), house edge in basis points.
+ * formula 1 = rounds before the fix (extra instant-crash rule), 2 = current (edge applied once).
+ * Each round stores its version as result.crash_formula (missing = 1).
+ */
+export function aviatorCrashX100(r: number, houseEdgeBp = 300, formula = 1): number {
+  if (formula === 1) {
+    const modulus = houseEdgeBp ? Math.floor(10_000 / houseEdgeBp) : 0
+    const discrete = Math.trunc(r * 2 ** 32)
+    if (modulus && discrete % modulus === 0) return 100
+  }
   const safeR = Math.min(r, 1.0 - 1e-9)
   const raw = (10_000 - houseEdgeBp) / (10_000 * (1.0 - safeR)) * 100
   return Math.max(100, Math.min(Math.trunc(raw), 10_000))
@@ -59,6 +65,7 @@ export async function verifyManually(input: {
   clientSeed: string
   nonce: number
   houseEdgeBp?: number
+  crashFormula?: number
 }): Promise<ManualVerification> {
   const computedHash = await sha256Hex(input.serverSeed.trim())
   const r = await deriveFloat(input.serverSeed.trim(), input.clientSeed.trim(), input.nonce)
@@ -67,6 +74,6 @@ export async function verifyManually(input: {
     const n = wingoNumber(r)
     return { hashMatches, computedHash, float: r, outcome: `Number ${n}`, details: { number: n, size: n >= 5 ? 'BIG' : 'SMALL', colours: NUMBER_COLOURS(n).join(' + ') } }
   }
-  const crash = aviatorCrashX100(r, input.houseEdgeBp ?? 300)
+  const crash = aviatorCrashX100(r, input.houseEdgeBp ?? 300, input.crashFormula ?? 1)
   return { hashMatches, computedHash, float: r, outcome: `Crash at ${(crash / 100).toFixed(2)}x`, details: { crash_point_x100: crash, crash_point: (crash / 100).toFixed(2) } }
 }

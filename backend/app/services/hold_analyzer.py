@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from sqlalchemy import Float, and_, case, cast, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.games.aviator.rules import compute_crash_point
+from app.games.aviator.rules import CRASH_FORMULA_V1, CURRENT_CRASH_FORMULA, compute_crash_point
 from app.games.mines.rules import compute_mines_multiplier_bp, derive_mine_positions
 from app.games.simulated_players import BOT_NAMES
 from app.games.wingo.rules import (
@@ -50,19 +50,20 @@ def wingo_ev(bet_type: str, value: str, payouts: Dict[str, int]) -> Optional[flo
     return total / 100 / 10
 
 
-def aviator_win_probability(cashout_x100: int, house_edge_bp: int) -> float:
-    """P(crash >= cashout) for the engine's formula, including the instant-crash rule."""
+def aviator_win_probability(cashout_x100: int, house_edge_bp: int, formula: int = CURRENT_CRASH_FORMULA) -> float:
+    """P(crash >= cashout) for the engine's formula (v1 adds the legacy instant-crash rule)."""
     if cashout_x100 <= 100:
         return 1.0
     if cashout_x100 > 10_000:
         return 0.0
-    modulus = 10_000 // house_edge_bp if house_edge_bp else None
-    p_not_instant = 1 - (1 / modulus) if modulus else 1.0
+    p_not_instant = 1.0
+    if formula == CRASH_FORMULA_V1 and house_edge_bp:
+        p_not_instant = 1 - 1 / (10_000 // house_edge_bp)
     return p_not_instant * min(1.0, (10_000 - house_edge_bp) / 10_000 * 100 / cashout_x100)
 
 
-def aviator_rtp(house_edge_bp: int, cashout_x100: int = 200) -> float:
-    return aviator_win_probability(cashout_x100, house_edge_bp) * cashout_x100 / 100
+def aviator_rtp(house_edge_bp: int, cashout_x100: int = 200, formula: int = CURRENT_CRASH_FORMULA) -> float:
+    return aviator_win_probability(cashout_x100, house_edge_bp, formula) * cashout_x100 / 100
 
 
 def mines_rtp(mine_count: int, reveal: int, house_edge_bp: int) -> float:
@@ -130,7 +131,7 @@ async def analysis(db: AsyncSession, days: int = 7, include_bots: bool = False) 
             edge = _edge_bp(settings.get("aviator"))
             # Any cash-out target returns the same share in the long run; 2.00x is used as reference
             g["expected_paid"] += int(wagered) * aviator_rtp(edge, 200)
-            g["basis"] = f"house edge {edge / 100:.2f}% + instant-crash rule"
+            g["basis"] = f"house edge {edge / 100:.2f}% (applied once)"
         elif game_id == "mines":
             edge = int(mines_edge) if mines_edge is not None else _edge_bp(settings.get("mines"))
             g["expected_paid"] += int(wagered) * (1 - edge / 10_000)
@@ -239,7 +240,7 @@ def run_simulation(params: Dict[str, Any], mix: Optional[List[Tuple[str, str, fl
         expected_rtp = aviator_rtp(edge, cashout)
         wins = 0
         for i in range(rounds):
-            crash = compute_crash_point(server_seed, client_seed, i, edge)
+            crash = compute_crash_point(server_seed, client_seed, i, edge, CURRENT_CRASH_FORMULA)
             wagered += 1
             if crash >= cashout:
                 wins += 1

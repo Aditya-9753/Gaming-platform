@@ -31,7 +31,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.games.aviator.rules import compute_crash_point
+from app.games.aviator.rules import CURRENT_CRASH_FORMULA, compute_crash_point, crash_formula_of
 from app.games.mines.rules import compute_mines_multiplier_bp, derive_mine_positions
 from app.games.simulated_players import BOT_NAMES
 from app.games.wingo.rules import (
@@ -222,7 +222,8 @@ async def historical_replay(db: AsyncSession, days: int, max_rounds: int) -> Dic
                 ev = lambda e, p=tp_payout: 0.4994 * p / 100 + 0.0012  # noqa: E731
             elif game_id == "aviator":
                 edge = int(result.get("house_edge_bp", 300))
-                crash = compute_crash_point(seed, client, r.round_no, edge)
+                formula = crash_formula_of(result)
+                crash = compute_crash_point(seed, client, r.round_no, edge, formula)
                 bucket = "1.00x" if crash == 100 else "<2x" if crash < 200 else "2-10x" if crash < 1000 else "10x+"
                 g["outcomes"][bucket] += 1
                 if int(result.get("crash_point_x100", -1)) == crash:
@@ -230,7 +231,7 @@ async def historical_replay(db: AsyncSession, days: int, max_rounds: int) -> Dic
                 else:
                     issue(r, f"stored crash {result.get('crash_point_x100')}, seed gives {crash}")
                 checker = lambda e, crash=crash: _aviator_entry_issue(e, crash)  # noqa: E731
-                ev = lambda e, edge=edge: aviator_rtp(edge, int(round(float((e.selection or {}).get("auto_cashout") or 2) * 100)))  # noqa: E731
+                ev = lambda e, edge=edge, f=formula: aviator_rtp(edge, int(round(float((e.selection or {}).get("auto_cashout") or 2) * 100)), f)  # noqa: E731
             else:  # mines: one round per session
                 layout_ok = True
                 for e in entries:
@@ -309,13 +310,13 @@ AVIATOR_THRESHOLDS = [101, 120, 150, 200, 300, 500, 1000, 2000, 5000, 10000]
 
 def aviator_statistics(n: int, edge: int) -> Dict[str, Any]:
     seed, client = secrets.token_hex(32), "backtest"
-    crashes = sorted(compute_crash_point(seed, client, i, edge) for i in range(n))
+    crashes = sorted(compute_crash_point(seed, client, i, edge, CURRENT_CRASH_FORMULA) for i in range(n))
     import bisect
 
     survival = []
     for t in AVIATOR_THRESHOLDS:
         sim = (n - bisect.bisect_left(crashes, t)) / n
-        theory = aviator_win_probability(t, edge)
+        theory = aviator_win_probability(t, edge, CURRENT_CRASH_FORMULA)
         se = math.sqrt(theory * (1 - theory) / n)
         survival.append({"multiplier": t / 100, "simulated_pct": round(sim * 100, 3),
                          "theoretical_pct": round(theory * 100, 3), "z": round((sim - theory) / se, 2) if se else 0.0})
@@ -323,14 +324,13 @@ def aviator_statistics(n: int, edge: int) -> Dict[str, Any]:
     for target in (150, 200, 500, 1000):
         wins = n - bisect.bisect_left(crashes, target)
         rtps.append({"cashout": target / 100, "simulated_rtp_pct": round(wins * target / 100 / n * 100, 2),
-                     "theoretical_rtp_pct": round(aviator_rtp(edge, target) * 100, 2)})
-    modulus = 10_000 // edge if edge else None
+                     "theoretical_rtp_pct": round(aviator_rtp(edge, target, CURRENT_CRASH_FORMULA) * 100, 2)})
     return {
         "rounds": n, "server_seed": seed, "client_seed": client, "house_edge_bp": edge,
         "median_crash": crashes[n // 2] / 100,
         "instant_crash_pct": round(sum(1 for c in crashes if c == 100) / n * 100, 3),
-        # 1.00x happens on the instant-crash rule or when the formula rounds down below 1.01x
-        "instant_crash_theoretical_pct": round(((1 / modulus if modulus else 0) + (1 - (1 / modulus if modulus else 0)) * max(0.0, 1 - (10_000 - edge) / 10_000 * 100 / 101)) * 100, 3),
+        # 1.00x whenever the formula lands below 1.01x
+        "instant_crash_theoretical_pct": round((1 - aviator_win_probability(101, edge, CURRENT_CRASH_FORMULA)) * 100, 3),
         "max_survival_gap_pp": round(max(abs(s["simulated_pct"] - s["theoretical_pct"]) for s in survival), 3),
         "survival": survival,
         "rtp": rtps,

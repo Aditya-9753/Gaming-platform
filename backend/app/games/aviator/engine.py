@@ -15,7 +15,9 @@ from app.games.aviator.rules import (
     DEFAULT_EXP_GROWTH_RATE,
     GROWTH_MODEL_EXPONENTIAL,
     GROWTH_MODEL_POWER,
+    CURRENT_CRASH_FORMULA,
     compute_crash_point,
+    crash_formula_of,
     crash_elapsed_seconds,
     crash_x100_to_float,
     elapsed_since,
@@ -103,6 +105,7 @@ class AviatorEngine(BaseGameEngine):
             "growth_power": growth_power,
             "growth_model": growth_model,
             "house_edge_bp": house_edge_bp,
+            "crash_formula": CURRENT_CRASH_FORMULA,
         }
         round_obj.status = GameRoundLifecycle.BETTING_OPEN.value
         async with self.session_factory() as session:
@@ -158,11 +161,13 @@ class AviatorEngine(BaseGameEngine):
         growth_power = float(parameters["growth_power"])
         growth_model = str(parameters.get("growth_model", GROWTH_MODEL_POWER))
         house_edge_bp = int(parameters["house_edge_bp"])
+        crash_formula = crash_formula_of(parameters)
         crash_x100 = compute_crash_point(
             round_obj.server_seed or "",
             round_obj.client_seed or round_obj.id,
             round_obj.round_no,
             house_edge_bp,
+            crash_formula,
         )
         crash_at = crash_elapsed_seconds(crash_x100, growth_rate, growth_power, growth_model)
         # Betting is closed, so the set of auto-cashout targets is fixed: load once
@@ -183,6 +188,7 @@ class AviatorEngine(BaseGameEngine):
             "crash_point_x100": crash_x100,
             "crash_point": crash_x100_to_float(crash_x100),
             "house_edge_bp": house_edge_bp,
+            "crash_formula": crash_formula,
         }
         await self._set_round_status(round_obj, GameRoundLifecycle.CRASHED.value)
         await self.publish_event(

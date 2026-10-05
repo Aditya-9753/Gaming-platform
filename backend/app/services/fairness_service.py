@@ -242,6 +242,7 @@ class FairnessService:
         if "aviator" in game_id:
             from app.games.aviator.rules import (
                 compute_crash_point,
+                crash_formula_of,
                 crash_x100_to_float,
                 format_crash,
             )
@@ -250,6 +251,7 @@ class FairnessService:
                 client_seed,
                 nonce,
                 int((game_round.result or {}).get("house_edge_bp", 300)),
+                crash_formula_of(game_round.result),
             )
             stored_crash = (game_round.result or {}).get("crash_point")
             crash_value = (
