@@ -22,6 +22,13 @@ class UserRole(str, Enum):
     ADMIN = "ADMIN"
     SUPERADMIN = "SUPERADMIN"
     AUDITOR = "AUDITOR"
+    # Affiliate platform
+    FINANCE_ADMIN = "FINANCE_ADMIN"
+    PARTNER = "PARTNER"
+
+
+# Staff roles that must use two-factor authentication (when admin 2FA is enforced)
+MFA_REQUIRED_ROLES = frozenset({"ADMIN", "SUPERADMIN", "FINANCE_ADMIN", "SUPPORT"})
 
 
 class PermissionCode(str, Enum):
@@ -55,6 +62,25 @@ class PermissionCode(str, Enum):
     PAYMENT_READ = "payment:read"
     PAYMENT_MANAGE = "payment:manage"
 
+    # Affiliate / partner platform
+    AFF_PORTAL = "aff:portal"                      # partner's own portal
+    AFF_PARTNER_READ = "aff:partner:read"          # look up partners (read-only)
+    AFF_PARTNER_MANAGE = "aff:partner:manage"      # create / approve / suspend partners
+    AFF_IMPERSONATE = "aff:impersonate"            # open a partner's portal read-only
+    AFF_TRACKING_MANAGE = "aff:tracking:manage"    # sources, campaigns, links, promo codes
+    AFF_DOMAIN_MANAGE = "aff:domain:manage"        # tracking domains (super admin)
+    AFF_DEAL_MANAGE = "aff:deal:manage"            # deals, plans, rates
+    AFF_SETTLEMENT_MANAGE = "aff:settlement:manage"
+    AFF_WITHDRAWAL_MANAGE = "aff:withdrawal:manage"
+    AFF_ADJUST = "aff:adjust"                      # maker-checker wallet adjustments
+    AFF_FINANCE_READ = "aff:finance:read"          # partner wallets and ledger
+    AFF_STATS_READ = "aff:stats:read"
+    AFF_CONTENT_MANAGE = "aff:content:manage"      # PR materials, blog
+    AFF_SUPPORT_MANAGE = "aff:support:manage"      # contacts, FAQ
+    AFF_RISK_MANAGE = "aff:risk:manage"
+    AFF_INGEST_MANAGE = "aff:ingest:manage"
+    AFF_SETTINGS_MANAGE = "aff:settings:manage"    # global affiliate settings (super admin)
+
 
 # Mapping from UserRole to granted PermissionCodes
 ROLE_PERMISSIONS: Dict[UserRole, Set[PermissionCode]] = {
@@ -73,6 +99,9 @@ ROLE_PERMISSIONS: Dict[UserRole, Set[PermissionCode]] = {
         PermissionCode.USER_READ,
         PermissionCode.TICKET_MANAGE,
         PermissionCode.SESSION_READ,
+        PermissionCode.AFF_PARTNER_READ,
+        PermissionCode.AFF_IMPERSONATE,
+        PermissionCode.AFF_SUPPORT_MANAGE,
     },
     UserRole.AUDITOR: {
         PermissionCode.WALLET_READ,
@@ -100,6 +129,30 @@ ROLE_PERMISSIONS: Dict[UserRole, Set[PermissionCode]] = {
         PermissionCode.REPORT_EXPORT,
         PermissionCode.PAYMENT_READ,
         PermissionCode.PAYMENT_MANAGE,
+        PermissionCode.AFF_PARTNER_READ,
+        PermissionCode.AFF_PARTNER_MANAGE,
+        PermissionCode.AFF_IMPERSONATE,
+        PermissionCode.AFF_TRACKING_MANAGE,
+        PermissionCode.AFF_FINANCE_READ,
+        PermissionCode.AFF_STATS_READ,
+        PermissionCode.AFF_CONTENT_MANAGE,
+        PermissionCode.AFF_SUPPORT_MANAGE,
+        PermissionCode.AFF_RISK_MANAGE,
+        PermissionCode.AFF_INGEST_MANAGE,
+    },
+    UserRole.FINANCE_ADMIN: {
+        PermissionCode.AUDIT_READ,
+        PermissionCode.AFF_PARTNER_READ,
+        PermissionCode.AFF_DEAL_MANAGE,
+        PermissionCode.AFF_SETTLEMENT_MANAGE,
+        PermissionCode.AFF_WITHDRAWAL_MANAGE,
+        PermissionCode.AFF_ADJUST,
+        PermissionCode.AFF_FINANCE_READ,
+        PermissionCode.AFF_STATS_READ,
+        PermissionCode.AFF_RISK_MANAGE,
+    },
+    UserRole.PARTNER: {
+        PermissionCode.AFF_PORTAL,
     },
     UserRole.SUPERADMIN: set(PermissionCode),  # All permissions
 }

@@ -12,6 +12,7 @@ from typing import Dict, List
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.affiliate.rbac import AFF_PERMISSIONS_META
 from app.core.constants import ROLE_PERMISSIONS, PermissionCode, UserRole
 from app.core.database import close_db, get_session_factory, init_db
 from app.core.logging import get_logger, setup_logging
@@ -43,6 +44,9 @@ PERMISSIONS_DATA: List[Dict[str, str]] = [
     {"code": PermissionCode.PAYMENT_WITHDRAW.value, "name": "Withdraw", "description": "Add payout accounts and request withdrawals"},
     {"code": PermissionCode.PAYMENT_READ.value, "name": "View Payments", "description": "View deposits, withdrawals and bank credits"},
     {"code": PermissionCode.PAYMENT_MANAGE.value, "name": "Manage Payments", "description": "Own QR collection accounts; verify or reject deposits paid into them"},
+] + [
+    {"code": code, "name": name, "description": desc}
+    for code, (name, desc) in AFF_PERMISSIONS_META.items()
 ]
 
 # The 4 default games and their settings (amounts in integer paise: 100 paise = 1 Credit)

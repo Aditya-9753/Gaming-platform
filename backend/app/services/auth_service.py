@@ -19,7 +19,7 @@ from typing import Optional, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
-from app.core.constants import TransactionStatus, TransactionType, UserRole
+from app.core.constants import MFA_REQUIRED_ROLES, TransactionStatus, TransactionType, UserRole
 from app.core.exceptions import (
     BadRequestException,
     ConflictException,
@@ -76,6 +76,9 @@ class AuthService:
         email: Optional[str],
         password: str,
         age_confirmed: bool,
+        click_id: Optional[str] = None,
+        promo_code: Optional[str] = None,
+        country: Optional[str] = None,
     ) -> Tuple[User, str, str]:
         """Create user + wallet + signup bonus in a single DB transaction.
 
@@ -138,6 +141,13 @@ class AuthService:
         )
         await self._wallets.add_transaction(tx)
 
+        # Referred player: report to the affiliate platform in the same transaction (outbox)
+        from app.affiliate import operator_bridge
+
+        await operator_bridge.player_registered(
+            self._db, user.id, click_id=click_id, promo_code=promo_code, country=country
+        )
+
         # Issue tokens
         family_id = str(uuid.uuid4())
         access_token, refresh_raw = await self._issue_token_pair(user, family_id)
@@ -174,7 +184,7 @@ class AuthService:
 
         # Admin 2FA enforcement: Admin users MUST provide a valid TOTP code
         role_name = user.role.name.upper() if user.role else ""
-        is_admin_user = role_name in ("ADMIN", "SUPERADMIN")
+        is_admin_user = role_name in MFA_REQUIRED_ROLES
 
         if is_admin_user:
             if user.totp_enabled and user.two_factor_method == "email":

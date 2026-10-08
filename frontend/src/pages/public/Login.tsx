@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { Lock, User, ArrowRight, ShieldCheck, KeyRound } from 'lucide-react'
 import { BrandLogo } from '../../components/common/BrandLogo'
+import { Turnstile, captchaSiteKey } from '../../components/common/Turnstile'
 import { Input } from '../../components/common/Input'
 import { Button } from '../../components/common/Button'
 import { useAuthStore } from '../../store/auth.store'
@@ -32,20 +33,24 @@ export const Login: React.FC = () => {
   const [codeMode, setCodeMode] = useState<'email' | 'app'>('app')
   const [codeNotice, setCodeNotice] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [siteKey, setSiteKey] = useState<string | null>(null)
+  const [captcha, setCaptcha] = useState<string | null>(null)
 
   const signIn = async (code?: string) => {
     setIsLoading(true)
     try {
-      const { access_token } = await authApi.login(username, password, code || undefined)
+      const { access_token } = await authApi.login(username, password, code || undefined, captcha)
       setAccessToken(access_token)
       const user = await authApi.getCurrentUser()
       setAuth(user, access_token)
       showToast({ title: 'Welcome back!', message: 'Signed in successfully.', type: 'success' })
-      navigate(isStaffRole(user.role)
+      navigate(user.role === 'partner' ? '/partner/dashboard' : isStaffRole(user.role)
         ? user.requires2FASetup ? '/admin/2fa' : '/admin/dashboard'
         : '/dashboard')
     } catch (error) {
       const message = getLoginError(error)
+      const key = captchaSiteKey(error)
+      if (key) { setSiteKey(key); setCaptcha(null) }
       if (/verification code sent/i.test(message)) {
         // Password was correct; a fresh code is on its way to the admin's inbox
         setCodeMode('email')
@@ -105,7 +110,8 @@ export const Login: React.FC = () => {
             <button type="button" onClick={() => setNeedsTotp((value) => !value)} className="text-slate-400 hover:text-slate-200">{needsTotp ? 'Hide code' : 'Have a verification code?'}</button>
             <Link to="/forgot-password" className="text-emerald-400 hover:underline font-semibold">Forgot password?</Link>
           </div>
-          <Button type="submit" variant="primary" className="w-full font-black py-3" isLoading={isLoading} rightIcon={<ArrowRight className="w-4 h-4" />}>Sign In</Button>
+          {siteKey && <Turnstile siteKey={siteKey} onToken={setCaptcha} />}
+          <Button type="submit" variant="primary" className="w-full font-black py-3" isLoading={isLoading} disabled={Boolean(siteKey) && !captcha} rightIcon={<ArrowRight className="w-4 h-4" />}>Sign In</Button>
         </form>
         <p className="text-center text-xs text-slate-400 pt-2">
           Don't have an account? <Link to="/register" className="text-emerald-400 font-bold hover:underline">Register</Link>

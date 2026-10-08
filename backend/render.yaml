@@ -47,6 +47,17 @@ services:
         sync: false
       - key: PAYMENT_WEBHOOK_SECRETS
         sync: false
+      # Partner / affiliate platform (see AFFILIATE.md)
+      - key: AFFILIATE_INGEST_SECRET
+        sync: false
+      - key: AFFILIATE_PUBLIC_BASE_URL
+        sync: false
+      - key: AFFILIATE_IP_SALT
+        sync: false
+      - key: TURNSTILE_SITE_KEY
+        sync: false
+      - key: TURNSTILE_SECRET_KEY
+        sync: false
 
   - type: worker
     name: gaming-platform-engine

@@ -55,6 +55,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # 4. Initialize Redis client & PubSub bridge
     bridge = None
     games_task: Optional[asyncio.Task] = None
+    affiliate_task: Optional[asyncio.Task] = None
     try:
         redis_client = await init_redis()
         if redis_client is None:
@@ -74,10 +75,20 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     except Exception as exc:
         logger.error("Redis initialization encountered an error", error=str(exc))
 
+    # 6. Affiliate background jobs in-process (dev); production runs them on Celery beat
+    if settings.run_game_engines_in_api:
+        from app.affiliate.jobs import dev_loop
+        from app.core.database import get_session_factory as _factory
+
+        affiliate_task = asyncio.create_task(dev_loop(_factory()))
+        logger.info("Affiliate jobs started in API process")
+
     yield
 
     # Shutdown sequence
     logger.info("Shutting down Gaming Platform Application")
+    if affiliate_task:
+        affiliate_task.cancel()
     if games_task:
         games_task.cancel()
         try:
@@ -124,9 +135,21 @@ def create_app() -> FastAPI:
     # Top-level direct health check for orchestrators / load balancers
     app.include_router(health_router, prefix="")
 
-    @app.get("/", tags=["Root"])
-    async def root() -> dict[str, str]:
-        """Root API status endpoint."""
+    # Partner tracking links on the API domain: /r/{code} and /?ref={code}
+    from fastapi import Depends, Request
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+    from app.api.v1.affiliate.public import redirect_router, track_redirect
+    from app.core.database import get_db
+
+    app.include_router(redirect_router)
+
+    @app.get("/", tags=["Root"], response_model=None)
+    async def root(request: Request, db: AsyncSession = Depends(get_db)):
+        """Root API status endpoint (or a partner click when ?ref= is present)."""
+        ref = request.query_params.get("ref")
+        if ref:
+            return await track_redirect(request, ref, db)
         return {
             "name": settings.APP_NAME,
             "version": "1.0.0",

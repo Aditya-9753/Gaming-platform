@@ -37,6 +37,15 @@ apiClient.interceptors.response.use(
     }
     original._retry = true
 
+    // Read-only partner view opened by support: never fall back to the staff member's own session
+    try {
+      if (sessionStorage.getItem('aff_impersonation_token')) {
+        sessionStorage.removeItem('aff_impersonation_token')
+        useAuthStore.getState().logout()
+        return Promise.reject(error)
+      }
+    } catch { /* storage unavailable */ }
+
     if (isRefreshing) {
       return new Promise<string>((resolve, reject) => {
         queue.push((result) => {

@@ -3,6 +3,10 @@
 from fastapi import APIRouter
 
 from app.api.v1.admin.routes import router as admin_router
+from app.api.v1.affiliate.admin import router as aff_admin_router
+from app.api.v1.affiliate.ingest import router as aff_ingest_router
+from app.api.v1.affiliate.partner import router as aff_partner_router
+from app.api.v1.affiliate.public import router as aff_public_router
 from app.api.v1.admin.superadmin import public_router as system_router
 from app.api.v1.admin.superadmin import router as superadmin_router
 from app.api.v1.auth.routes import router as auth_router
@@ -66,3 +70,9 @@ api_router.include_router(system_router)
 
 # Risk exposure controls & yield backtesting (super admin only)
 api_router.include_router(risk_router)
+
+# Partner / affiliate platform
+api_router.include_router(aff_public_router)
+api_router.include_router(aff_partner_router)
+api_router.include_router(aff_admin_router)
+api_router.include_router(aff_ingest_router)

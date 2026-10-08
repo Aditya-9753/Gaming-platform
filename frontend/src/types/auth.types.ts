@@ -1,8 +1,8 @@
 /** 'staff' = a custom role created in the Roles system. */
-export type UserRole = 'user' | 'support' | 'auditor' | 'admin' | 'superadmin' | 'staff'
+export type UserRole = 'user' | 'support' | 'auditor' | 'admin' | 'superadmin' | 'finance_admin' | 'partner' | 'staff'
 
 /** Roles that can open the admin panel (backend still enforces per-permission access). */
-export const STAFF_ROLES: UserRole[] = ['superadmin', 'admin', 'support', 'auditor', 'staff']
+export const STAFF_ROLES: UserRole[] = ['superadmin', 'admin', 'support', 'auditor', 'finance_admin', 'staff']
 
 export const isStaffRole = (role?: UserRole | null): boolean =>
   Boolean(role && STAFF_ROLES.includes(role))

@@ -10,7 +10,7 @@ from jose import JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
-from app.core.constants import PermissionCode, UserRole
+from app.core.constants import MFA_REQUIRED_ROLES, PermissionCode, UserRole
 from app.core.database import get_db
 from app.core.exceptions import ForbiddenException, UnauthorizedException
 from app.core.logging import get_logger
@@ -40,6 +40,8 @@ class CurrentUser:
         self.permissions = permissions
         self.role_id = user.role_id
         self.created_at = user.created_at
+        # Staff user id when this is a read-only "view as partner" session
+        self.impersonated_by: Optional[str] = None
         self._user = user  # raw ORM object if needed downstream
 
 
@@ -76,6 +78,9 @@ async def get_current_user(
     user_id: Optional[str] = payload.get("sub")
     if not user_id:
         raise UnauthorizedException("Malformed token payload")
+    impersonated_by: Optional[str] = payload.get("imp")
+    if impersonated_by and request.method not in ("GET", "HEAD", "OPTIONS"):
+        raise ForbiddenException("This is a read-only partner view; changes are not allowed")
 
     repo = UserRepository(db)
     user = await repo.get_by_id(user_id)
@@ -87,7 +92,7 @@ async def get_current_user(
     if (
         get_settings().admin_2fa_required
         and user.role
-        and user.role.name.upper() in (UserRole.ADMIN.value, UserRole.SUPERADMIN.value)
+        and user.role.name.upper() in MFA_REQUIRED_ROLES
         and not user.totp_enabled
     ):
         allowed_setup_paths = {
@@ -108,7 +113,9 @@ async def get_current_user(
         for perm in user.role.permissions:
             granted.add(perm.code)
 
-    return CurrentUser(user, granted)
+    current = CurrentUser(user, granted)
+    current.impersonated_by = impersonated_by
+    return current
 
 
 async def get_optional_current_user(
@@ -148,7 +155,7 @@ def require_permission(*codes: PermissionCode) -> Callable:
 
         if (
             require_2fa
-            and current_user.role == UserRole.ADMIN.value
+            and current_user.role in MFA_REQUIRED_ROLES
             and not current_user.totp_enabled
         ):
             raise ForbiddenException("Two-factor authentication is required for admin access")

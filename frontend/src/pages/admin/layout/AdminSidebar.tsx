@@ -25,6 +25,7 @@ import {
   Fingerprint,
   Gauge,
   Banknote,
+  Handshake,
   X,
 } from 'lucide-react'
 import { useAuthStore } from '../../../store/auth.store'
@@ -55,6 +56,22 @@ const adminLinks = [
   { name: 'Audit Logs', to: '/admin/audit-logs', icon: <FileText className="w-4 h-4" />, perm: 'audit:read' },
   { name: 'Email 2FA', to: '/admin/2fa', icon: <Lock className="w-4 h-4" /> },
   { name: 'Platform Settings', to: '/admin/settings', icon: <Settings className="w-4 h-4" />, superOnly: true },
+  // Partner / affiliate platform
+  { section: 'Partners', name: 'Affiliate Overview', to: '/admin/affiliate', icon: <Handshake className="w-4 h-4" />, perm: 'aff:partner:read' },
+  { name: 'Partners', to: '/admin/affiliate/partners', icon: <Users className="w-4 h-4" />, perm: 'aff:partner:read' },
+  { name: 'Subpartners', to: '/admin/affiliate/subpartners', icon: <Users className="w-4 h-4" />, perm: 'aff:partner:read' },
+  { name: 'Statistics', to: '/admin/affiliate/statistics', icon: <BarChart3 className="w-4 h-4" />, perm: 'aff:stats:read' },
+  { name: 'Deals & Plans', to: '/admin/affiliate/deals', icon: <Sliders className="w-4 h-4" />, perm: 'aff:partner:read' },
+  { name: 'Settlement Periods', to: '/admin/affiliate/settlement', icon: <History className="w-4 h-4" />, perm: 'aff:finance:read' },
+  { name: 'Partner Wallets', to: '/admin/affiliate/wallets', icon: <Wallet className="w-4 h-4" />, perm: 'aff:finance:read' },
+  { name: 'Partner Withdrawals', to: '/admin/affiliate/withdrawals', icon: <Banknote className="w-4 h-4" />, perm: 'aff:finance:read' },
+  { name: 'Adjustments', to: '/admin/affiliate/adjustments', icon: <Coins className="w-4 h-4" />, perm: 'aff:adjust' },
+  { name: 'Tracking Domains', to: '/admin/affiliate/domains', icon: <Radio className="w-4 h-4" />, perm: 'aff:partner:read' },
+  { name: 'PR, FAQ, Blog, Contacts', to: '/admin/affiliate/content', icon: <Headphones className="w-4 h-4" />, anyPerm: ['aff:content:manage', 'aff:support:manage'] },
+  { name: 'Affiliate Risk', to: '/admin/affiliate/risk', icon: <Gauge className="w-4 h-4" />, perm: 'aff:risk:manage' },
+  { name: 'Ingest Monitor', to: '/admin/affiliate/ingest', icon: <Fingerprint className="w-4 h-4" />, perm: 'aff:ingest:manage' },
+  { name: 'Affiliate Audit', to: '/admin/affiliate/audit', icon: <FileText className="w-4 h-4" />, perm: 'audit:read' },
+  { name: 'Affiliate Settings', to: '/admin/affiliate/settings', icon: <Settings className="w-4 h-4" />, perm: 'aff:partner:read' },
 ]
 
 interface AdminSidebarProps {
@@ -67,8 +84,8 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ open, onClose }) => 
   const isSuper = useAuthStore((s) => s.user?.role === 'superadmin')
   const { hasPermission } = usePermission()
   // UI convenience only — every page's API enforces the same rules server-side
-  const links = (adminLinks as Array<{ name: string; to: string; icon: React.ReactNode; superOnly?: boolean; perm?: string }>)
-    .filter((l) => (l.superOnly ? isSuper : !l.perm || hasPermission(l.perm)))
+  const links = (adminLinks as Array<{ name: string; to: string; icon: React.ReactNode; superOnly?: boolean; perm?: string; anyPerm?: string[]; section?: string }>)
+    .filter((l) => (l.superOnly ? isSuper : l.anyPerm ? l.anyPerm.some(hasPermission) : !l.perm || hasPermission(l.perm)))
   return (
     <>
       {/* Backdrop behind the mobile drawer */}
@@ -92,8 +109,9 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ open, onClose }) => 
 
         <nav className="flex-1 space-y-1 overflow-y-auto p-3 lg:p-4">
           {links.map((link) => (
+            <React.Fragment key={link.to}>
+            {link.section && <div className="px-3.5 pb-1 pt-4 text-[10px] font-black uppercase tracking-widest text-slate-500">{link.section}</div>}
             <NavLink
-              key={link.to}
               to={link.to}
               end
               onClick={onClose}
@@ -108,6 +126,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ open, onClose }) => 
               {link.icon}
               <span>{link.name}</span>
             </NavLink>
+            </React.Fragment>
           ))}
         </nav>
       </aside>

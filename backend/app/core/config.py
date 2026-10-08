@@ -56,6 +56,28 @@ class Settings(BaseSettings):
     PAYMENT_WEBHOOK_IPS: str = ""
     PAYMENT_WEBHOOK_TOLERANCE_SECONDS: int = 300
 
+    # Affiliate / partner platform
+    # HMAC-SHA256 secret the operator signs S2S ingest calls with (X-Signature over "<timestamp>.<body>")
+    AFFILIATE_INGEST_SECRET: Optional[str] = None
+    AFFILIATE_INGEST_TOLERANCE_SECONDS: int = 300
+    # Optional comma separated operator IPs allowed to call /ingest (empty = any, signature still required)
+    AFFILIATE_INGEST_IPS: str = ""
+    # Rudra247 itself reports registrations / deposits / daily revenue to the affiliate ledger
+    AFFILIATE_INTERNAL_OPERATOR: bool = True
+    # Where the partner portal and the main site live when no tracking domain is configured yet
+    # (empty = the first CORS origin, i.e. the deployed frontend)
+    AFFILIATE_PUBLIC_BASE_URL: Optional[str] = None
+    # Cloudflare Turnstile: with both keys set, sign-in asks for a captcha after 5 failed attempts
+    # and locks for 15 minutes after 10 (without keys: lock after 5, as before)
+    TURNSTILE_SITE_KEY: Optional[str] = None
+    TURNSTILE_SECRET_KEY: Optional[str] = None
+    # Reject partner passwords found in public breaches (HaveIBeenPwned range API, k-anonymity)
+    AFFILIATE_BREACH_CHECK: bool = True
+    # Fetch daily ECB reference FX rates (api.frankfurter.dev) for currency conversion
+    AFFILIATE_FX_AUTO_FETCH: bool = True
+    # Salt for hashing visitor IPs (required in production)
+    AFFILIATE_IP_SALT: Optional[str] = None
+
     # Real worldwide cricket from CricketData.org (free key at cricketdata.org)
     CRICAPI_KEY: Optional[str] = None
     CRICAPI_LIVE_REFRESH_SECONDS: int = 1000
@@ -161,6 +183,14 @@ class Settings(BaseSettings):
     @property
     def payment_webhook_ips(self) -> set[str]:
         return {ip.strip() for ip in self.PAYMENT_WEBHOOK_IPS.split(",") if ip.strip()}
+
+    @property
+    def affiliate_public_base_url(self) -> str:
+        """Main site URL for partner links / emails: explicit setting, else the frontend's CORS origin."""
+        if self.AFFILIATE_PUBLIC_BASE_URL:
+            return self.AFFILIATE_PUBLIC_BASE_URL.rstrip("/")
+        origins = [o for o in self.CORS_ORIGINS if o.startswith("http")]
+        return (origins[0] if origins else "http://localhost:5173").rstrip("/")
 
     @property
     def is_development(self) -> bool:

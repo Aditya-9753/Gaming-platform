@@ -33,6 +33,13 @@ elif db_url.startswith("postgresql://"):
 config.set_main_option("sqlalchemy.url", db_url)
 
 
+def _include_object(obj, name, type_, reflected, compare_to):
+    """Monthly click partitions are created by aff_ensure_click_partitions(), not by models."""
+    table = getattr(obj, "table", None)
+    owner = name if type_ == "table" else getattr(table, "name", "")
+    return not (reflected and str(owner or "").startswith("aff_tracking_clicks_"))
+
+
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode directly generating SQL."""
     url = config.get_main_option("sqlalchemy.url")
@@ -42,6 +49,7 @@ def run_migrations_offline() -> None:
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
         compare_type=True,
+        include_object=_include_object,
     )
 
     with context.begin_transaction():
@@ -54,6 +62,7 @@ def do_run_migrations(connection: Connection) -> None:
         connection=connection,
         target_metadata=target_metadata,
         compare_type=True,
+        include_object=_include_object,
     )
 
     with context.begin_transaction():

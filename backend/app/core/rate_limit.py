@@ -81,7 +81,18 @@ async def is_locked_out(identifier: str, ip: str) -> Tuple[bool, int]:
         return False, 0
 
 
-async def record_failed_login(identifier: str, ip: str) -> int:
+async def failed_login_count(identifier: str, ip: str) -> int:
+    """Current failed sign-in attempts for this identifier + IP (0 when none)."""
+    attempts_key = f"failed_logins:{identifier}:{ip}"
+    try:
+        value = await get_redis_client().get(attempts_key)
+        return int(value or 0)
+    except Exception:
+        _clean_memory_store()
+        return _memory_store.get(attempts_key, (0, 0))[0]
+
+
+async def record_failed_login(identifier: str, ip: str, lock_after: int = MAX_FAILED_LOGINS) -> int:
     """Increment failed login counter and enforce lockout if threshold reached.
 
     Returns current failed attempt count.
@@ -96,7 +107,7 @@ async def record_failed_login(identifier: str, ip: str) -> int:
         if attempts == 1:
             await redis.expire(attempts_key, LOCKOUT_DURATION_SECONDS)
 
-        if attempts >= MAX_FAILED_LOGINS:
+        if attempts >= lock_after:
             await redis.set(lock_key, "1", ex=LOCKOUT_DURATION_SECONDS)
             logger.warning("Account/IP locked out due to failed logins", identifier=identifier, ip=ip)
         return attempts
@@ -107,7 +118,7 @@ async def record_failed_login(identifier: str, ip: str) -> int:
         new_count = count + 1
         _memory_store[attempts_key] = (new_count, now + LOCKOUT_DURATION_SECONDS)
 
-        if new_count >= MAX_FAILED_LOGINS:
+        if new_count >= lock_after:
             _lockout_store[lock_key] = now + LOCKOUT_DURATION_SECONDS
             logger.warning("Account/IP locked out (in-memory)", identifier=identifier, ip=ip)
         return new_count

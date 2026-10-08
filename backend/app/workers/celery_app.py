@@ -20,6 +20,7 @@ celery_app = Celery(
         "app.workers.tasks_notifications",
         "app.workers.tasks_archive",
         "app.workers.tasks_cricket",
+        "app.workers.tasks_affiliate",
     ],
 )
 
@@ -55,5 +56,17 @@ celery_app.conf.update(
             "task": "app.workers.tasks_cricket.sync_cricket_markets_task",
             "schedule": 60.0,
         },
+        # Partner / affiliate platform
+        "aff-process-events": {"task": "app.workers.tasks_affiliate.process_events", "schedule": 15.0},
+        "aff-commissions": {"task": "app.workers.tasks_affiliate.commissions", "schedule": 60.0},
+        "aff-analytics": {"task": "app.workers.tasks_affiliate.analytics", "schedule": 120.0},
+        "aff-postbacks": {"task": "app.workers.tasks_affiliate.postbacks", "schedule": 30.0},
+        "aff-drain-clicks": {"task": "app.workers.tasks_affiliate.drain_clicks", "schedule": 60.0},
+        "aff-internal-revenue": {"task": "app.workers.tasks_affiliate.internal_revenue", "schedule": crontab(minute="5")},
+        "aff-periods": {"task": "app.workers.tasks_affiliate.periods", "schedule": crontab(minute="10")},
+        "aff-reconcile-nightly": {"task": "app.workers.tasks_affiliate.reconcile", "schedule": crontab(minute="15", hour="2")},
+        # ECB publishes around 16:00 CET on working days
+        "aff-fx-rates": {"task": "app.workers.tasks_affiliate.fx_rates", "schedule": crontab(minute="30", hour="15,21")},
+        "aff-click-partitions": {"task": "app.workers.tasks_affiliate.partitions", "schedule": crontab(minute="20", hour="1")},
     },
 )

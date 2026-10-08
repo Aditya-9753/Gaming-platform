@@ -23,6 +23,7 @@ from app.models.support import SupportMessage, SupportTicket
 from app.models.system_setting import SystemSetting
 from app.models.user import User
 from app.models.wallet import Wallet, WalletTransaction
+from app.models import affiliate  # noqa: F401  (registers the aff_* tables on Base.metadata)
 
 # Seal ledger and audit rows on write (needs the models above)
 import app.security.integrity  # noqa: E402,F401

@@ -734,6 +734,9 @@ class PaymentService:
             dep.user_utr = credit.utr
         credit.status = "MATCHED"
         credit.deposit_id = dep.id
+        from app.affiliate import operator_bridge
+
+        await operator_bridge.deposit_credited(self.db, dep.user_id, dep.id, credit.amount_paise, dep.credited_at)
         credit.payment_account_id = credit.payment_account_id or dep.payment_account_id
         await self._move_deposit(dep, "CREDITED", actor, f"{method}: UTR {credit.utr}, {rupees(credit.amount_paise)}")
         await self.db.flush()
@@ -825,6 +828,9 @@ class PaymentService:
         if shortfall:
             wallet.is_frozen = True  # money already spent/withdrawn: recovery case
         await self._move_deposit(dep, "REVERSED", actor, reason)
+        from app.affiliate import operator_bridge
+
+        await operator_bridge.deposit_reversed(self.db, dep.user_id, dep.id, amount, reason)
         await self._audit(actor, "DEPOSIT_REVERSED", "DEPOSIT", dep.id, {
             "reference": dep.reference, "amount_paise": amount, "debited_paise": debit,
             "shortfall_paise": shortfall, "wallet_frozen": bool(shortfall), "reason": reason,

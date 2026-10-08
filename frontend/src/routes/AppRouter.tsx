@@ -19,6 +19,8 @@ import { Loader } from '../components/common/Loader'
 import { useAuthStore } from '../store/auth.store'
 import { authApi } from '../services/auth.api'
 import { isStaffRole } from '../types/auth.types'
+import { captureReferral } from '../utils/referral'
+import { readImpersonationToken } from '../pages/partner/partner.store'
 
 // Lazy-loaded routes
 const Home = lazy(() => import('../pages/public/Home').then((m) => ({ default: m.Home })))
@@ -71,6 +73,52 @@ const Setup2FA = lazy(() => import('../pages/admin/pages/Setup2FA').then((m) => 
 const AdminPayments = lazy(() => import('../pages/admin/pages/Payments').then((m) => ({ default: m.AdminPayments })))
 const AdminSettings = lazy(() => import('../pages/admin/pages/Settings').then((m) => ({ default: m.AdminSettings })))
 
+// Partner portal (mobile-first, own layout)
+const partnerAuth = () => import('../pages/partner/PartnerAuth')
+const PartnerLogin = lazy(() => partnerAuth().then((m) => ({ default: m.PartnerLogin })))
+const PartnerSignup = lazy(() => partnerAuth().then((m) => ({ default: m.PartnerSignup })))
+const PartnerVerifyEmail = lazy(() => partnerAuth().then((m) => ({ default: m.PartnerVerifyEmail })))
+const PartnerTerms = lazy(() => partnerAuth().then((m) => ({ default: m.PartnerTerms })))
+const PartnerImpersonate = lazy(() => partnerAuth().then((m) => ({ default: m.PartnerImpersonate })))
+const PartnerLayout = lazy(() => import('../pages/partner/PartnerLayout').then((m) => ({ default: m.PartnerLayout })))
+const PartnerDashboard = lazy(() => import('../pages/partner/PartnerDashboard').then((m) => ({ default: m.PartnerDashboard })))
+const tracking = () => import('../pages/partner/PartnerTracking')
+const PartnerSources = lazy(() => tracking().then((m) => ({ default: m.PartnerSources })))
+const PartnerPrTools = lazy(() => tracking().then((m) => ({ default: m.PartnerPrTools })))
+const partnerStats = () => import('../pages/partner/PartnerStats')
+const PartnerStatistics = lazy(() => partnerStats().then((m) => ({ default: m.PartnerStatistics })))
+const PartnerSubpartners = lazy(() => partnerStats().then((m) => ({ default: m.PartnerSubpartners })))
+const PartnerWithdrawal = lazy(() => import('../pages/partner/PartnerWallet').then((m) => ({ default: m.PartnerWithdrawal })))
+const account = () => import('../pages/partner/PartnerAccount')
+const PartnerProfile = lazy(() => account().then((m) => ({ default: m.PartnerProfile })))
+const partnerContent = () => import('../pages/partner/PartnerContent')
+const PartnerFaq = lazy(() => partnerContent().then((m) => ({ default: m.PartnerFaq })))
+const PartnerContacts = lazy(() => partnerContent().then((m) => ({ default: m.PartnerContacts })))
+const PartnerBlog = lazy(() => partnerContent().then((m) => ({ default: m.PartnerBlog })))
+const PartnerBlogPost = lazy(() => partnerContent().then((m) => ({ default: m.PartnerBlogPost })))
+const PartnerNotifications = lazy(() => partnerContent().then((m) => ({ default: m.PartnerNotifications })))
+
+// Affiliate back office
+const affPartners = () => import('../pages/admin/affiliate/AffPartners')
+const AffPartners = lazy(() => affPartners().then((m) => ({ default: m.AffPartners })))
+const AffPartnerDetail = lazy(() => affPartners().then((m) => ({ default: m.AffPartnerDetail })))
+const affFinance = () => import('../pages/admin/affiliate/AffFinance')
+const AffSettlement = lazy(() => affFinance().then((m) => ({ default: m.AffSettlement })))
+const AffWithdrawals = lazy(() => affFinance().then((m) => ({ default: m.AffWithdrawals })))
+const AffAdjustments = lazy(() => affFinance().then((m) => ({ default: m.AffAdjustments })))
+const AffWallets = lazy(() => affFinance().then((m) => ({ default: m.AffWallets })))
+const AffDeals = lazy(() => affFinance().then((m) => ({ default: m.AffDeals })))
+const affOps = () => import('../pages/admin/affiliate/AffOps')
+const AffOverview = lazy(() => affOps().then((m) => ({ default: m.AffOverview })))
+const AffDomains = lazy(() => affOps().then((m) => ({ default: m.AffDomains })))
+const AffStatistics = lazy(() => affOps().then((m) => ({ default: m.AffStatistics })))
+const AffRisk = lazy(() => affOps().then((m) => ({ default: m.AffRisk })))
+const AffIngest = lazy(() => affOps().then((m) => ({ default: m.AffIngest })))
+const AffAudit = lazy(() => affOps().then((m) => ({ default: m.AffAudit })))
+const affContent = () => import('../pages/admin/affiliate/AffContent')
+const AffContentAdmin = lazy(() => affContent().then((m) => ({ default: m.AffContentAdmin })))
+const AffSettings = lazy(() => affContent().then((m) => ({ default: m.AffSettings })))
+
 /** Cricket is not open yet; its page stays in the codebase for later. */
 const CricketComingSoon: React.FC = () => (
   <div className="max-w-md mx-auto mt-10 p-8 rounded-2xl bg-dark-card border border-blue-500/30 text-center space-y-3">
@@ -87,8 +135,11 @@ const CricketComingSoon: React.FC = () => (
 
 const RequireAuth: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuthStore()
+  const { user } = useAuthStore()
   if (isLoading) return <Loader fullScreen />
   if (!isAuthenticated) return <Navigate to="/login" replace />
+  // Partners have their own portal and do not play
+  if (user?.role === 'partner') return <Navigate to="/partner/dashboard" replace />
   return <>{children}</>
 }
 
@@ -116,7 +167,7 @@ const RequireSuperAdmin: React.FC<{ children: React.ReactNode }> = ({ children }
 const RedirectIfAuthed: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, user } = useAuthStore()
   // Admins that still must enrol 2FA go straight to the setup page
-  if (isAuthenticated) return <Navigate to={user?.requires2FASetup ? '/admin/2fa' : '/dashboard'} replace />
+  if (isAuthenticated) return <Navigate to={user?.role === 'partner' ? '/partner/dashboard' : user?.requires2FASetup ? '/admin/2fa' : '/dashboard'} replace />
   return <>{children}</>
 }
 
@@ -126,6 +177,20 @@ function useSessionBootstrap() {
 
   useEffect(() => {
     let active = true
+    void captureReferral()
+    // A read-only partner view opened by support lives only in this tab
+    const impersonation = readImpersonationToken()
+    if (impersonation && window.location.pathname.startsWith('/partner')) {
+      useAuthStore.getState().setAccessToken(impersonation)
+      authApi.getCurrentUser()
+        .then((user) => { if (active) setAuth(user, impersonation) })
+        .catch(() => { sessionStorage.removeItem('aff_impersonation_token'); if (active) logout() })
+      return () => { active = false }
+    }
+    if (window.location.pathname === '/partner/impersonate') {
+      setLoading(false)
+      return () => { active = false }
+    }
     authApi.refreshToken()
       .then(async (tokens) => {
         if (!tokens?.access_token) {
@@ -249,6 +314,33 @@ export const router = createBrowserRouter([
     ],
   },
 
+  // Partner portal (separate, mobile-first layout)
+  { path: '/partner/login', element: <Suspense fallback={<Loader fullScreen />}><PartnerLogin /></Suspense> },
+  { path: '/partner/signup', element: <Suspense fallback={<Loader fullScreen />}><PartnerSignup /></Suspense> },
+  { path: '/partner/verify-email', element: <Suspense fallback={<Loader fullScreen />}><PartnerVerifyEmail /></Suspense> },
+  { path: '/partner/terms', element: <Suspense fallback={<Loader fullScreen />}><PartnerTerms /></Suspense> },
+  { path: '/partner/impersonate', element: <Suspense fallback={<Loader fullScreen />}><PartnerImpersonate /></Suspense> },
+  {
+    path: '/partner',
+    element: <Suspense fallback={<Loader fullScreen />}><PartnerLayout /></Suspense>,
+    children: [
+      { index: true, element: <Navigate to="/partner/dashboard" replace /> },
+      { path: 'dashboard', element: <PartnerDashboard /> },
+      { path: 'pr-tools', element: <PartnerPrTools /> },
+      { path: 'sources', element: <PartnerSources /> },
+      { path: 'statistics', element: <PartnerStatistics /> },
+      { path: 'withdrawal', element: <PartnerWithdrawal /> },
+      { path: 'subpartners', element: <PartnerSubpartners /> },
+      { path: 'faq', element: <PartnerFaq /> },
+      { path: 'contacts', element: <PartnerContacts /> },
+      { path: 'blog', element: <PartnerBlog /> },
+      { path: 'blog/:slug', element: <PartnerBlogPost /> },
+      { path: 'notifications', element: <PartnerNotifications /> },
+      { path: 'profile', element: <PartnerProfile /> },
+      { path: '*', element: <Navigate to="/partner/dashboard" replace /> },
+    ],
+  },
+
   // Admin Panel (Separate Layout)
   {
     path: '/admin',
@@ -286,6 +378,23 @@ export const router = createBrowserRouter([
       { path: 'audit-logs', element: <AuditLogs /> },
       { path: '2fa', element: <Setup2FA /> },
       { path: 'settings', element: <RequireSuperAdmin><AdminSettings /></RequireSuperAdmin> },
+      // Affiliate back office (each API checks its own permission)
+      { path: 'affiliate', element: <AffOverview /> },
+      { path: 'affiliate/partners', element: <AffPartners /> },
+      { path: 'affiliate/subpartners', element: <AffPartners subpartnersOnly /> },
+      { path: 'affiliate/partners/:id', element: <AffPartnerDetail /> },
+      { path: 'affiliate/deals', element: <AffDeals /> },
+      { path: 'affiliate/domains', element: <AffDomains /> },
+      { path: 'affiliate/statistics', element: <AffStatistics /> },
+      { path: 'affiliate/settlement', element: <AffSettlement /> },
+      { path: 'affiliate/wallets', element: <AffWallets /> },
+      { path: 'affiliate/withdrawals', element: <AffWithdrawals /> },
+      { path: 'affiliate/adjustments', element: <AffAdjustments /> },
+      { path: 'affiliate/content', element: <AffContentAdmin /> },
+      { path: 'affiliate/risk', element: <AffRisk /> },
+      { path: 'affiliate/ingest', element: <AffIngest /> },
+      { path: 'affiliate/audit', element: <AffAudit /> },
+      { path: 'affiliate/settings', element: <AffSettings /> },
     ],
   },
 ])

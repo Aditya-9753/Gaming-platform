@@ -8,17 +8,19 @@ from fastapi import APIRouter, Depends, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
-from app.core.constants import PermissionCode
+from app.core.constants import MFA_REQUIRED_ROLES, PermissionCode
 from app.core.database import get_db
 from app.core.deps import CurrentUser, get_current_user
 from pydantic import BaseModel, EmailStr, Field
 
 from app.core.exceptions import BadRequestException, SecondFactorRequiredException, UnauthorizedException
 from app.core.rate_limit import (
+    failed_login_count,
     is_locked_out,
     record_failed_login,
     reset_failed_attempts,
 )
+from app.services import captcha_service
 from app.middleware.rate_limit import rate_limit_dependency
 from app.schemas.auth import (
     ForgotPasswordRequest,
@@ -87,11 +89,16 @@ async def register(
     Returns access JWT in body; refresh token in httpOnly cookie.
     """
     svc = AuthService(db)
+    from app.affiliate.util import request_country
+
     _user, access_token, refresh_raw = await svc.register(
         username=body.username,
         email=body.email,
         password=body.password,
         age_confirmed=body.age_confirmed,
+        click_id=body.click_id or request.cookies.get("aff_click"),
+        promo_code=body.promo_code,
+        country=request_country(request),
     )
     _set_refresh_cookie(response, refresh_raw)
     return TokenResponse(
@@ -167,6 +174,11 @@ async def login(
             f"Account is temporarily locked. Try again in {remaining} seconds."
         )
 
+    captcha_on = captcha_service.enabled()
+    if captcha_on and await failed_login_count(identifier, client_ip) >= captcha_service.CAPTCHA_AFTER:
+        if not await captcha_service.verify(body.captcha_token, client_ip):
+            raise captcha_service.CaptchaRequiredException()
+
     svc = AuthService(db)
     try:
         _user, access_token, refresh_raw = await svc.login(
@@ -177,7 +189,11 @@ async def login(
     except SecondFactorRequiredException:
         raise  # correct password, code just emailed: not a failed attempt
     except Exception:
-        await record_failed_login(identifier, client_ip)
+        attempts = await record_failed_login(
+            identifier, client_ip, lock_after=captcha_service.LOCK_AFTER if captcha_on else captcha_service.CAPTCHA_AFTER
+        )
+        if captcha_on and attempts >= captcha_service.CAPTCHA_AFTER and attempts < captcha_service.LOCK_AFTER:
+            raise captcha_service.CaptchaRequiredException("Email or password incorrect. Complete the captcha to try again")
         raise
 
     # Success — clear any lockout counter
@@ -312,7 +328,7 @@ async def me(
         totp_enabled=current_user.totp_enabled,
         two_factor_method=current_user.two_factor_method if current_user.totp_enabled else None,
         full_name=current_user.full_name,
-        is_staff=current_user.role.upper() != "USER",
+        is_staff=current_user.role.upper() not in ("USER", "PARTNER"),
         permissions=sorted(
             {code.value for code in PermissionCode}
             if current_user.role.upper() == "SUPERADMIN"
@@ -320,7 +336,7 @@ async def me(
         ),
         requires_2fa_setup=(
             settings.admin_2fa_required
-            and current_user.role.upper() in ("ADMIN", "SUPERADMIN")
+            and current_user.role.upper() in MFA_REQUIRED_ROLES
             and not current_user.totp_enabled
         ),
     )

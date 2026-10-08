@@ -26,7 +26,7 @@ const mapUser = (user: ApiUser): UserSession => {
     id: user.id,
     username: user.username,
     email: user.email ?? undefined,
-    role: (STAFF_ROLES as string[]).includes(role) ? (role as UserRole) : user.is_staff ? 'staff' : 'user',
+    role: role === 'partner' ? 'partner' : (STAFF_ROLES as string[]).includes(role) ? (role as UserRole) : user.is_staff ? 'staff' : 'user',
     roleName: user.role,
     fullName: user.full_name ?? undefined,
     permissions: user.permissions ?? [],
@@ -39,20 +39,23 @@ const mapUser = (user: ApiUser): UserSession => {
 
 export const authApi = {
   /** `username` may be the username or the email address. */
-  login: async (username: string, password: string, totpCode?: string) => {
+  login: async (username: string, password: string, totpCode?: string, captchaToken?: string | null) => {
     const { data } = await apiClient.post<TokenResponse>('/auth/login', {
       username: username.trim(),
       password,
       totp_code: totpCode || undefined,
+      captcha_token: captchaToken || undefined,
     })
     return data
   },
-  register: async (username: string, password: string, ageConfirmed: boolean, email?: string) => {
+  register: async (username: string, password: string, ageConfirmed: boolean, email?: string, referral?: { click_id?: string; promo_code?: string }) => {
     const { data } = await apiClient.post<TokenResponse>('/auth/register', {
       username: username.trim(),
       email: email?.trim() || undefined,
       password,
       age_confirmed: ageConfirmed,
+      click_id: referral?.click_id || undefined,
+      promo_code: referral?.promo_code?.trim() || undefined,
     })
     return data
   },

@@ -8,6 +8,7 @@ import { useAuthStore } from '../../store/auth.store'
 import { authApi } from '../../services/auth.api'
 import { showToast } from '../../components/common/Toast'
 import { apiClient } from '../../services/api'
+import { clearReferral, getReferral } from '../../utils/referral'
 
 // Must match PLAYER_PASSWORD_PATTERN on the server
 const USERNAME_PATTERN = /^[a-zA-Z0-9_]{3,50}$/
@@ -52,6 +53,8 @@ export const Register: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [is18, setIs18] = useState(false)
+  // Partner promo code (prefilled from a ?promo= link); the partner click id is sent automatically
+  const [promoCode, setPromoCode] = useState(() => getReferral().promo || '')
   const [isLoading, setIsLoading] = useState(false)
   const [nameStatus, setNameStatus] = useState<NameStatus>({ checking: false })
 
@@ -95,7 +98,8 @@ export const Register: React.FC = () => {
     }
     setIsLoading(true)
     try {
-      const { access_token } = await authApi.register(username.trim(), password, is18)
+      const { access_token } = await authApi.register(username.trim(), password, is18, undefined, { click_id: getReferral().click_id, promo_code: promoCode })
+      clearReferral()
       setAccessToken(access_token)
       const user = await authApi.getCurrentUser()
       setAuth(user, access_token)
@@ -167,6 +171,10 @@ export const Register: React.FC = () => {
             error={confirmPassword && confirmPassword !== password ? '✗ Passwords do not match' : undefined}
             success={confirmPassword && confirmPassword === password ? '✓ Passwords match' : undefined}
             required
+          />
+          <Input
+            label="Promo code (optional)" autoCapitalize="characters" maxLength={32}
+            value={promoCode} onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
           />
           <div className="p-3 rounded-xl bg-dark-elevated border border-dark-border">
             <label className="flex items-start gap-2.5 text-xs text-slate-300 cursor-pointer">

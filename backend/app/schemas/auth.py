@@ -22,6 +22,9 @@ class RegisterRequest(BaseModel):
     email: Optional[EmailStr] = None
     password: str = Field(min_length=8, max_length=128)
     age_confirmed: bool
+    # Affiliate attribution: click id from a partner link (?click_id=) or a partner promo code
+    click_id: Optional[str] = Field(None, max_length=26, pattern=r"^[0-9A-Za-z]*$")
+    promo_code: Optional[str] = Field(None, max_length=32)
 
     @field_validator("password")
     @classmethod
@@ -49,6 +52,8 @@ class LoginRequest(BaseModel):
     email: Optional[str] = Field(None, min_length=1, max_length=255)
     password: str = Field(min_length=1, max_length=128)
     totp_code: Optional[str] = Field(None, min_length=6, max_length=6)
+    # Cloudflare Turnstile token, required after repeated failed attempts (when configured)
+    captcha_token: Optional[str] = Field(None, max_length=4096)
 
     @field_validator("totp_code", mode="before")
     @classmethod
