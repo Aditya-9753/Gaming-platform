@@ -12,7 +12,7 @@ from app.core.client_ip import of_request as client_ip_of
 from app.core.constants import PermissionCode, UserRole
 from app.core.database import get_db
 from app.core.deps import CurrentUser, require_permission
-from app.core.exceptions import BadRequestException, NotFoundException
+from app.core.exceptions import BadRequestException, ForbiddenException, NotFoundException
 from app.games.cricket.market_service import CricketMarketService
 from app.games.cricket.providers.mock import MockCricketDataProvider
 from app.games.cricket.schemas import CricketSettlementOverrideRequest
@@ -414,6 +414,12 @@ async def update_game_settings(
     db: AsyncSession = Depends(get_db),
 ) -> Dict[str, Any]:
     """Update game configuration, bet limits, and house edge with validation and audit log."""
+    from app.api.v1.admin.aviator_speed import SPEED_KEYS
+
+    if game_id == "aviator" and payload.config and current_user.role.upper() != "SUPERADMIN":
+        current = (await AdminService(db).get_game_settings(game_id)).get("config") or {}
+        if any(key in payload.config and payload.config[key] != current.get(key) for key in SPEED_KEYS):
+            raise ForbiddenException("Aviator speed can only be changed by the super admin (Admin → Aviator Speed)")
     ip_addr = client_ip_of(request)
     svc = AdminService(db)
     settings = await svc.update_game_settings(

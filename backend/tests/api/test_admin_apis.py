@@ -401,13 +401,13 @@ async def test_admin_games_management_and_audit(admin_env):
         assert settings_log.details["before"]["min_bet"] == 100
         assert settings_log.details["after"]["min_bet"] == 200
 
-        # Game-specific timing and payout fields are validated before mutation.
+        # Aviator speed / timing fields belong to the super admin (Admin -> Aviator Speed)
         res = await client.patch(
             "/api/v1/admin/games/aviator/settings",
             headers=admin_headers,
             json={"config": {"growth_rate": -1}},
         )
-        assert res.status_code == 400
+        assert res.status_code == 403
 
 
 @pytest.mark.asyncio

@@ -275,4 +275,10 @@ class AviatorEngine(BaseGameEngine):
         outcome = await self.resolve(round_obj)
         await self.settle(round_obj, outcome)
         await self.history(round_obj, outcome)
-        await asyncio.sleep(self.intermission_duration)
+        pause = self.intermission_duration
+        try:  # super admin can change the break between rounds (Admin → Aviator Speed)
+            config, _edge = await self._configuration()
+            pause = min(15.0, max(1.0, float(config.get("intermission_sec", pause))))
+        except Exception:
+            pass
+        await asyncio.sleep(pause)
