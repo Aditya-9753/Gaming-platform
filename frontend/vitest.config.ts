@@ -9,6 +9,11 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  build: {
+    rolldownOptions: {
+      checks: { pluginTimings: false },
+    },
+  },
   test: {
     globals: true,
     environment: 'happy-dom',
