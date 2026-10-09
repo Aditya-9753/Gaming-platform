@@ -122,9 +122,8 @@ VPA_RE = re.compile(r"^[A-Za-z0-9.\-_]{2,256}@[A-Za-z][A-Za-z0-9]{1,63}$")
 IFSC_RE = re.compile(r"^[A-Z]{4}0[A-Z0-9]{6}$")
 ACCOUNT_RE = re.compile(r"^\d{9,18}$")
 PIN_RE = re.compile(r"^\d{4,6}$")
-_QR_IMAGE_RE = re.compile(r"^data:image/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$")
 _WEAK_PINS = {"0000", "1111", "1234", "4321", "000000", "111111", "123456", "654321", "123123"}
-MAX_QR_IMAGE_CHARS = 600_000
+MAX_QR_IMAGE_BYTES = 400 * 1024
 MAX_ACTIVE_BENEFICIARIES = 3
 MAX_OPEN_DEPOSITS = 3
 _UNWAGERED_STATUSES = ("REFUNDED", "VOID", "VOIDED", "CANCELLED")
@@ -369,10 +368,10 @@ class PaymentService:
     def _validate_qr_image(value: Optional[str]) -> Optional[str]:
         if not value:
             return None
-        value = value.strip()
-        if len(value) > MAX_QR_IMAGE_CHARS or not _QR_IMAGE_RE.match(value):
-            raise BadRequestException("QR image must be a PNG, JPEG or WebP under ~400 KB")
-        return value
+        from app.security.uploads import validate_image_data_url
+
+        # Decodes the image and checks its real file signature, not just the declared type
+        return validate_image_data_url(value, max_bytes=MAX_QR_IMAGE_BYTES, label="QR image")
 
     async def create_account(self, actor: Actor, data: Dict[str, Any]) -> PaymentAccount:
         upi_id = (data.get("upi_id") or "").strip()

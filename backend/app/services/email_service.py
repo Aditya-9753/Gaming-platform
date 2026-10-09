@@ -68,7 +68,11 @@ class ConsoleEmailService(EmailServiceInterface):
     """Development / test: write the message to the log instead of sending it."""
 
     async def send(self, to_email: str, subject: str, text: str, html_body: Optional[str] = None) -> None:
-        logger.info("SIMULATED EMAIL", recipient=to_email, subject=subject, body=text)
+        if get_settings().is_production:
+            # Never write codes / reset links into production logs: fail loudly instead
+            logger.error("No email provider configured; message not sent", subject=subject)
+            raise EmailDeliveryError("Email is not configured")
+        logger.info("SIMULATED EMAIL", recipient=to_email, subject=subject, email_text=text)
 
 
 class BrevoEmailService(EmailServiceInterface):

@@ -16,6 +16,7 @@ from fastapi import APIRouter, Depends, Header, Query, Request
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.client_ip import of_request as client_ip_of
 from app.core.constants import PermissionCode
 from app.core.database import get_db
 from app.core.deps import CurrentUser, require_permission
@@ -57,7 +58,7 @@ _manage = require_permission(PermissionCode.PAYMENT_MANAGE)
 
 def _actor(user: CurrentUser, request: Request, mfa: Optional[str] = None) -> Actor:
     return Actor(id=user.id, role=user.role.upper(), kind="ADMIN",
-                 ip=request.client.host if request.client else None, mfa=mfa)
+                 ip=client_ip_of(request), mfa=mfa)
 
 
 def _stepped(user: CurrentUser, request: Request, token: Optional[str]) -> Actor:

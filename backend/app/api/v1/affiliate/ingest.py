@@ -14,6 +14,7 @@ from typing import Any, Dict
 from fastapi import APIRouter, Depends, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.client_ip import of_request as client_ip_of
 from app.affiliate import ingest, serialize
 from app.affiliate.constants import IngestEventType
 from app.core.config import get_settings
@@ -31,7 +32,7 @@ async def _accept(request: Request, response: Response, db: AsyncSession, event_
         raise BadRequestException("Body too large (5 MB max)")
     ingest.verify_signature(body, request.headers.get("x-timestamp"), request.headers.get("x-signature"))
     allowed = {ip.strip() for ip in (get_settings().AFFILIATE_INGEST_IPS or "").split(",") if ip.strip()}
-    if allowed and (request.client.host if request.client else "") not in allowed:
+    if allowed and (client_ip_of(request)) not in allowed:
         raise ForbiddenException("Source address not allowed")
     try:
         payload = json.loads(body or b"{}")

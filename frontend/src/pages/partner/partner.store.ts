@@ -43,14 +43,3 @@ export const usePartnerStore = create<PartnerState>((set) => ({
   },
   clear: () => set({ me: null, error: null }),
 }))
-
-/** Impersonation tokens live only in this tab (sessionStorage), never next to the admin's own session. */
-export const IMPERSONATION_KEY = 'aff_impersonation_token'
-
-export const readImpersonationToken = (): string | null => {
-  try {
-    return sessionStorage.getItem(IMPERSONATION_KEY)
-  } catch {
-    return null
-  }
-}

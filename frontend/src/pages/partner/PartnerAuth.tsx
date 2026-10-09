@@ -8,7 +8,7 @@ import { Btn, Field, cx, errorText, inputCls } from '../../components/affiliate/
 import { authApi } from '../../services/auth.api'
 import { partnerApi } from '../../services/affiliate.api'
 import { useAuthStore } from '../../store/auth.store'
-import { IMPERSONATION_KEY } from './partner.store'
+import { impersonation } from '../../utils/impersonation'
 
 const Shell: React.FC<{ title: string; subtitle?: string; children: React.ReactNode }> = ({ title, subtitle, children }) => (
   <div className="dark flex min-h-[100dvh] items-start justify-center bg-dark-bg px-4 py-8 text-white sm:items-center">
@@ -230,9 +230,9 @@ export const PartnerImpersonate: React.FC = () => {
   const { setAuth, setAccessToken } = useAuthStore()
   const [error, setError] = useState<string | null>(null)
   useEffect(() => {
-    const token = new URLSearchParams(window.location.hash.slice(1)).get('token') || sessionStorage.getItem(IMPERSONATION_KEY)
+    const token = new URLSearchParams(window.location.hash.slice(1)).get('token') || impersonation.get()
     if (!token) { setError('Missing token'); return }
-    sessionStorage.setItem(IMPERSONATION_KEY, token)
+    impersonation.set(token)
     window.history.replaceState(null, '', '/partner/impersonate')
     setAccessToken(token)
     authApi.getCurrentUser()

@@ -15,6 +15,8 @@ from typing import AsyncGenerator
 os.environ.setdefault("ADMIN_2FA_REQUIRED", "true")
 os.environ.setdefault("SEED_DEFAULT_ACCOUNTS", "false")
 os.environ.setdefault("RUN_GAME_ENGINES", "false")
+# The per-IP ceiling is exercised by its own test; the suite itself sends hundreds of requests a minute
+os.environ.setdefault("GLOBAL_RATE_LIMIT_PER_MINUTE", "0")
 # Isolate tests from the dev Redis (db 0): idempotency keys / round state
 # leaking across runs caused spurious 409s and could corrupt live games.
 _TEST_REDIS_URL = "redis://localhost:6380/15"

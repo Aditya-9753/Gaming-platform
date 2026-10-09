@@ -6,7 +6,7 @@ from typing import Any, AsyncGenerator, Callable, Dict, List, Optional, Set
 
 from fastapi import Cookie, Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import JWTError
+from jwt import PyJWTError as JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings

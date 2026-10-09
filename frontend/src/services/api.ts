@@ -1,5 +1,6 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { useAuthStore } from '../store/auth.store'
+import { impersonation } from '../utils/impersonation'
 
 export const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1'
 
@@ -38,13 +39,11 @@ apiClient.interceptors.response.use(
     original._retry = true
 
     // Read-only partner view opened by support: never fall back to the staff member's own session
-    try {
-      if (sessionStorage.getItem('aff_impersonation_token')) {
-        sessionStorage.removeItem('aff_impersonation_token')
-        useAuthStore.getState().logout()
-        return Promise.reject(error)
-      }
-    } catch { /* storage unavailable */ }
+    if (impersonation.active()) {
+      impersonation.clear()
+      useAuthStore.getState().logout()
+      return Promise.reject(error)
+    }
 
     if (isRefreshing) {
       return new Promise<string>((resolve, reject) => {

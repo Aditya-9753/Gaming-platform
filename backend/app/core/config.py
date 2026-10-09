@@ -67,6 +67,13 @@ class Settings(BaseSettings):
     # Where the partner portal and the main site live when no tracking domain is configured yet
     # (empty = the first CORS origin, i.e. the deployed frontend)
     AFFILIATE_PUBLIC_BASE_URL: Optional[str] = None
+    # Reverse proxies in front of the API (Render: 1). Used to read the real client IP from
+    # X-Forwarded-For without trusting the forgeable left-hand entries. 0 = use the socket peer.
+    TRUSTED_PROXY_HOPS: int = 1
+    # Per-IP ceiling for all API requests per minute (0 = off) and for writes
+    GLOBAL_RATE_LIMIT_PER_MINUTE: int = 600
+    GLOBAL_WRITE_LIMIT_PER_MINUTE: int = 120
+
     # Cloudflare Turnstile: with both keys set, sign-in asks for a captcha after 5 failed attempts
     # and locks for 15 minutes after 10 (without keys: lock after 5, as before)
     TURNSTILE_SITE_KEY: Optional[str] = None
@@ -129,6 +136,9 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def validate_production_security(self) -> "Settings":
         """Reject known development defaults and weak credentials in production."""
+        # Only HMAC algorithms: never "none", and no asymmetric/symmetric confusion
+        if self.JWT_ALGORITHM not in ("HS256", "HS384", "HS512"):
+            raise ValueError("JWT_ALGORITHM must be HS256, HS384 or HS512")
         if self.is_production:
             if self.DEBUG:
                 raise ValueError("DEBUG must be false in production")
@@ -138,8 +148,12 @@ class Settings(BaseSettings):
                     raise ValueError(
                         f"{name} must be a unique secret of at least 32 characters in production"
                     )
+            if self.JWT_SECRET == self.JWT_REFRESH_SECRET:
+                raise ValueError("JWT_SECRET and JWT_REFRESH_SECRET must be different")
             if any("localhost" in origin or "127.0.0.1" in origin for origin in self.CORS_ORIGINS):
                 raise ValueError("Production CORS_ORIGINS must not include localhost")
+            if "*" in self.CORS_ORIGINS or any(not origin.startswith("https://") for origin in self.CORS_ORIGINS):
+                raise ValueError("Production CORS_ORIGINS must be explicit https:// origins (no wildcard)")
         else:
             if not self.JWT_SECRET:
                 object.__setattr__(self, "JWT_SECRET", secrets.token_urlsafe(48))

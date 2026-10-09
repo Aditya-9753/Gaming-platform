@@ -73,12 +73,14 @@ def check_media(value: Optional[str]) -> Optional[str]:
     """Accept https URLs or small image data URLs (png / jpeg / webp / gif)."""
     if not value:
         return None
+    from app.security.uploads import validate_https_url, validate_image_data_url
+
     value = value.strip()
-    if value.startswith("https://") or value.startswith("http://"):
-        return value[:2000]
-    if re.match(r"^data:image/(png|jpeg|webp|gif);base64,", value) and len(value) <= MAX_DATA_URL:
-        return value
-    raise BadRequestException("Use an https:// link or a PNG/JPEG/WebP/GIF image under 2 MB")
+    if value.startswith("data:"):
+        return validate_image_data_url(value, max_bytes=2 * 1024 * 1024)
+    if value.lower().startswith("http://"):
+        raise BadRequestException("Use an https:// link (plain http is not allowed)")
+    return validate_https_url(value)
 
 
 async def manager_contact(db: AsyncSession, partner: AffPartner) -> Optional[Dict[str, Any]]:

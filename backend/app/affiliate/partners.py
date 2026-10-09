@@ -435,12 +435,18 @@ async def check_domain(db: AsyncSession, row: AffTrackingDomain) -> AffTrackingD
     """HTTPS health check: the domain must answer /r/<nonexistent> over TLS."""
     import httpx
 
+    from app.security.ssrf import assert_public_url
+
     row.last_checked_at = utcnow()
     try:
-        async with httpx.AsyncClient(timeout=5.0, follow_redirects=False) as client:
-            resp = await client.get(f"https://{row.domain}/health")
+        url = await assert_public_url(f"https://{row.domain}/health")  # never probe internal hosts
+        async with httpx.AsyncClient(timeout=5.0, follow_redirects=False, trust_env=False) as client:
+            resp = await client.get(url)
         row.ssl_ok = True
         row.last_check_error = None if resp.status_code < 500 else f"HTTP {resp.status_code}"
+    except BadRequestException as exc:
+        row.ssl_ok = False
+        row.last_check_error = exc.message[:255]
     except httpx.ConnectError as exc:
         row.ssl_ok = False
         row.last_check_error = str(exc)[:255] or "connection failed"

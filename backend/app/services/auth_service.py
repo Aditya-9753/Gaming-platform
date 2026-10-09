@@ -182,6 +182,15 @@ class AuthService:
         if not user.is_active:
             raise ForbiddenException("This account has been suspended")
 
+        # The development seed passwords are public (they are in the repository): in production
+        # an account still using one must set a new password before it can sign in
+        if settings.is_production:
+            from app.core.bootstrap import DEFAULT_ACCOUNTS
+
+            if password in {account["password"] for account in DEFAULT_ACCOUNTS}:
+                logger.warning("Sign-in with a default password blocked", user_id=user.id)
+                raise ForbiddenException("This account uses a default password. Use 'Forgot password' to set a new one.")
+
         # Admin 2FA enforcement: Admin users MUST provide a valid TOTP code
         role_name = user.role.name.upper() if user.role else ""
         is_admin_user = role_name in MFA_REQUIRED_ROLES

@@ -13,12 +13,16 @@ class SecurityHeadersMiddleware:
         settings = get_settings()
         self.is_production = settings.is_production
 
+        # The API only serves JSON (and redirects): nothing it returns may run scripts or be framed
         self.headers: list[tuple[bytes, bytes]] = [
             (b"x-content-type-options", b"nosniff"),
             (b"x-frame-options", b"DENY"),
-            (b"x-xss-protection", b"1; mode=block"),
+            (b"x-xss-protection", b"0"),  # legacy filter off; CSP below is the protection
             (b"referrer-policy", b"strict-origin-when-cross-origin"),
-            (b"content-security-policy", b"default-src 'self'"),
+            (b"content-security-policy", b"default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"),
+            (b"permissions-policy", b"camera=(), microphone=(), geolocation=(), payment=()"),
+            (b"cross-origin-opener-policy", b"same-origin"),
+            (b"cross-origin-resource-policy", b"same-site"),
         ]
 
         if self.is_production:

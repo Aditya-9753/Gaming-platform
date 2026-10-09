@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Header, Query, Request, Response
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.client_ip import of_request as client_ip_of
 from app.core.constants import PermissionCode, UserRole
 from app.core.database import get_db
 from app.core.deps import CurrentUser, require_permission
@@ -260,7 +261,7 @@ async def set_user_status(
     db: AsyncSession = Depends(get_db),
 ) -> Dict[str, Any]:
     """Activate or suspend user account with mandatory audit log."""
-    ip_addr = request.client.host if request.client else None
+    ip_addr = client_ip_of(request)
     svc = AdminService(db)
     user = await svc.set_user_status(
         actor_id=current_user.id,
@@ -343,7 +344,7 @@ async def adjust_user_balance(
     db: AsyncSession = Depends(get_db),
 ) -> Dict[str, Any]:
     """Manually credit or debit user virtual credits with mandatory reason and ledger entry."""
-    ip_addr = request.client.host if request.client else None
+    ip_addr = client_ip_of(request)
     svc = AdminService(db)
     res = await svc.adjust_user_balance(
         actor_id=current_user.id,
@@ -381,7 +382,7 @@ async def set_game_status(
     db: AsyncSession = Depends(get_db),
 ) -> Dict[str, Any]:
     """Enable or disable game availability with audit log."""
-    ip_addr = request.client.host if request.client else None
+    ip_addr = client_ip_of(request)
     svc = AdminService(db)
     game = await svc.set_game_status(
         actor_id=current_user.id,
@@ -413,7 +414,7 @@ async def update_game_settings(
     db: AsyncSession = Depends(get_db),
 ) -> Dict[str, Any]:
     """Update game configuration, bet limits, and house edge with validation and audit log."""
-    ip_addr = request.client.host if request.client else None
+    ip_addr = client_ip_of(request)
     svc = AdminService(db)
     settings = await svc.update_game_settings(
         actor_id=current_user.id,
@@ -474,7 +475,7 @@ async def override_cricket_settlement(
                 "reason": payload.reason,
                 "idempotency_key": idempotency_key,
             },
-            ip_address=request.client.host if request.client else None,
+            ip_address=client_ip_of(request),
         )
     )
     settled = await CricketMarketService(
@@ -568,7 +569,7 @@ async def create_role(
     db: AsyncSession = Depends(get_db),
 ) -> Dict[str, Any]:
     """Create new custom role with permissions (Super Admin only)."""
-    ip_addr = request.client.host if request.client else None
+    ip_addr = client_ip_of(request)
     svc = AdminService(db)
     role = await svc.create_role(
         actor_id=current_user.id,
@@ -590,7 +591,7 @@ async def update_role_permissions(
     db: AsyncSession = Depends(get_db),
 ) -> Dict[str, Any]:
     """Update assigned permissions for a role (Super Admin only)."""
-    ip_addr = request.client.host if request.client else None
+    ip_addr = client_ip_of(request)
     svc = AdminService(db)
     role = await svc.update_role_permissions(
         actor_id=current_user.id,
@@ -630,7 +631,7 @@ async def create_admin_user(
     db: AsyncSession = Depends(get_db),
 ) -> Dict[str, Any]:
     """Create an administrator/support account; only SUPERADMIN can do this."""
-    ip_addr = request.client.host if request.client else None
+    ip_addr = client_ip_of(request)
     svc = AdminService(db)
     user = await svc.create_admin_user(
         actor_id=current_user.id,
@@ -662,7 +663,7 @@ async def assign_user_role(
     db: AsyncSession = Depends(get_db),
 ) -> Dict[str, Any]:
     """Assign or modify user role (Super Admin only)."""
-    ip_addr = request.client.host if request and request.client else None
+    ip_addr = client_ip_of(request) if request else None
     svc = AdminService(db)
     user = await svc.assign_user_role(
         actor_id=current_user.id,
@@ -728,7 +729,7 @@ async def reply_support_ticket(
     db: AsyncSession = Depends(get_db),
 ) -> Dict[str, Any]:
     """Staff reply to customer ticket with optional internal staff note."""
-    ip_addr = request.client.host if request.client else None
+    ip_addr = client_ip_of(request)
     svc = AdminService(db)
     msg = await svc.admin_reply_ticket(
         actor_id=current_user.id,
@@ -755,7 +756,7 @@ async def assign_support_ticket(
     db: AsyncSession = Depends(get_db),
 ) -> Dict[str, Any]:
     """Assign ticket to a staff member with audit log."""
-    ip_addr = request.client.host if request.client else None
+    ip_addr = client_ip_of(request)
     svc = AdminService(db)
     ticket = await svc.assign_ticket(
         actor_id=current_user.id,
@@ -776,7 +777,7 @@ async def update_support_ticket_status(
     db: AsyncSession = Depends(get_db),
 ) -> Dict[str, Any]:
     """Update ticket resolution status with audit log."""
-    ip_addr = request.client.host if request.client else None
+    ip_addr = client_ip_of(request)
     svc = AdminService(db)
     ticket = await svc.update_ticket_status(
         actor_id=current_user.id,
@@ -801,7 +802,7 @@ async def broadcast_notification(
     db: AsyncSession = Depends(get_db),
 ) -> Dict[str, Any]:
     """Broadcast in-app notification to all active players with audit log."""
-    ip_addr = request.client.host if request.client else None
+    ip_addr = client_ip_of(request)
     svc = AdminService(db)
     count = await svc.broadcast_notification(
         actor_id=current_user.id,

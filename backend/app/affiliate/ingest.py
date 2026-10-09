@@ -492,7 +492,9 @@ async def import_csv(db: AsyncSession, actor: Actor, event_type: IngestEventType
     import csv
     import io
 
-    reader = csv.DictReader(io.StringIO(text))
+    from app.security.uploads import validate_csv_text
+
+    reader = csv.DictReader(io.StringIO(validate_csv_text(text)))
     stats = {"rows": 0, "processed": 0, "duplicates": 0, "failed": 0}
     if event_type == IngestEventType.REVENUE:
         rows = [dict(r) for r in reader]

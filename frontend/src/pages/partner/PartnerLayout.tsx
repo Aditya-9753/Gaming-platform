@@ -12,7 +12,8 @@ import { Badge, Btn, Money, cx, errorText, pct } from '../../components/affiliat
 import { authApi } from '../../services/auth.api'
 import { partnerApi } from '../../services/affiliate.api'
 import { useAuthStore } from '../../store/auth.store'
-import { IMPERSONATION_KEY, usePartnerStore } from './partner.store'
+import { usePartnerStore } from './partner.store'
+import { impersonation } from '../../utils/impersonation'
 import { LANGUAGE_NAMES, useT, type TKey } from './i18n'
 
 const TILES: Array<{ to: string; key: TKey; icon: React.ReactNode; sub?: boolean }> = [
@@ -70,7 +71,7 @@ export const PartnerLayout: React.FC = () => {
     try {
       if (!me.impersonated_by) await authApi.logout()
     } catch { /* already signed out */ }
-    sessionStorage.removeItem(IMPERSONATION_KEY)
+    impersonation.clear()
     usePartnerStore.getState().clear()
     logout()
     setBusy(false)

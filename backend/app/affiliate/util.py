@@ -113,10 +113,9 @@ def sha256(text: str) -> str:
 
 
 def client_ip(request: Request) -> Optional[str]:
-    forwarded = request.headers.get("cf-connecting-ip") or request.headers.get("x-forwarded-for", "")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    return request.client.host if request.client else None
+    from app.core.client_ip import of_request
+
+    return of_request(request)
 
 
 def request_country(request: Request) -> Optional[str]:

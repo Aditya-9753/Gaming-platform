@@ -20,7 +20,6 @@ import { useAuthStore } from '../store/auth.store'
 import { authApi } from '../services/auth.api'
 import { isStaffRole } from '../types/auth.types'
 import { captureReferral } from '../utils/referral'
-import { readImpersonationToken } from '../pages/partner/partner.store'
 
 // Lazy-loaded routes
 const Home = lazy(() => import('../pages/public/Home').then((m) => ({ default: m.Home })))
@@ -178,15 +177,7 @@ function useSessionBootstrap() {
   useEffect(() => {
     let active = true
     void captureReferral()
-    // A read-only partner view opened by support lives only in this tab
-    const impersonation = readImpersonationToken()
-    if (impersonation && window.location.pathname.startsWith('/partner')) {
-      useAuthStore.getState().setAccessToken(impersonation)
-      authApi.getCurrentUser()
-        .then((user) => { if (active) setAuth(user, impersonation) })
-        .catch(() => { sessionStorage.removeItem('aff_impersonation_token'); if (active) logout() })
-      return () => { active = false }
-    }
+    // A read-only partner view opened by support: its page installs the in-memory token itself
     if (window.location.pathname === '/partner/impersonate') {
       setLoading(false)
       return () => { active = false }

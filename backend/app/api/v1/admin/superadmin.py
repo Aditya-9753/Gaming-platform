@@ -19,6 +19,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.client_ip import of_request as client_ip_of
 from app.core.constants import PermissionCode, TransactionStatus, TransactionType, UserRole
 from app.core.database import get_db
 from app.core.deps import CurrentUser, get_current_user, require_permission
@@ -46,7 +47,7 @@ async def require_superadmin(current_user: CurrentUser = Depends(get_current_use
 
 
 def _ip(request: Request) -> Optional[str]:
-    return request.client.host if request.client else None
+    return client_ip_of(request)
 
 
 async def _audit(db: AsyncSession, actor: CurrentUser, action: str, target_type: str, target_id: Optional[str], details: Dict[str, Any], request: Request) -> None:

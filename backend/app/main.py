@@ -121,7 +121,13 @@ def create_app() -> FastAPI:
 
     # Register ASGI middlewares
     # Order matters: RequestIdMiddleware is outermost to capture request ID for all subsequent handlers
+    from app.middleware.csrf import CSRFOriginMiddleware
+    from app.middleware.global_rate_limit import GlobalRateLimitMiddleware
+
     app.add_middleware(SecurityHeadersMiddleware)
+    app.add_middleware(GlobalRateLimitMiddleware, per_minute=settings.GLOBAL_RATE_LIMIT_PER_MINUTE,
+                       writes_per_minute=settings.GLOBAL_WRITE_LIMIT_PER_MINUTE)
+    app.add_middleware(CSRFOriginMiddleware, allowed_origins=settings.CORS_ORIGINS)
     setup_cors(app)
     app.add_middleware(RequestIdMiddleware)
 

@@ -29,6 +29,42 @@ def _add_request_id(_logger: Any, _method_name: str, event_dict: dict[str, Any])
     return event_dict
 
 
+_SENSITIVE_KEYS = {
+    "password", "new_password", "current_password", "password_hash", "token", "access_token", "refresh_token",
+    "raw_token", "reset_token", "verify_token", "secret", "totp_secret", "api_key", "authorization", "cookie",
+    "code", "otp", "otp_code", "totp_code", "pin", "transaction_pin", "captcha_token", "signature", "x-signature",
+    "account_number", "account_identifier", "upi_id", "ifsc", "card", "cvv", "body", "payload",
+}
+_TOKEN_PATTERNS = None
+
+
+def _redact_value(value: Any) -> Any:
+    global _TOKEN_PATTERNS
+    if not isinstance(value, str):
+        return value
+    if _TOKEN_PATTERNS is None:
+        import re
+
+        _TOKEN_PATTERNS = [
+            (re.compile(r"eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}"), "[jwt]"),  # JWTs
+            (re.compile(r"(?i)(bearer\s+)[A-Za-z0-9._~+/=-]{12,}"), r"\1[token]"),
+            (re.compile(r"(?i)\b(password|passwd|pwd|secret|token|api[_-]?key)=([^&\s]+)"), r"\1=[redacted]"),
+        ]
+    for pattern, repl in _TOKEN_PATTERNS:
+        value = pattern.sub(repl, value)
+    return value
+
+
+def _redact(_logger: Any, _method_name: str, event_dict: dict[str, Any]) -> dict[str, Any]:
+    """Structlog processor: never let secrets / payout details reach the logs."""
+    for key in list(event_dict):
+        if key.lower() in _SENSITIVE_KEYS:
+            event_dict[key] = "[redacted]"
+        else:
+            event_dict[key] = _redact_value(event_dict[key])
+    return event_dict
+
+
 def setup_logging() -> None:
     """Configure structured JSON logging for the application."""
     settings = get_settings()
@@ -44,6 +80,7 @@ def setup_logging() -> None:
     processors: list[Any] = [
         structlog.contextvars.merge_contextvars,
         _add_request_id,
+        _redact,
         structlog.processors.add_log_level,
         structlog.processors.TimeStamper(fmt="iso"),
         structlog.processors.StackInfoRenderer(),

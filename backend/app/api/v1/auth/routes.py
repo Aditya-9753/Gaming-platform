@@ -7,6 +7,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.client_ip import of_request as client_ip_of
 from app.core.config import get_settings
 from app.core.constants import MFA_REQUIRED_ROLES, PermissionCode
 from app.core.database import get_db
@@ -164,7 +165,7 @@ async def login(
 
     Tracks failed attempts per identifier+IP and locks out after 5 consecutive failures.
     """
-    client_ip = request.client.host if request.client else "unknown"
+    client_ip = client_ip_of(request)
     identifier = body.identifier.lower()
 
     # Lockout check

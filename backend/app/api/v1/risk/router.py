@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.client_ip import of_request as client_ip_of
 from app.api.v1.admin.superadmin import require_superadmin
 from app.core.database import get_db
 from app.core.deps import CurrentUser
@@ -32,7 +33,7 @@ NOTES = {
 
 
 def _ip(request: Request) -> Optional[str]:
-    return request.client.host if request.client else None
+    return client_ip_of(request)
 
 
 async def _audit(

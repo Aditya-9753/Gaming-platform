@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import asyncio
 import ipaddress
-import socket
 from datetime import timedelta
 from typing import Any, Dict
 from urllib.parse import quote, urlsplit
@@ -32,15 +31,9 @@ MAX_ATTEMPTS = 5
 
 
 def _host_is_public(host: str) -> bool:
-    try:
-        infos = socket.getaddrinfo(host, None)
-    except socket.gaierror:
-        return False
-    for info in infos:
-        ip = ipaddress.ip_address(info[4][0])
-        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_multicast or ip.is_reserved or ip.is_unspecified:
-            return False
-    return True
+    from app.security.ssrf import _resolves_public
+
+    return _resolves_public(host)
 
 
 def validate_template(url: str) -> str:
@@ -110,7 +103,7 @@ async def send_pending(db: AsyncSession, limit: int = 100) -> int:
     if not logs:
         return 0
     sent = 0
-    async with httpx.AsyncClient(timeout=5.0, follow_redirects=False) as client:
+    async with httpx.AsyncClient(timeout=5.0, follow_redirects=False, trust_env=False) as client:
         for log in logs:
             log.attempts = (log.attempts or 0) + 1
             host = urlsplit(log.url_sent).hostname or ""
@@ -145,7 +138,7 @@ async def test_fire(template: str) -> Dict[str, Any]:
     if not await asyncio.get_running_loop().run_in_executor(None, _host_is_public, host):
         raise BadRequestException("Postback URL must resolve to a public address")
     try:
-        async with httpx.AsyncClient(timeout=5.0, follow_redirects=False) as client:
+        async with httpx.AsyncClient(timeout=5.0, follow_redirects=False, trust_env=False) as client:
             resp = await client.get(url)
         return {"url": url, "status_code": resp.status_code}
     except Exception as exc:

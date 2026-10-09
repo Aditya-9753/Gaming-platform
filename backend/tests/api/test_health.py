@@ -87,4 +87,6 @@ async def test_security_headers_and_request_id(async_client: AsyncClient):
     # Security headers
     assert response.headers.get("x-content-type-options") == "nosniff"
     assert response.headers.get("x-frame-options") == "DENY"
-    assert response.headers.get("x-xss-protection") == "1; mode=block"
+    # Legacy XSS auditor disabled (OWASP); the CSP is the protection
+    assert response.headers.get("x-xss-protection") == "0"
+    assert "default-src 'none'" in response.headers.get("content-security-policy", "")

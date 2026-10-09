@@ -5,7 +5,8 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
 from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerificationError
-from jose import JWTError, jwt
+import jwt
+from jwt import PyJWTError as JWTError  # noqa: F401  (re-exported for callers)
 
 from app.core.config import get_settings
 

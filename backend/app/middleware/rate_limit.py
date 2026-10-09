@@ -10,7 +10,9 @@ def rate_limit_dependency(key_prefix: str, max_requests: int, window_seconds: in
     """Create a FastAPI dependency that enforces rate limits per client IP."""
 
     async def dependency(request: Request) -> None:
-        client_ip = request.client.host if request.client else "unknown"
+        from app.core.client_ip import of_request
+
+        client_ip = of_request(request)
         key = f"rate_limit:{key_prefix}:{client_ip}"
         allowed = await check_rate_limit(key, max_requests, window_seconds)
         if not allowed:

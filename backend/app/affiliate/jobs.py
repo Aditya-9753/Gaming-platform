@@ -78,6 +78,10 @@ async def partitions(db: AsyncSession) -> int:
     from sqlalchemy import text
 
     await db.execute(text("SELECT aff_ensure_click_partitions(3)"))
+    # new partitions get row level security like every other table
+    has_rls_fn = (await db.execute(text("SELECT to_regproc('aff_enable_rls') IS NOT NULL"))).scalar()
+    if has_rls_fn:
+        await db.execute(text("SELECT aff_enable_rls()"))
     await db.commit()
     return 1
 

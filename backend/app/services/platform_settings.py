@@ -64,8 +64,8 @@ def _coerce(key: str, raw: Any) -> Any:
         raise BadRequestException(f"{key} is too long")
     if key == "platform_name" and not 2 <= len(value) <= 40:
         raise BadRequestException("Platform name must be 2-40 characters")
-    if key == "platform_logo_url" and value and not value.startswith(("https://", "http://", "/")):
-        raise BadRequestException("Logo URL must start with https://, http:// or /")
+    if key == "platform_logo_url" and value and not (value.startswith("https://") or (value.startswith("/") and not value.startswith("//"))):
+        raise BadRequestException("Logo URL must start with https:// or be a path on this site (/...)")
     return value
 
 

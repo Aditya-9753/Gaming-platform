@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Header, Query, Request
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.client_ip import of_request as client_ip_of
 from app.core.constants import PermissionCode
 from app.core.database import get_db
 from app.core.deps import CurrentUser, require_permission
@@ -33,7 +34,7 @@ _withdraw_user = require_permission(PermissionCode.PAYMENT_WITHDRAW)
 
 
 def _ip(request: Request) -> Optional[str]:
-    return request.client.host if request.client else None
+    return client_ip_of(request)
 
 
 def _idem(key: Optional[str]) -> str:
