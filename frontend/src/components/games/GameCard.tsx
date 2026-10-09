@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Play, ShieldCheck, Users } from 'lucide-react'
 import type { GameMetadata } from '../../types/game.types'
 import { LiveBadge } from './LiveBadge'
+import { t as tr } from '../../i18n'
 
 export interface GameCardProps {
   game: GameMetadata
@@ -46,14 +47,14 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
         )}
         <div className="flex items-center justify-between gap-2 mb-3">
           {isAvailable ? (
-            <LiveBadge label="AVAILABLE" />
+            <LiveBadge label={tr('AVAILABLE')} />
           ) : game.comingSoon ? (
             <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
-              Coming Soon
+              {tr('Coming Soon')}
             </span>
           ) : (
             <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-800 text-slate-400">
-              Maintenance
+              {tr('Maintenance')}
             </span>
           )}
           <div className="flex items-center gap-1 text-[11px] font-bold text-slate-400">
@@ -74,7 +75,7 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
           <span>•</span>
           <span className="flex items-center gap-1 text-cyan-400">
             <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Fair RNG</span>
+            <span>{tr('Fair RNG')}</span>
           </span>
         </div>
       </div>
@@ -86,7 +87,7 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
             className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-dark-bg font-extrabold text-xs transition-all shadow-md shadow-emerald-500/20"
           >
             <Play className="w-3.5 h-3.5 fill-current" />
-            <span>PLAY NOW</span>
+            <span>{tr('PLAY NOW')}</span>
           </Link>
         ) : (
           <button

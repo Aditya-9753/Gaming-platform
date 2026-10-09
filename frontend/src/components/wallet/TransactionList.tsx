@@ -2,6 +2,7 @@ import React from 'react'
 import { ArrowDownLeft, ArrowUpRight, Award, Gift, RefreshCw } from 'lucide-react'
 import type { WalletTransaction } from '../../types/wallet.types'
 import { formatPaiseToRupee, formatDateTime } from '../../utils/formatters'
+import { t as tr } from '../../i18n'
 
 export interface TransactionListProps {
   transactions: WalletTransaction[]
@@ -11,7 +12,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({ transactions }
   if (transactions.length === 0) {
     return (
       <div className="p-8 text-center text-xs text-slate-500">
-        No transactions recorded yet
+        {tr('No transactions recorded yet')}
       </div>
     )
   }

@@ -1,14 +1,10 @@
 import { create } from 'zustand'
 import { partnerApi } from '../../services/affiliate.api'
+import { useUIStore } from '../../store/ui.store'
 import type { PartnerMe } from '../../types/affiliate.types'
 
-const readLocale = () => {
-  try {
-    return localStorage.getItem('aff_locale') || 'en'
-  } catch {
-    return 'en'
-  }
-}
+// One language setting for the whole site: the partner portal follows the main switch
+const readLocale = () => useUIStore.getState().locale
 
 interface PartnerState {
   me: PartnerMe | null
@@ -34,11 +30,7 @@ export const usePartnerStore = create<PartnerState>((set) => ({
     }
   },
   setLocale: (locale) => {
-    try {
-      localStorage.setItem('aff_locale', locale)
-    } catch {
-      /* private mode */
-    }
+    if (locale === 'en' || locale === 'hi') useUIStore.getState().setLocale(locale)
     set({ locale })
   },
   clear: () => set({ me: null, error: null }),

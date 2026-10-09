@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { formatMultiplier } from '../../../utils/formatters'
+import { t as tr } from '../../../i18n'
 
 export const AVIATOR_COVER_SRC = '/games/aviator/cover.jpg'
 export const AVIATOR_PLANE_SRC = '/games/aviator/plane.png'
@@ -151,7 +152,7 @@ export const AviatorChart: React.FC<AviatorChartProps> = ({
             <img src={AVIATOR_COVER_SRC} alt="Aviator" className="w-44 sm:w-56 rounded-2xl shadow-2xl shadow-rose-900/40" />
             {phase === 'betting' ? (
               <>
-                <span className="text-xs uppercase tracking-widest font-black text-emerald-400">Place your bets • take off in</span>
+                <span className="text-xs uppercase tracking-widest font-black text-emerald-400">{tr('Place your bets • take off in')}</span>
                 <div className="text-4xl sm:text-5xl font-black font-mono text-white">{countdown}s</div>
                 <div className="w-48 h-1.5 bg-dark-card border border-dark-border rounded-full overflow-hidden">
                   <div
@@ -161,7 +162,7 @@ export const AviatorChart: React.FC<AviatorChartProps> = ({
                 </div>
               </>
             ) : (
-              <span className="text-xs uppercase tracking-widest font-bold text-slate-400 animate-pulse">Waiting for next round…</span>
+              <span className="text-xs uppercase tracking-widest font-bold text-slate-400 animate-pulse">{tr('Waiting for next round…')}</span>
             )}
           </div>
         )}
@@ -174,7 +175,7 @@ export const AviatorChart: React.FC<AviatorChartProps> = ({
 
         {phase === 'crashed' && (
           <div className="space-y-1">
-            <span className="text-sm font-black uppercase tracking-widest text-rose-500 block">Flew away!</span>
+            <span className="text-sm font-black uppercase tracking-widest text-rose-500 block">{tr('Flew away!')}</span>
             <div className="text-5xl sm:text-6xl font-black font-mono text-rose-500">{formatMultiplier(multiplier)}</div>
           </div>
         )}

@@ -4,6 +4,7 @@ import { apiClient } from '../../../services/api'
 import { MyBetsHistory } from '../../../components/games/MyBetsHistory'
 import { numberColours } from './wingoRules'
 import type { WingoResult } from './useWingoRound'
+import { t as tr } from '../../../i18n'
 
 interface RoundRow { period: string; number: number; size: string; colours: string[] }
 
@@ -62,7 +63,7 @@ export const WinGoHistoryTabs: React.FC<WinGoHistoryTabsProps> = ({ gameId, late
     <section className="space-y-3">
       <div className="grid grid-cols-3 gap-2">
         {tabs.map(([key, label]) => (
-          <button key={key} type="button" onClick={() => setTab(key)} className={`rounded-xl py-2.5 text-sm font-bold transition ${tab === key ? 'bg-gradient-to-r from-rose-500 to-orange-400 text-white shadow' : 'bg-white text-slate-500'}`}>{label}</button>
+          <button key={key} type="button" onClick={() => setTab(key)} className={`rounded-xl py-2.5 text-sm font-bold transition ${tab === key ? 'bg-gradient-to-r from-rose-500 to-orange-400 text-white shadow' : 'bg-white text-slate-500'}`}>{tr(label)}</button>
         ))}
       </div>
 
@@ -71,7 +72,7 @@ export const WinGoHistoryTabs: React.FC<WinGoHistoryTabsProps> = ({ gameId, late
           <>
             <table className="w-full text-sm">
               <thead className="bg-gradient-to-r from-rose-500 to-orange-400 text-white">
-                <tr><th className="py-2.5 font-semibold">Period</th><th className="py-2.5 font-semibold">Number</th><th className="py-2.5 font-semibold">Big Small</th><th className="py-2.5 font-semibold">Color</th></tr>
+                <tr><th className="py-2.5 font-semibold">{tr('Period')}</th><th className="py-2.5 font-semibold">{tr('Number')}</th><th className="py-2.5 font-semibold">{tr('Big Small')}</th><th className="py-2.5 font-semibold">{tr('Color')}</th></tr>
               </thead>
               <tbody>
                 {visible.map((r) => (
@@ -82,7 +83,7 @@ export const WinGoHistoryTabs: React.FC<WinGoHistoryTabsProps> = ({ gameId, late
                     <td className="py-2.5"><span className="inline-flex gap-1">{r.colours.map((c) => <span key={c} className={`w-3 h-3 rounded-full ${dot[c]}`} />)}</span></td>
                   </tr>
                 ))}
-                {visible.length === 0 && <tr><td colSpan={4} className="py-8 text-center text-xs text-slate-400">No results yet — the first period is running.</td></tr>}
+                {visible.length === 0 && <tr><td colSpan={4} className="py-8 text-center text-xs text-slate-400">{tr('No results yet — the first period is running.')}</td></tr>}
               </tbody>
             </table>
             {pages > 1 && (

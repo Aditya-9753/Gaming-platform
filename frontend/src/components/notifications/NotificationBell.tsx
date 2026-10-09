@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import { Bell } from 'lucide-react'
 import { useNotificationStore } from '../../store/notification.store'
 import { NotificationItem } from './NotificationItem'
+import { t as tr } from '../../i18n'
 
 export const NotificationBell: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false)
@@ -35,7 +36,7 @@ export const NotificationBell: React.FC = () => {
       {isOpen && (
         <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-dark-card border border-dark-border rounded-2xl shadow-2xl p-4 z-50 animate-in fade-in">
           <div className="flex items-center justify-between pb-3 border-b border-dark-border mb-3">
-            <h4 className="text-sm font-bold text-white">Notifications</h4>
+            <h4 className="text-sm font-bold text-white">{tr('Notifications')}</h4>
             {unreadCount > 0 && (
               <button
                 onClick={markAllRead}
@@ -49,7 +50,7 @@ export const NotificationBell: React.FC = () => {
           <div className="max-h-80 overflow-y-auto space-y-2">
             {notifications.length === 0 ? (
               <div className="text-center py-6 text-xs text-slate-500">
-                No notifications yet
+                {tr('No notifications yet')}
               </div>
             ) : (
               notifications.map((n) => (

@@ -5,6 +5,7 @@ import { Button } from '../../components/common/Button'
 import { showToast } from '../../components/common/Toast'
 import { supportApi } from '../../services/support.api'
 import type { SupportTicket } from '../../types/support.types'
+import { t as tr } from '../../i18n'
 
 const faqs = [
   {
@@ -38,14 +39,14 @@ export const Support: React.FC = () => {
 
   useEffect(() => {
     supportApi.getTickets().then(setTickets).catch(() => {
-      showToast({ title: 'Tickets unavailable', message: 'Support tickets could not be loaded.', type: 'error' })
+      showToast({ title: tr('Tickets unavailable'), message: tr('Support tickets could not be loaded.'), type: 'error' })
     })
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!subject || !message) {
-      showToast({ title: 'Missing Fields', message: 'Subject and message are required.', type: 'warning' })
+      showToast({ title: tr('Missing Fields'), message: tr('Subject and message are required.'), type: 'warning' })
       return
     }
     setIsSubmitting(true)
@@ -55,14 +56,14 @@ export const Support: React.FC = () => {
       setTickets((items) => [ticket, ...items])
       setSelectedTicket(detail)
       showToast({
-        title: 'Ticket Created',
-        message: 'Your support request was submitted.',
+        title: tr('Ticket Created'),
+        message: tr('Your support request was submitted.'),
         type: 'success',
       })
       setSubject('')
       setMessage('')
     } catch {
-      showToast({ title: 'Ticket could not be created', message: 'Please retry your support request.', type: 'error' })
+      showToast({ title: tr('Ticket could not be created'), message: tr('Please retry your support request.'), type: 'error' })
     } finally {
       setIsSubmitting(false)
     }
@@ -77,7 +78,7 @@ export const Support: React.FC = () => {
       setSelectedTicket(await supportApi.getTicket(selectedTicket.id))
       setReply('')
     } catch {
-      showToast({ title: 'Reply failed', message: 'Your message could not be sent.', type: 'error' })
+      showToast({ title: tr('Reply failed'), message: tr('Your message could not be sent.'), type: 'error' })
     } finally {
       setIsReplying(false)
     }
@@ -90,9 +91,9 @@ export const Support: React.FC = () => {
           <Headphones className="w-7 h-7" />
         </div>
         <div>
-          <h2 className="text-2xl font-black text-white">Support Center</h2>
+          <h2 className="text-2xl font-black text-white">{tr('Support Center')}</h2>
           <p className="text-xs text-slate-400">
-            Create a ticket below to contact the support team and follow replies.
+            {tr('Create a ticket below to contact the support team and follow replies.')}
           </p>
         </div>
       </div>
@@ -101,7 +102,7 @@ export const Support: React.FC = () => {
       <div className="space-y-3">
         <h4 className="text-base font-bold text-white flex items-center gap-2">
           <MessageCircle className="w-4 h-4 text-slate-400" />
-          Frequently Asked Questions
+          {tr('Frequently Asked Questions')}
         </h4>
 
         {faqs.map((faq, idx) => (
@@ -110,7 +111,7 @@ export const Support: React.FC = () => {
               onClick={() => setOpenFaqIdx(openFaqIdx === idx ? null : idx)}
               className="w-full flex items-center justify-between p-4 text-left hover:bg-dark-elevated/40 transition-colors"
             >
-              <span className="text-sm font-semibold text-white pr-4">{faq.q}</span>
+              <span className="text-sm font-semibold text-white pr-4">{tr(faq.q)}</span>
               {openFaqIdx === idx ? (
                 <ChevronUp className="w-4 h-4 text-slate-400 shrink-0" />
               ) : (
@@ -119,7 +120,7 @@ export const Support: React.FC = () => {
             </button>
             {openFaqIdx === idx && (
               <div className="px-4 pb-4 text-xs text-slate-400 leading-relaxed border-t border-dark-border pt-3">
-                {faq.a}
+                {tr(faq.a)}
               </div>
             )}
           </div>
@@ -133,41 +134,41 @@ export const Support: React.FC = () => {
       >
         <div className="flex items-center gap-2 mb-1">
           <Plus className="w-4 h-4 text-emerald-400" />
-          <h4 className="text-base font-bold text-white">Open Support Ticket</h4>
+          <h4 className="text-base font-bold text-white">{tr('Open Support Ticket')}</h4>
         </div>
 
         <Input
-          label="Subject"
-          placeholder="Brief summary of your issue"
+          label={tr('Subject')}
+          placeholder={tr('Brief summary of your issue')}
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
           required
         />
 
         <div className="space-y-1.5">
-          <label className="block text-xs font-semibold text-slate-300">Category</label>
+          <label className="block text-xs font-semibold text-slate-300">{tr('Category')}</label>
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             className="w-full bg-dark-elevated border border-dark-border rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500"
           >
-            <option value="deposit">Wallet / Credits</option>
-            <option value="withdrawal">Account issue</option>
-            <option value="gameplay">Game Disconnection / Round Issue</option>
-            <option value="account">Account / Login Problem</option>
-            <option value="fairness">Provably Fair Verification</option>
-            <option value="other">Other Inquiry</option>
+            <option value="deposit">{tr('Wallet / Credits')}</option>
+            <option value="withdrawal">{tr('Account issue')}</option>
+            <option value="gameplay">{tr('Game Disconnection / Round Issue')}</option>
+            <option value="account">{tr('Account / Login Problem')}</option>
+            <option value="fairness">{tr('Provably Fair Verification')}</option>
+            <option value="other">{tr('Other Inquiry')}</option>
           </select>
         </div>
 
         <div className="space-y-1.5">
-          <label className="block text-xs font-semibold text-slate-300">Message</label>
+          <label className="block text-xs font-semibold text-slate-300">{tr('Message')}</label>
           <textarea
             rows={4}
             required
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder="Describe your issue in detail..."
+            placeholder={tr('Describe your issue in detail...')}
             className="w-full bg-dark-elevated border border-dark-border rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 resize-none"
           />
         </div>
@@ -183,9 +184,9 @@ export const Support: React.FC = () => {
         </Button>
       </form>
       <section className="space-y-3">
-        <h4 className="text-base font-bold text-white">Your support tickets</h4>
-        {tickets.length === 0 ? <p className="text-xs text-slate-400">No tickets yet.</p> : tickets.map((ticket) => (
-          <button type="button" key={ticket.id} onClick={() => supportApi.getTicket(ticket.id).then(setSelectedTicket).catch(() => showToast({ title: 'Ticket unavailable', type: 'error' }))} className="w-full rounded-xl border border-dark-border bg-dark-card p-4 text-left hover:border-emerald-500">
+        <h4 className="text-base font-bold text-white">{tr('Your support tickets')}</h4>
+        {tickets.length === 0 ? <p className="text-xs text-slate-400">{tr('No tickets yet.')}</p> : tickets.map((ticket) => (
+          <button type="button" key={ticket.id} onClick={() => supportApi.getTicket(ticket.id).then(setSelectedTicket).catch(() => showToast({ title: tr('Ticket unavailable'), type: 'error' }))} className="w-full rounded-xl border border-dark-border bg-dark-card p-4 text-left hover:border-emerald-500">
             <span className="block text-sm font-semibold text-white">{ticket.subject}</span><span className="mt-1 block text-xs text-slate-400">{ticket.status} • {ticket.priority}</span>
           </button>
         ))}
@@ -193,7 +194,7 @@ export const Support: React.FC = () => {
       {selectedTicket && <section className="rounded-2xl border border-dark-border bg-dark-card p-5 space-y-4">
         <h4 className="font-bold text-white">{selectedTicket.subject}</h4>
         <div className="space-y-3">{selectedTicket.messages.map((item) => <article key={item.id} className="rounded-xl bg-dark-elevated p-3"><p className="text-[10px] uppercase text-slate-400">{item.senderRole === 'user' ? 'You' : 'Support'} • {new Date(item.createdAt).toLocaleString()}</p><p className="mt-1 text-sm text-slate-200">{item.message}</p></article>)}</div>
-        {selectedTicket.status !== 'closed' && selectedTicket.status !== 'resolved' && <form onSubmit={handleReply} className="space-y-2"><textarea value={reply} onChange={(event) => setReply(event.target.value)} required rows={3} className="w-full rounded-xl bg-dark-elevated border border-dark-border p-3 text-sm text-white" placeholder="Write a reply…" /><Button type="submit" isLoading={isReplying} disabled={!reply.trim()}>Send reply</Button></form>}
+        {selectedTicket.status !== 'closed' && selectedTicket.status !== 'resolved' && <form onSubmit={handleReply} className="space-y-2"><textarea value={reply} onChange={(event) => setReply(event.target.value)} required rows={3} className="w-full rounded-xl bg-dark-elevated border border-dark-border p-3 text-sm text-white" placeholder={tr('Write a reply…')} /><Button type="submit" isLoading={isReplying} disabled={!reply.trim()}>{tr('Send reply')}</Button></form>}
       </section>}
     </div>
   )

@@ -8,6 +8,7 @@ import { Btn, Field, cx, errorText, inputCls } from '../../components/affiliate/
 import { authApi } from '../../services/auth.api'
 import { partnerApi } from '../../services/affiliate.api'
 import { useAuthStore } from '../../store/auth.store'
+import { useUIStore } from '../../store/ui.store'
 import { impersonation } from '../../utils/impersonation'
 
 const Shell: React.FC<{ title: string; subtitle?: string; children: React.ReactNode }> = ({ title, subtitle, children }) => (
@@ -130,7 +131,7 @@ export const PartnerSignup: React.FC = () => {
       const res = await partnerApi.signup({
         email: form.email.trim().toLowerCase(), password: form.password, accept_terms: accept, confirm_adult: adult,
         inviter: inviter && inviterOk ? inviter : undefined, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        locale: localStorage.getItem('aff_locale') || 'en',
+        locale: useUIStore.getState().locale,
         profile: {
           first_name: form.first_name || undefined, last_name: form.last_name || undefined, country: form.country ? form.country.toUpperCase() : undefined,
           telegram: form.telegram || undefined, website: form.website || undefined, traffic_description: form.traffic_description || undefined,

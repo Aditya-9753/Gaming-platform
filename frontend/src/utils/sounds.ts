@@ -7,7 +7,8 @@
  * from the header; the choice is remembered per browser.
  */
 
-export type SoundName = 'win' | 'bigWin' | 'lose' | 'bet' | 'gem' | 'bomb' | 'cashout' | 'tick' | 'takeoff' | 'crash'
+export type SoundName =
+  | 'win' | 'bigWin' | 'lose' | 'bet' | 'gem' | 'bomb' | 'cashout' | 'tick' | 'takeoff' | 'crash' | 'roundOpen' | 'countdown'
 
 const STORAGE_KEY = 'rudra247.sound.muted'
 let muted = readMuted()
@@ -186,16 +187,26 @@ const SOUNDS: Record<SoundName, (g: Graph) => void> = {
   },
   cashout: (g) => { coins(g, 0, 8, 0.08); note(g, { freq: 1046.5, dur: 0.25, type: 'triangle', gain: 0.08, echo: true }) },
   tick: (g) => note(g, { freq: 1500, dur: 0.035, type: 'square', gain: 0.025, cutoff: 3000 }),
-  // Engine spool-up when the plane starts rolling
+  // Jet spool-up when the plane starts rolling: rising turbine plus a rush of air
   takeoff: (g) => {
-    note(g, { freq: 70, to: 160, dur: 1.1, type: 'sawtooth', gain: 0.07, cutoff: 400, cutoffTo: 1600, attack: 0.15 })
-    noise(g, { dur: 1.0, gain: 0.08, cutoff: 500, cutoffTo: 2500 })
+    note(g, { freq: 180, to: 620, dur: 1.3, type: 'triangle', gain: 0.05, cutoff: 900, cutoffTo: 3200, attack: 0.25 })
+    note(g, { freq: 55, to: 82, dur: 1.2, type: 'sine', gain: 0.16, attack: 0.2 })
+    noise(g, { dur: 1.3, gain: 0.12, cutoff: 400, cutoffTo: 3000, type: 'bandpass' })
   },
-  // Plane flies away: falling whoosh into a thud
+  // Plane flies away: a Doppler drop as it passes and vanishes, then a distant rumble
   crash: (g) => {
-    noise(g, { dur: 0.7, gain: 0.25, cutoff: 3500, cutoffTo: 200, type: 'bandpass' })
-    note(g, { freq: 520, to: 70, dur: 0.7, type: 'sawtooth', gain: 0.07, cutoff: 2000, cutoffTo: 200 })
-    note(g, { at: 0.55, freq: 90, to: 40, dur: 0.45, type: 'sine', gain: 0.3 })
+    noise(g, { dur: 0.9, gain: 0.3, cutoff: 4200, cutoffTo: 180, type: 'bandpass' })
+    note(g, { freq: 980, to: 140, dur: 0.8, type: 'triangle', gain: 0.08, cutoff: 3000, cutoffTo: 300, echo: true })
+    note(g, { freq: 1320, to: 210, dur: 0.75, type: 'sine', gain: 0.04 })
+    note(g, { at: 0.5, freq: 70, to: 34, dur: 0.9, type: 'sine', gain: 0.28 })
+    noise(g, { at: 0.5, dur: 0.9, gain: 0.12, cutoff: 260, cutoffTo: 60 })
+  },
+  // New round: two soft rising chimes ("place your bets")
+  roundOpen: (g) => { bell(g, 0, 880, 0.08, 0.5); bell(g, 0.12, 1318.5, 0.07, 0.6) },
+  // Last seconds of betting: a short wooden tick
+  countdown: (g) => {
+    note(g, { freq: 1046.5, dur: 0.06, type: 'triangle', gain: 0.07 })
+    noise(g, { dur: 0.03, gain: 0.08, cutoff: 3500, type: 'bandpass' })
   },
 }
 
@@ -222,7 +233,23 @@ export interface EngineSound {
 
 let activeEngine: EngineSound | null = null
 
-/** Continuous propeller/engine drone for a flying round. Returns null when muted. */
+/** Looping white-noise source (for the rush of air around the plane). */
+function noiseLoop(ac: AudioContext): AudioBufferSourceNode {
+  const buffer = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate)
+  const data = buffer.getChannelData(0)
+  for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1
+  const src = ac.createBufferSource()
+  src.buffer = buffer
+  src.loop = true
+  return src
+}
+
+/**
+ * Jet engine for a flying round. Returns null when muted.
+ *  - air rush: looping noise through a band-pass that opens up as the plane climbs
+ *  - turbine: a soft triangle + sine pair whose pitch rises with the multiplier
+ *  - rumble: a low sine body, with a slow vibrato so it never sounds static
+ */
 export function startEngine(): EngineSound | null {
   if (muted) return null
   activeEngine?.stop(false)
@@ -233,54 +260,66 @@ export function startEngine(): EngineSound | null {
 
   const master = ac.createGain()
   master.gain.setValueAtTime(0.0001, now)
-  master.gain.exponentialRampToValueAtTime(0.11, now + 0.6)
+  master.gain.exponentialRampToValueAtTime(0.16, now + 0.9)
+  master.connect(g.out)
 
-  const filter = ac.createBiquadFilter()
-  filter.type = 'lowpass'
-  filter.frequency.value = 500
-  filter.Q.value = 3
+  // Air rush
+  const air = noiseLoop(ac)
+  const airBand = ac.createBiquadFilter()
+  airBand.type = 'bandpass'
+  airBand.frequency.value = 700
+  airBand.Q.value = 0.7
+  const airGain = ac.createGain()
+  airGain.gain.value = 0.55
+  air.connect(airBand).connect(airGain).connect(master)
 
-  // Two detuned saws = engine body, one octave-up square = turbine whine
-  const base = 75
-  const oscs = [
-    Object.assign(ac.createOscillator(), { type: 'sawtooth' as OscillatorType }),
-    Object.assign(ac.createOscillator(), { type: 'sawtooth' as OscillatorType }),
-    Object.assign(ac.createOscillator(), { type: 'square' as OscillatorType }),
-  ]
-  oscs[0].frequency.value = base
-  oscs[1].frequency.value = base
-  oscs[1].detune.value = 14
-  oscs[2].frequency.value = base * 2
-  const whine = ac.createGain()
-  whine.gain.value = 0.25
+  // Turbine whine (soft waveforms: no harsh buzz)
+  const turbine = ac.createOscillator()
+  turbine.type = 'triangle'
+  turbine.frequency.value = 220
+  const turbine2 = ac.createOscillator()
+  turbine2.type = 'sine'
+  turbine2.frequency.value = 330
+  const turbineGain = ac.createGain()
+  turbineGain.gain.value = 0.12
+  const turbineTone = ac.createBiquadFilter()
+  turbineTone.type = 'lowpass'
+  turbineTone.frequency.value = 1400
+  turbine.connect(turbineTone)
+  turbine2.connect(turbineTone)
+  turbineTone.connect(turbineGain).connect(master)
 
-  // Propeller flutter: amplitude LFO
-  const flutter = ac.createOscillator()
-  flutter.frequency.value = 18
-  const flutterDepth = ac.createGain()
-  flutterDepth.gain.value = 0.35
-  const body = ac.createGain()
-  body.gain.value = 0.65
-  flutter.connect(flutterDepth).connect(body.gain)
+  // Rumble with a slow vibrato
+  const rumble = ac.createOscillator()
+  rumble.type = 'sine'
+  rumble.frequency.value = 58
+  const rumbleGain = ac.createGain()
+  rumbleGain.gain.value = 0.5
+  rumble.connect(rumbleGain).connect(master)
+  const vibrato = ac.createOscillator()
+  vibrato.frequency.value = 5.5
+  const vibratoDepth = ac.createGain()
+  vibratoDepth.gain.value = 6
+  vibrato.connect(vibratoDepth)
+  vibratoDepth.connect(turbine.frequency)
+  vibratoDepth.connect(turbine2.frequency)
 
-  oscs[0].connect(filter)
-  oscs[1].connect(filter)
-  oscs[2].connect(whine).connect(filter)
-  filter.connect(body).connect(master).connect(g.out)
-  ;[...oscs, flutter].forEach((o) => o.start(now))
+  const sources: Array<AudioScheduledSourceNode> = [air, turbine, turbine2, rumble, vibrato]
+  sources.forEach((o) => o.start(now))
 
   let stopped = false
   const engine: EngineSound = {
     setMultiplier: (m) => {
       if (stopped) return
       const t = ac.currentTime
-      const lift = Math.log2(Math.max(1, m)) // 1x=0, 2x=1, 4x=2 ...
-      const f = base * (1 + Math.min(lift, 6) * 0.32)
-      oscs[0].frequency.setTargetAtTime(f, t, 0.15)
-      oscs[1].frequency.setTargetAtTime(f, t, 0.15)
-      oscs[2].frequency.setTargetAtTime(f * 2, t, 0.15)
-      flutter.frequency.setTargetAtTime(18 + Math.min(lift, 6) * 6, t, 0.2)
-      filter.frequency.setTargetAtTime(500 + Math.min(lift, 6) * 380, t, 0.2)
+      const lift = Math.min(Math.log2(Math.max(1, m)), 7) // 1x=0, 2x=1, 4x=2 ... capped
+      turbine.frequency.setTargetAtTime(220 * (1 + lift * 0.28), t, 0.25)
+      turbine2.frequency.setTargetAtTime(330 * (1 + lift * 0.28), t, 0.25)
+      turbineTone.frequency.setTargetAtTime(1400 + lift * 450, t, 0.3)
+      airBand.frequency.setTargetAtTime(700 + lift * 520, t, 0.3)
+      airGain.gain.setTargetAtTime(0.55 + lift * 0.06, t, 0.4)
+      rumble.frequency.setTargetAtTime(58 + lift * 6, t, 0.3)
+      vibrato.frequency.setTargetAtTime(5.5 + lift * 0.8, t, 0.4)
     },
     stop: (crashed) => {
       if (stopped) return
@@ -288,12 +327,43 @@ export function startEngine(): EngineSound | null {
       const t = ac.currentTime
       master.gain.cancelScheduledValues(t)
       master.gain.setValueAtTime(Math.max(master.gain.value, 0.0001), t)
-      master.gain.exponentialRampToValueAtTime(0.0001, t + (crashed ? 0.25 : 0.5))
-      ;[...oscs, flutter].forEach((o) => o.stop(t + 0.6))
+      master.gain.exponentialRampToValueAtTime(0.0001, t + (crashed ? 0.3 : 0.6))
+      sources.forEach((o) => o.stop(t + 0.7))
       if (activeEngine === engine) activeEngine = null
       if (crashed) playSound('crash')
     },
   }
   activeEngine = engine
   return engine
+}
+
+/** Multipliers that ring a milestone chime while the plane climbs. */
+export const AVIATOR_MILESTONES = [2, 5, 10, 20, 50, 100]
+
+/** Rising chime for passing 2x, 5x, 10x ... (higher milestones ring brighter). */
+export function playMilestone(multiplier: number): void {
+  if (muted) return
+  try {
+    const g = getGraph()
+    if (!g) return
+    const step = Math.max(0, AVIATOR_MILESTONES.indexOf(multiplier))
+    const root = 659.25 * Math.pow(1.122, step)
+    bell(g, 0, root, 0.07, 0.45)
+    bell(g, 0.08, root * 1.5, 0.06, 0.55)
+    if (step >= 2) coins(g, 0.15, 3 + step, 0.05)
+  } catch { /* audio is a nicety */ }
+}
+
+/** Cash-out "ka-ching": pitch rises with the multiplier the player took. */
+export function playCashout(multiplier: number): void {
+  if (muted) return
+  try {
+    const g = getGraph()
+    if (!g) return
+    const lift = Math.min(Math.log2(Math.max(1, multiplier)), 6)
+    const root = 784 * Math.pow(2, lift / 12)
+    note(g, { freq: root, dur: 0.18, type: 'triangle', gain: 0.1, echo: true })
+    note(g, { at: 0.09, freq: root * 1.5, dur: 0.35, type: 'triangle', gain: 0.1, echo: true })
+    coins(g, 0.12, 6 + Math.round(lift * 2), 0.07)
+  } catch { /* audio is a nicety */ }
 }

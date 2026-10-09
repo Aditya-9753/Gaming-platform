@@ -3,6 +3,7 @@ import { Minus, Plus } from 'lucide-react'
 import type { AviatorBetSlot } from './useAviatorBet'
 import { EditableQuickAmounts, useQuickAmounts } from '../../../components/games/EditableQuickAmounts'
 import { formatPaiseToRupee, rupeeToPaise } from '../../../utils/formatters'
+import { t as tr } from '../../../i18n'
 
 type Phase = 'waiting' | 'betting' | 'flying' | 'crashed'
 
@@ -73,7 +74,7 @@ export const AviatorBetPanel: React.FC<AviatorBetPanelProps> = ({ slot, phase, m
       <div className="flex gap-2">
         <div className="flex-1 min-w-0 space-y-1.5">
           <div className="flex items-center rounded-full bg-black/50 px-1 py-0.5">
-            <button type="button" aria-label="Decrease" disabled={locked} onClick={() => setAmount((a) => clamp(a - step))} className="w-6 h-6 rounded-full bg-[#2c2d30] text-slate-300 flex items-center justify-center disabled:opacity-40"><Minus className="w-3 h-3" /></button>
+            <button type="button" aria-label={tr('Decrease')} disabled={locked} onClick={() => setAmount((a) => clamp(a - step))} className="w-6 h-6 rounded-full bg-[#2c2d30] text-slate-300 flex items-center justify-center disabled:opacity-40"><Minus className="w-3 h-3" /></button>
             <input
               type="number"
               inputMode="decimal"
@@ -83,10 +84,10 @@ export const AviatorBetPanel: React.FC<AviatorBetPanelProps> = ({ slot, phase, m
               max={maxRupees}
               onChange={(e) => setAmount(Number(e.target.value) || 0)}
               onBlur={() => setAmount((a) => clamp(a))}
-              aria-label="Bet amount in rupees"
+              aria-label={tr('Bet amount in rupees')}
               className="flex-1 min-w-0 bg-transparent text-center font-mono font-black text-white text-sm focus:outline-none disabled:opacity-60"
             />
-            <button type="button" aria-label="Increase" disabled={locked} onClick={() => setAmount((a) => clamp(a + step))} className="w-6 h-6 rounded-full bg-[#2c2d30] text-slate-300 flex items-center justify-center disabled:opacity-40"><Plus className="w-3 h-3" /></button>
+            <button type="button" aria-label={tr('Increase')} disabled={locked} onClick={() => setAmount((a) => clamp(a + step))} className="w-6 h-6 rounded-full bg-[#2c2d30] text-slate-300 flex items-center justify-center disabled:opacity-40"><Plus className="w-3 h-3" /></button>
           </div>
           <EditableQuickAmounts
             amounts={quick.amounts}
@@ -107,7 +108,7 @@ export const AviatorBetPanel: React.FC<AviatorBetPanelProps> = ({ slot, phase, m
           disabled={action.disabled}
           className={`w-[36%] max-w-[160px] min-h-[64px] rounded-xl text-white shadow-lg flex flex-col items-center justify-center transition active:scale-[0.98] disabled:cursor-not-allowed ${action.className}`}
         >
-          <span className="text-base font-black tracking-wide">{action.label}</span>
+          <span className="text-base font-black tracking-wide">{tr(action.label)}</span>
           {action.sub && <span className="text-xs font-mono font-bold opacity-90">{action.sub}</span>}
         </button>
       </div>
@@ -116,7 +117,7 @@ export const AviatorBetPanel: React.FC<AviatorBetPanelProps> = ({ slot, phase, m
         <div className="flex items-center justify-between gap-3 border-t border-white/5 pt-2 text-xs">
           <label className="flex items-center gap-2 text-slate-300 font-semibold cursor-pointer">
             <input type="checkbox" checked={autoOn} disabled={locked} onChange={(e) => setAutoOn(e.target.checked)} className="rounded" />
-            Auto cash out
+            {tr('Auto cash out')}
           </label>
           <div className="flex items-center rounded-full bg-black/50 px-3 py-1">
             <input
@@ -127,10 +128,10 @@ export const AviatorBetPanel: React.FC<AviatorBetPanelProps> = ({ slot, phase, m
               value={autoValue}
               disabled={locked || !autoOn}
               onChange={(e) => setAutoValue(e.target.value)}
-              aria-label="Auto cash out multiplier"
+              aria-label={tr('Auto cash out multiplier')}
               className="w-16 bg-transparent text-right font-mono font-bold text-white focus:outline-none disabled:opacity-50"
             />
-            <span className="ml-1 text-slate-400 font-bold">x</span>
+            <span className="ml-1 text-slate-400 font-bold">{tr('x')}</span>
           </div>
         </div>
       )}

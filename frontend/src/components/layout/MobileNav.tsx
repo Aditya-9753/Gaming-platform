@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom'
 import { Menu, Home, Spade, Gift, Trophy } from 'lucide-react'
 import { useAuthStore } from '../../store/auth.store'
 import { useUIStore } from '../../store/ui.store'
+import { t as tr } from '../../i18n'
 
 export const MobileNav: React.FC = () => {
   const { isAuthenticated } = useAuthStore()
@@ -20,7 +21,7 @@ export const MobileNav: React.FC = () => {
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-dark-card/95 backdrop-blur-md border-t border-dark-border px-1 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex items-center">
       <button type="button" onClick={toggleSidebar} className={`${item} ${sidebarOpen ? 'text-brand-blue' : 'text-slate-400'}`}>
         <Menu className="w-5 h-5" />
-        <span>Menu</span>
+        <span>{tr('Menu')}</span>
       </button>
       {links.map((link) => (
         <NavLink
@@ -30,7 +31,7 @@ export const MobileNav: React.FC = () => {
           className={({ isActive }) => `${item} ${isActive ? 'text-brand-blue' : 'text-slate-400 hover:text-slate-200'}`}
         >
           {link.icon}
-          <span>{link.label}</span>
+          <span>{tr(link.label)}</span>
         </NavLink>
       ))}
     </nav>

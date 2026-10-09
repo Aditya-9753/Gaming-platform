@@ -8,6 +8,7 @@ import { useWalletStore } from '../../store/wallet.store'
 import { formatPaiseToRupee } from '../../utils/formatters'
 import { userApi } from '../../services/user.api'
 import { apiClient } from '../../services/api'
+import { t as tr } from '../../i18n'
 
 export const Profile: React.FC = () => {
   const { user } = useAuthStore()
@@ -54,11 +55,11 @@ export const Profile: React.FC = () => {
     try {
       const profile = await userApi.updateProfile({ username: trimmedName, email })
       if (user && accessToken) setAuth({ ...user, username: profile.username, email: profile.email }, accessToken)
-      showToast({ title: 'Profile Updated', message: 'Your information has been saved.', type: 'success' })
+      showToast({ title: tr('Profile Updated'), message: tr('Your information has been saved.'), type: 'success' })
     } catch (err) {
       const status = (err as { response?: { status?: number } }).response?.status
       showToast({
-        title: 'Profile update failed',
+        title: tr('Profile update failed'),
         message: status === 409 ? 'That username or email is already taken. Try another one.' : 'The server did not save your profile changes.',
         type: 'error',
       })
@@ -76,9 +77,9 @@ export const Profile: React.FC = () => {
       })
       setCurrentPassword('')
       setNewPassword('')
-      showToast({ title: 'Password updated', type: 'success' })
+      showToast({ title: tr('Password updated'), type: 'success' })
     } catch {
-      showToast({ title: 'Password update failed', message: 'Verify your current password and new password.', type: 'error' })
+      showToast({ title: tr('Password update failed'), message: tr('Verify your current password and new password.'), type: 'error' })
     } finally {
       setIsChangingPassword(false)
     }
@@ -95,8 +96,8 @@ export const Profile: React.FC = () => {
       <div className="flex items-center gap-3">
         <User className="w-6 h-6 text-emerald-400" />
         <div>
-          <h2 className="text-2xl font-black text-white">My Profile</h2>
-          <p className="text-xs text-slate-400">Manage your account information and password</p>
+          <h2 className="text-2xl font-black text-white">{tr('My Profile')}</h2>
+          <p className="text-xs text-slate-400">{tr('Manage your account information and password')}</p>
         </div>
       </div>
 
@@ -122,7 +123,7 @@ export const Profile: React.FC = () => {
           {stats.map((s, i) => (
             <div key={i} className="p-3 rounded-xl bg-dark-elevated border border-dark-border text-center">
               <span className={`text-sm font-black block ${s.color}`}>{s.value}</span>
-              <span className="text-[10px] text-slate-500 mt-0.5 block">{s.label}</span>
+              <span className="text-[10px] text-slate-500 mt-0.5 block">{tr(s.label)}</span>
             </div>
           ))}
         </div>
@@ -144,14 +145,14 @@ export const Profile: React.FC = () => {
             }`}
           >
             <Shield className="w-3.5 h-3.5" />
-            <span>Security</span>
+            <span>{tr('Security')}</span>
           </button>
         </div>
 
         {activeTab === 'profile' ? (
           <form onSubmit={handleSave} className="space-y-4">
             <Input
-              label="Username"
+              label={tr('Username')}
               value={username}
               onChange={(e) => setUsername(e.target.value.replace(/\s/g, ''))}
               leftElement={<User className="w-4 h-4" />}
@@ -160,15 +161,15 @@ export const Profile: React.FC = () => {
               success={nameChanged && !nameStatus.checking && nameStatus.available ? '✓ This username is available' : undefined}
             />
             <Input
-              label="Email Address"
+              label={tr('Email Address')}
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               leftElement={<Mail className="w-4 h-4" />}
-              placeholder="you@example.com"
+              placeholder={tr('you@example.com')}
             />
             <Button type="submit" variant="primary" className="w-full font-bold" isLoading={isSaving} disabled={nameChanged && nameStatus.available !== true}>
-              Save Changes
+              {tr('Save Changes')}
             </Button>
           </form>
         ) : (
@@ -176,13 +177,13 @@ export const Profile: React.FC = () => {
             <div className="p-4 rounded-xl bg-dark-elevated border border-dark-border space-y-3">
               <div className="flex items-center gap-2 text-sm">
                 <Shield className="w-4 h-4 text-emerald-400" />
-                <span className="font-bold text-white">Change Password</span>
+                <span className="font-bold text-white">{tr('Change Password')}</span>
               </div>
               <div className="space-y-3">
-                <Input label="Current Password" type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
-                <Input label="New Password" type="password" minLength={8} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+                <Input label={tr('Current Password')} type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
+                <Input label={tr('New Password')} type="password" minLength={8} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
                 <Button variant="primary" size="sm" className="w-full font-bold" isLoading={isChangingPassword} disabled={!currentPassword || !newPassword} onClick={() => void handlePasswordUpdate()}>
-                  Update Password
+                  {tr('Update Password')}
                 </Button>
               </div>
             </div>

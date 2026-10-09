@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Ban, AlertTriangle } from 'lucide-react'
 import { Button } from '../common/Button'
 import { ConfirmDialog } from '../common/ConfirmDialog'
+import { t as tr } from '../../i18n'
 
 export interface SelfExclusionFormProps {
   onExclude?: (days: number, reason: string) => Promise<void> | void
@@ -30,27 +31,27 @@ export const SelfExclusionForm: React.FC<SelfExclusionFormProps> = ({ onExclude 
       <div className="p-6 rounded-2xl bg-dark-card border border-rose-500/20 shadow-xl space-y-4 text-left">
         <div className="flex items-center gap-2">
           <Ban className="w-5 h-5 text-rose-400" />
-          <h4 className="text-base font-bold text-white">Self-Exclusion</h4>
+          <h4 className="text-base font-bold text-white">{tr('Self-Exclusion')}</h4>
         </div>
 
         <p className="text-xs text-slate-400">
-          Need a temporary or permanent timeout? Self-exclusion immediately blocks wagering for the selected duration and cannot be reversed early.
+          {tr('Need a temporary or permanent timeout? Self-exclusion immediately blocks wagering for the selected duration and cannot be reversed early.')}
         </p>
 
         <div className="space-y-1.5">
-          <label className="block text-xs font-semibold text-slate-300">Exclusion Duration</label>
+          <label className="block text-xs font-semibold text-slate-300">{tr('Exclusion Duration')}</label>
           <select
             value={days}
             onChange={(e) => setDays(e.target.value)}
             className="w-full bg-dark-elevated border border-dark-border rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-rose-500"
           >
             <option value="7">7 Days (Cool-off)</option>
-            <option value="1">24 Hours</option>
-            <option value="36500">Permanent</option>
-            <option value="30">30 Days</option>
-            <option value="90">3 Months</option>
-            <option value="180">6 Months</option>
-            <option value="365">1 Year</option>
+            <option value="1">{tr('24 Hours')}</option>
+            <option value="36500">{tr('Permanent')}</option>
+            <option value="30">{tr('30 Days')}</option>
+            <option value="90">{tr('3 Months')}</option>
+            <option value="180">{tr('6 Months')}</option>
+            <option value="365">{tr('1 Year')}</option>
           </select>
         </div>
 
@@ -77,7 +78,7 @@ export const SelfExclusionForm: React.FC<SelfExclusionFormProps> = ({ onExclude 
 
       <ConfirmDialog
         isOpen={confirmOpen}
-        title="Confirm Self-Exclusion"
+        title={tr('Confirm Self-Exclusion')}
         message={`Are you sure you want to lock your account for ${days} days? This action cannot be revoked before the period ends.`}
         confirmText="Confirm Lockout"
         variant="danger"

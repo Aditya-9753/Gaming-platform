@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Button } from '../common/Button'
 import { formatPaiseToRupee, rupeeToPaise } from '../../utils/formatters'
 import { QUICK_BET_AMOUNTS } from '../../utils/constants'
+import { t as tr } from '../../i18n'
 
 export interface BetPanelProps {
   onPlaceBet: (amountPaise: number, autoCashout?: number) => void
@@ -131,7 +132,7 @@ export const BetPanel: React.FC<BetPanelProps> = ({
               onChange={(e) => setAutoEnabled(e.target.checked)}
               className="rounded"
             />
-            Auto Cashout
+            {tr('Auto Cashout')}
           </label>
           <div className="relative w-28">
             <input

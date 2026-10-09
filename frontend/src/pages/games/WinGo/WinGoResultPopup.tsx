@@ -5,6 +5,7 @@ import { pickLabel, type WingoPick } from './wingoRules'
 import { formatPaiseToRupee } from '../../../utils/formatters'
 import { playSound, playWinFor } from '../../../utils/sounds'
 import type { WingoResult } from './useWingoRound'
+import { t as tr } from '../../../i18n'
 
 export interface SettledBet { pick: WingoPick; amountPaise: number; winPaise: number }
 
@@ -75,7 +76,7 @@ export const WinGoResultPopup: React.FC<WinGoResultPopupProps> = ({ result, bets
           <h3 className="text-2xl font-black text-white sm:text-3xl">{won ? 'Congratulations!' : 'Better luck next time'}</h3>
 
           <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-xs text-white">
-            <span>Result</span>
+            <span>{tr('Result')}</span>
             <span className="flex overflow-hidden rounded-md">
               {result.colours.map((c) => <span key={c} className={`px-2 py-0.5 font-bold ${colourChip[c] ?? 'bg-slate-500'}`}>{c.charAt(0) + c.slice(1).toLowerCase()}</span>)}
             </span>
@@ -103,10 +104,10 @@ export const WinGoResultPopup: React.FC<WinGoResultPopupProps> = ({ result, bets
 
           <label className="mt-4 flex items-center justify-center gap-2 text-xs text-white/90">
             <input type="checkbox" checked={autoClose} onChange={(e) => setAutoClose(e.target.checked)} className="rounded" />
-            Auto close
+            {tr('Auto close')}
           </label>
         </div>
-        <button type="button" onClick={onClose} aria-label="Close" className="mx-auto mt-4 flex h-10 w-10 items-center justify-center rounded-full border-2 border-white text-white"><X className="h-5 w-5" /></button>
+        <button type="button" onClick={onClose} aria-label={tr('Close')} className="mx-auto mt-4 flex h-10 w-10 items-center justify-center rounded-full border-2 border-white text-white"><X className="h-5 w-5" /></button>
       </div>
     </div>
   )

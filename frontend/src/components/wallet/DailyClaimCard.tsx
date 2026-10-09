@@ -6,6 +6,7 @@ import { walletApi } from '../../services/wallet.api'
 import { showToast } from '../common/Toast'
 import confetti from 'canvas-confetti'
 import { usePlatformConfig } from '../../hooks/usePlatformConfig'
+import { t as tr } from '../../i18n'
 
 export const DailyClaimCard: React.FC = () => {
   const { balance, setBalance } = useWalletStore()
@@ -20,12 +21,12 @@ export const DailyClaimCard: React.FC = () => {
       setBalance({ ...result.newBalance, dailyClaimAvailable: false, lastClaimDate: new Date().toISOString() })
       confetti({ particleCount: 70, spread: 60, origin: { y: 0.7 } })
       showToast({
-        title: 'Daily credits claimed',
+        title: tr('Daily credits claimed'),
         message: `${(result.amountPaise / 100).toFixed(2)} credits were added by the server.`,
         type: 'success',
       })
     } catch {
-      showToast({ title: 'Claim unavailable', message: 'The daily claim could not be processed. It may already have been claimed today.', type: 'error' })
+      showToast({ title: tr('Claim unavailable'), message: tr('The daily claim could not be processed. It may already have been claimed today.'), type: 'error' })
     } finally {
       setIsClaiming(false)
     }
@@ -40,11 +41,11 @@ export const DailyClaimCard: React.FC = () => {
         <div>
           <div className="flex items-center gap-1.5 text-xs font-bold text-purple-400">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Daily Free Bonus</span>
+            <span>{tr('Daily Free Bonus')}</span>
           </div>
           <h4 className="text-base font-black text-white mt-0.5">Claim ₹{claimRupees} Free Everyday</h4>
           <p className="text-xs text-slate-400">
-            Login every 24 hours to boost your wallet risk-free.
+            {tr('Login every 24 hours to boost your wallet risk-free.')}
           </p>
         </div>
       </div>
@@ -58,7 +59,7 @@ export const DailyClaimCard: React.FC = () => {
         className="shrink-0 font-black"
         leftIcon={dailyClaimAvailable ? <Gift className="w-4 h-4" /> : <Check className="w-4 h-4" />}
       >
-        {dailyClaimAvailable ? `Claim ₹${claimRupees}` : 'Claimed'}
+        {dailyClaimAvailable ? tr('Claim ₹{amount}', { amount: claimRupees }) : tr('Claimed')}
       </Button>
     </div>
   )

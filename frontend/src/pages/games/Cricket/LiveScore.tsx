@@ -1,5 +1,6 @@
 import React from 'react'
 import { Activity } from 'lucide-react'
+import { t as tr } from '../../../i18n'
 
 export interface LiveScoreProps {
   teamA: string
@@ -23,7 +24,7 @@ export const LiveScore: React.FC<LiveScoreProps> = ({
       <div className="flex items-center justify-between text-xs text-slate-400 font-bold">
         <span className="flex items-center gap-1.5 text-rose-400">
           <Activity className="w-4 h-4 animate-pulse" />
-          <span>LIVE T20 MATCH</span>
+          <span>{tr('LIVE T20 MATCH')}</span>
         </span>
         <span>Overs: {overs}</span>
       </div>
@@ -33,7 +34,7 @@ export const LiveScore: React.FC<LiveScoreProps> = ({
           <span>{teamA}</span>
           <span className="ml-2 font-mono text-emerald-400">{scoreA}</span>
         </div>
-        <span className="text-xs text-slate-500 font-normal">vs</span>
+        <span className="text-xs text-slate-500 font-normal">{tr('vs')}</span>
         <div>
           <span>{teamB}</span>
           <span className="ml-2 font-mono text-slate-300">{scoreB}</span>
@@ -41,7 +42,7 @@ export const LiveScore: React.FC<LiveScoreProps> = ({
       </div>
 
       <div className="pt-2 border-t border-dark-border flex items-center gap-2">
-        <span className="text-xs text-slate-400 font-semibold">This Over:</span>
+        <span className="text-xs text-slate-400 font-semibold">{tr('This Over:')}</span>
         <div className="flex items-center gap-1.5">
           {currentOverBalls.map((b, i) => (
             <span

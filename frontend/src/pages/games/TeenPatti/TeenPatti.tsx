@@ -11,6 +11,7 @@ import { apiClient } from '../../../services/api'
 import { syncWalletBalance } from '../../../services/wallet.api'
 import { formatPaiseToRupee, rupeeToPaise } from '../../../utils/formatters'
 import { getApiErrorMessage } from '../../../utils/apiError'
+import { t as tr } from '../../../i18n'
 
 type Side = 'A' | 'B'
 interface MyBet { side: Side; amount: number }
@@ -62,9 +63,9 @@ export const TeenPatti: React.FC = () => {
       if (res.winner === 'TIE') playSound('cashout')
       else if (won > 0) playWinFor(won, staked)
       else playSound('lose')
-      if (res.winner === 'TIE') showToast({ title: 'Tie — stakes refunded', message: `${formatPaiseToRupee(won)} returned to your wallet.`, type: 'info' })
-      else if (won > 0) showToast({ title: `Player ${res.winner} wins!`, message: `You won ${formatPaiseToRupee(won)}.`, type: 'success' })
-      else showToast({ title: `Player ${res.winner} wins`, message: 'Better luck next hand.', type: 'warning' })
+      if (res.winner === 'TIE') showToast({ title: tr('Tie — stakes refunded'), message: tr('{amount} returned to your wallet.', { amount: formatPaiseToRupee(won) }), type: 'info' })
+      else if (won > 0) showToast({ title: tr('Player {p} wins!', { p: res.winner }), message: tr('You won {amount}.', { amount: formatPaiseToRupee(won) }), type: 'success' })
+      else showToast({ title: tr('Player {p} wins', { p: res.winner }), message: tr('Better luck next hand.'), type: 'warning' })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [round.settledTick])
@@ -79,7 +80,7 @@ export const TeenPatti: React.FC = () => {
       playSound('bet')
       void syncWalletBalance().catch(() => undefined)
     } catch (error) {
-      showToast({ title: 'Bet not placed', message: getApiErrorMessage(error, 'The server rejected this bet.'), type: 'error' })
+      showToast({ title: tr('Bet not placed'), message: getApiErrorMessage(error, 'The server rejected this bet.'), type: 'error' })
     } finally {
       setBusy(false)
     }
@@ -112,7 +113,7 @@ export const TeenPatti: React.FC = () => {
         <div className="flex items-center gap-3">
           <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-b from-emerald-600 to-green-900 text-2xl">🃏</span>
           <div>
-            <h2 className="text-lg font-black text-white">Teen Patti</h2>
+            <h2 className="text-lg font-black text-white">{tr('Teen Patti')}</h2>
             <span className="text-xs font-mono text-slate-400">Round #{round.roundNo || '—'}</span>
           </div>
         </div>
@@ -121,7 +122,7 @@ export const TeenPatti: React.FC = () => {
 
       {/* Results strip */}
       <div className="flex gap-1.5 overflow-x-auto rounded-xl bg-dark-card p-2 [scrollbar-width:none]">
-        {history.length === 0 ? <span className="px-1 text-xs text-slate-500">No hands yet</span> : history.map((h) => (
+        {history.length === 0 ? <span className="px-1 text-xs text-slate-500">{tr('No hands yet')}</span> : history.map((h) => (
           <span key={h.no} title={`Round #${h.no}`} className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black ${h.winner === 'A' ? 'bg-blue-600 text-white' : h.winner === 'B' ? 'bg-rose-600 text-white' : 'bg-slate-500 text-white'}`}>
             {h.winner === 'TIE' ? 'T' : h.winner}
           </span>
@@ -133,7 +134,7 @@ export const TeenPatti: React.FC = () => {
         <div className="mb-3 flex items-center justify-center">
           {round.phase === 'betting' ? (
             <span className="flex items-center gap-2 rounded-full bg-black/40 px-4 py-1.5 text-sm font-black text-white">
-              <Timer className="h-4 w-4 text-amber-300" />Place your bets • <span className={`font-mono ${round.secondsLeft <= 5 ? 'text-rose-300' : 'text-amber-300'}`}>{round.secondsLeft}s</span>
+              <Timer className="h-4 w-4 text-amber-300" />{tr('Place your bets •')} <span className={`font-mono ${round.secondsLeft <= 5 ? 'text-rose-300' : 'text-amber-300'}`}>{round.secondsLeft}s</span>
             </span>
           ) : (
             <span className="rounded-full bg-black/40 px-4 py-1.5 text-sm font-black text-white">
@@ -143,7 +144,7 @@ export const TeenPatti: React.FC = () => {
         </div>
         <div className="flex gap-2 sm:gap-4">
           {hand('A')}
-          <div className="flex items-center text-sm font-black text-white/60">VS</div>
+          <div className="flex items-center text-sm font-black text-white/60">{tr('VS')}</div>
           {hand('B')}
         </div>
         {round.pool.bets > 0 && (
@@ -156,15 +157,15 @@ export const TeenPatti: React.FC = () => {
       {/* Bet panel */}
       <section className="space-y-3 rounded-2xl border border-dark-border bg-dark-card p-3">
         <div className="flex items-center rounded-full bg-black/40 px-1 py-1">
-          <button type="button" aria-label="Decrease" onClick={() => setAmount((a) => clamp(a - (a > 100 ? 10 : 1)))} className="flex h-8 w-8 items-center justify-center rounded-full bg-dark-elevated text-slate-200"><Minus className="h-4 w-4" /></button>
+          <button type="button" aria-label={tr('Decrease')} onClick={() => setAmount((a) => clamp(a - (a > 100 ? 10 : 1)))} className="flex h-8 w-8 items-center justify-center rounded-full bg-dark-elevated text-slate-200"><Minus className="h-4 w-4" /></button>
           <span className="ml-2 font-bold text-slate-400">₹</span>
           <input
             type="number" inputMode="numeric" value={amount} min={limits.min} max={limits.max}
             onChange={(e) => setAmount(Number(e.target.value) || 0)} onBlur={() => setAmount((a) => clamp(a))}
-            aria-label="Bet amount in rupees"
+            aria-label={tr('Bet amount in rupees')}
             className="min-w-0 flex-1 bg-transparent text-center font-mono text-lg font-black text-white focus:outline-none"
           />
-          <button type="button" aria-label="Increase" onClick={() => setAmount((a) => clamp(a + (a >= 100 ? 10 : 1)))} className="flex h-8 w-8 items-center justify-center rounded-full bg-dark-elevated text-slate-200"><Plus className="h-4 w-4" /></button>
+          <button type="button" aria-label={tr('Increase')} onClick={() => setAmount((a) => clamp(a + (a >= 100 ? 10 : 1)))} className="flex h-8 w-8 items-center justify-center rounded-full bg-dark-elevated text-slate-200"><Plus className="h-4 w-4" /></button>
         </div>
         <EditableQuickAmounts amounts={quick.amounts} onSave={quick.save} onReset={quick.reset} onPick={(n) => setAmount(clamp(n))} selected={amount} min={limits.min} max={limits.max} columns={4} />
         <div className="grid grid-cols-2 gap-2">
@@ -187,7 +188,7 @@ export const TeenPatti: React.FC = () => {
       </section>
 
       <section className="rounded-2xl border border-dark-border bg-dark-card p-3">
-        <MyBetsHistory gameId="teen_patti" refreshKey={historyKey} title="My Teen Patti bets" />
+        <MyBetsHistory gameId="teen_patti" refreshKey={historyKey} title={tr('My Teen Patti bets')} />
       </section>
     </div>
   )

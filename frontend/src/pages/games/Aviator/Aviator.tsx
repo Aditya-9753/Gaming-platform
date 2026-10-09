@@ -10,7 +10,8 @@ import { MyBetsHistory } from '../../../components/games/MyBetsHistory'
 import { showToast } from '../../../components/common/Toast'
 import { formatPaiseToRupee } from '../../../utils/formatters'
 import { apiClient } from '../../../services/api'
-import { onMutedChange, playSound, startEngine, type EngineSound } from '../../../utils/sounds'
+import { AVIATOR_MILESTONES, onMutedChange, playMilestone, playSound, startEngine, type EngineSound } from '../../../utils/sounds'
+import { t as tr } from '../../../i18n'
 
 interface GameLimits { min_bet: number; max_bet: number }
 
@@ -27,7 +28,7 @@ export const Aviator: React.FC = () => {
   useEffect(() => {
     apiClient.get<GameLimits>('/games/aviator')
       .then(({ data }) => setLimits({ min: data.min_bet / 100, max: data.max_bet / 100 }))
-      .catch(() => showToast({ title: 'Could not load limits', message: 'Bet limits could not be fetched from the game server.', type: 'error' }))
+      .catch(() => showToast({ title: tr('Could not load limits'), message: tr('Bet limits could not be fetched from the game server.'), type: 'error' }))
     apiClient.get<Array<{ round_no: number; result?: { crash_point?: number } }>>('/games/aviator/history', { params: { limit: 30 } })
       .then(({ data }) => setHistory(data.flatMap((item) => item.result?.crash_point ? [item.result.crash_point] : [])))
       .catch(() => undefined)
@@ -51,7 +52,21 @@ export const Aviator: React.FC = () => {
       engine.current = null
     }
   }, [round.phase])
-  useEffect(() => { engine.current?.setMultiplier(round.multiplier) }, [round.multiplier])
+  // Milestone chimes (2x, 5x, 10x ...) once per round while the plane climbs
+  const nextMilestone = useRef(0)
+  useEffect(() => {
+    if (round.phase !== 'flying') { nextMilestone.current = 0; return }
+    engine.current?.setMultiplier(round.multiplier)
+    while (nextMilestone.current < AVIATOR_MILESTONES.length && round.multiplier >= AVIATOR_MILESTONES[nextMilestone.current]) {
+      if (round.multiplier < AVIATOR_MILESTONES[nextMilestone.current] * 1.15) playMilestone(AVIATOR_MILESTONES[nextMilestone.current])
+      nextMilestone.current += 1
+    }
+  }, [round.multiplier, round.phase])
+  // "Place your bets" chime when a round opens, ticks in the last 3 seconds of betting
+  useEffect(() => { if (round.phase === 'betting') playSound('roundOpen') }, [round.phase])
+  useEffect(() => {
+    if (round.phase === 'betting' && round.countdown > 0 && round.countdown <= 3) playSound('countdown')
+  }, [round.countdown, round.phase])
   useEffect(() => onMutedChange((muted) => {
     if (muted) engine.current = null // setMuted already silenced it
     else if (round.phase === 'flying' && !engine.current) engine.current = startEngine()
@@ -66,7 +81,7 @@ export const Aviator: React.FC = () => {
         <div className="flex items-center gap-3">
           <img src={AVIATOR_COVER_SRC} alt="" className="w-16 h-11 rounded-lg object-cover shadow-md" />
           <div>
-            <h2 className="text-lg font-black text-white">Aviator</h2>
+            <h2 className="text-lg font-black text-white">{tr('Aviator')}</h2>
             <span className="text-xs font-mono text-slate-400">Round #{round.roundNumber || '—'}</span>
           </div>
         </div>
@@ -93,19 +108,19 @@ export const Aviator: React.FC = () => {
       <section className="rounded-2xl bg-[#1b1c1d] border border-white/5 p-3 space-y-3">
         <div className="flex items-center justify-between">
           <div className="inline-flex rounded-full bg-black/40 p-0.5 text-xs font-bold">
-            <button type="button" onClick={() => setTab('all')} className={`px-4 py-1 rounded-full ${tab === 'all' ? 'bg-[#2c2d30] text-white' : 'text-slate-400'}`}>All bets</button>
-            <button type="button" onClick={() => setTab('mine')} className={`px-4 py-1 rounded-full ${tab === 'mine' ? 'bg-[#2c2d30] text-white' : 'text-slate-400'}`}>My history</button>
+            <button type="button" onClick={() => setTab('all')} className={`px-4 py-1 rounded-full ${tab === 'all' ? 'bg-[#2c2d30] text-white' : 'text-slate-400'}`}>{tr('All bets')}</button>
+            <button type="button" onClick={() => setTab('mine')} className={`px-4 py-1 rounded-full ${tab === 'mine' ? 'bg-[#2c2d30] text-white' : 'text-slate-400'}`}>{tr('My history')}</button>
           </div>
           {tab === 'all' && <span className="text-xs text-slate-400">{round.bets.length} bets • {formatPaiseToRupee(totalBets)}</span>}
         </div>
 
         {tab === 'all' ? (
           round.bets.length === 0 ? (
-            <p className="py-6 text-center text-xs text-slate-400">No bets in this round yet.</p>
+            <p className="py-6 text-center text-xs text-slate-400">{tr('No bets in this round yet.')}</p>
           ) : (
             <div className="max-h-72 overflow-y-auto">
               <table className="w-full text-xs">
-                <thead><tr className="text-left text-slate-400"><th className="py-1.5 font-semibold">Player</th><th className="py-1.5 font-semibold text-right">Bet</th><th className="py-1.5 font-semibold text-right">X</th><th className="py-1.5 font-semibold text-right">Win</th></tr></thead>
+                <thead><tr className="text-left text-slate-400"><th className="py-1.5 font-semibold">{tr('Player')}</th><th className="py-1.5 font-semibold text-right">{tr('Bet')}</th><th className="py-1.5 font-semibold text-right">{tr('X')}</th><th className="py-1.5 font-semibold text-right">{tr('Win')}</th></tr></thead>
                 <tbody>
                   {round.bets.map((bet) => (
                     <tr key={bet.entryId} className={`border-t border-white/5 ${bet.cashedAt ? 'bg-emerald-500/10' : ''}`}>

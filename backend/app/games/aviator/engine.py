@@ -43,7 +43,7 @@ class AviatorEngine(BaseGameEngine):
         session_factory: async_sessionmaker[AsyncSession],
         redis: Redis,
         betting_duration_sec: float = 6.0,
-        intermission_duration_sec: float = 3.0,
+        intermission_duration_sec: float = 2.0,
         tick_interval_sec: float = 0.05,
     ) -> None:
         super().__init__(

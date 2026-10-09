@@ -14,6 +14,7 @@ import { walletApi } from '../../services/wallet.api'
 import { authApi } from '../../services/auth.api'
 import { showToast } from '../common/Toast'
 import { isStaffRole } from '../../types/auth.types'
+import { t as tr } from '../../i18n'
 
 export const Header: React.FC = () => {
   const navigate = useNavigate()
@@ -24,7 +25,7 @@ export const Header: React.FC = () => {
   useEffect(() => {
     if (isAuthenticated) {
       walletApi.getBalance().then((value) => useWalletStore.getState().setBalance(value)).catch(() => {
-        showToast({ title: 'Wallet unavailable', message: 'Your server balance could not be loaded.', type: 'warning' })
+        showToast({ title: tr('Wallet unavailable'), message: tr('Your server balance could not be loaded.'), type: 'warning' })
       })
     }
   }, [isAuthenticated])
@@ -33,7 +34,7 @@ export const Header: React.FC = () => {
     try {
       await authApi.logout()
     } catch {
-      showToast({ title: 'Logout warning', message: 'The server session could not be revoked; local access was cleared.', type: 'warning' })
+      showToast({ title: tr('Logout warning'), message: tr('The server session could not be revoked; local access was cleared.'), type: 'warning' })
     } finally {
       logout()
       navigate('/login')
@@ -45,7 +46,7 @@ export const Header: React.FC = () => {
       <div className="flex min-w-0 items-center gap-1.5 sm:gap-3">
         <button
           onClick={toggleSidebar}
-          aria-label="Open menu"
+          aria-label={tr('Open menu')}
           className="hidden p-2 text-slate-400 hover:text-white rounded-xl hover:bg-dark-elevated transition-colors"
         >
           <Menu className="w-5 h-5" />
@@ -67,7 +68,7 @@ export const Header: React.FC = () => {
           <>
             {/* Balance + wallet button */}
             <Link to="/wallet" className="text-right leading-tight">
-              <span className="block text-[10px] font-bold text-slate-400">INR</span>
+              <span className="block text-[10px] font-bold text-slate-400">{tr('INR')}</span>
               <span className="block text-sm font-black text-white">{formatPaiseToRupee(balance.realBalancePaise)}</span>
             </Link>
             <Link
@@ -75,7 +76,7 @@ export const Header: React.FC = () => {
               className="flex items-center gap-1.5 rounded-xl bg-brand-blue px-3 sm:px-4 py-2 text-xs sm:text-sm font-black text-white shadow-md hover:brightness-110"
             >
               <Wallet className="hidden sm:block w-4 h-4" />
-              {isStaffRole(user?.role) ? 'Wallet' : 'Deposit'}
+              {isStaffRole(user?.role) ? tr('Wallet') : tr('Deposit')}
             </Link>
 
             <SoundToggle className="-mx-1" />
@@ -89,7 +90,7 @@ export const Header: React.FC = () => {
                   className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs font-bold hover:bg-purple-500/20 transition-all"
                 >
                   <Shield className="w-3.5 h-3.5" />
-                  <span>Admin</span>
+                  <span>{tr('Admin')}</span>
                 </Link>
               )}
 
@@ -102,8 +103,8 @@ export const Header: React.FC = () => {
 
               <button
                 onClick={() => void handleLogout()}
-                title="Logout"
-                aria-label="Logout"
+                title={tr('Logout')}
+                aria-label={tr('Logout')}
                 className="p-1.5 sm:p-2 text-slate-400 hover:text-rose-400 rounded-xl hover:bg-dark-elevated transition-colors"
               >
                 <LogOut className="w-4 h-4" />
@@ -113,10 +114,10 @@ export const Header: React.FC = () => {
         ) : (
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" onClick={() => navigate('/login')}>
-              Log In
+              {tr('Log In')}
             </Button>
             <Button variant="primary" size="sm" onClick={() => navigate('/register')}>
-              Sign Up
+              {tr('Sign Up')}
             </Button>
           </div>
         )}

@@ -517,7 +517,9 @@ class AdminService:
                 duration = float(effective_config.get("betting_duration_sec", 6))
                 rate = float(effective_config.get("growth_rate", 0.08))
                 power = float(effective_config.get("growth_power", 1.3))
-                exp_rate = float(effective_config.get("exp_growth_rate", 0.045))
+                from app.games.aviator.rules import DEFAULT_EXP_GROWTH_RATE
+
+                exp_rate = float(effective_config.get("exp_growth_rate", DEFAULT_EXP_GROWTH_RATE))
                 if effective_config.get("growth_model", "exponential") not in ("exponential", "power"):
                     raise ValueError("growth_model must be exponential or power")
                 if not math.isfinite(exp_rate) or not 0 < exp_rate <= 10:

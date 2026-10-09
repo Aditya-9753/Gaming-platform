@@ -8,6 +8,7 @@ import { apiClient } from '../../../services/api'
 import { useIdempotencyKey } from '../../../hooks/useIdempotencyKey'
 import { WS_BASE_URL } from '../../../utils/constants'
 import { syncWalletBalance } from '../../../services/wallet.api'
+import { t as tr } from '../../../i18n'
 
 interface CricketMatch {
   match_id: string
@@ -101,8 +102,8 @@ export const Cricket: React.FC = () => {
         for (const item of data.items) {
           const before = previous.find((p) => p.prediction_id === item.prediction_id)
           if (before?.status === 'PLACED' && item.status !== 'PLACED') {
-            if (item.status === 'WON') showToast({ title: 'Prediction won!', message: `${item.team} won — you get ${formatPaiseToRupee(item.payout)}.`, type: 'success' })
-            else if (item.status === 'LOST') showToast({ title: 'Prediction lost', message: `${item.team} did not win. Stake ${formatPaiseToRupee(item.stake)} lost.`, type: 'error' })
+            if (item.status === 'WON') showToast({ title: tr('Prediction won!'), message: tr('{team} won — you get {amount}.', { team: item.team, amount: formatPaiseToRupee(item.payout) }), type: 'success' })
+            else if (item.status === 'LOST') showToast({ title: tr('Prediction lost'), message: tr('{team} did not win. Stake {amount} lost.', { team: item.team, amount: formatPaiseToRupee(item.stake) }), type: 'error' })
             void syncWalletBalance().catch(() => undefined)
           }
         }
@@ -119,7 +120,7 @@ export const Cricket: React.FC = () => {
       setMatches(data.items)
       setSource(data.source ?? '')
     } catch {
-      showToast({ title: 'Cricket feed unavailable', message: 'Could not load matches from the server.', type: 'error' })
+      showToast({ title: tr('Cricket feed unavailable'), message: tr('Could not load matches from the server.'), type: 'error' })
     } finally {
       setLoading(false)
     }
@@ -178,10 +179,10 @@ export const Cricket: React.FC = () => {
       void syncWalletBalance().catch(() => undefined)
       void refreshMine()
       const team = selection === 'HOME' ? match.home_team : match.away_team
-      showToast({ title: 'Prediction placed', message: `₹${value} on ${team} to win.`, type: 'success' })
+      showToast({ title: tr('Prediction placed'), message: tr('₹{amount} on {team} to win.', { amount: value, team }), type: 'success' })
     } catch (error) {
       rotateKey()
-      showToast({ title: 'Prediction rejected', message: getApiErrorMessage(error, 'The market may be closed or your stake is outside limits.'), type: 'error' })
+      showToast({ title: tr('Prediction rejected'), message: getApiErrorMessage(error, 'The market may be closed or your stake is outside limits.'), type: 'error' })
     } finally {
       setPlacing(null)
     }
@@ -193,11 +194,11 @@ export const Cricket: React.FC = () => {
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400"><Activity className="w-6 h-6" /></div>
           <div>
-            <h2 className="text-lg font-black text-white">Cricket Match Winner</h2>
-            <span className="text-xs text-slate-400">Pick the winner before the toss • live ball-by-ball</span>
+            <h2 className="text-lg font-black text-white">{tr('Cricket Match Winner')}</h2>
+            <span className="text-xs text-slate-400">{tr('Pick the winner before the toss • live ball-by-ball')}</span>
           </div>
         </div>
-        <Button variant="secondary" size="sm" onClick={() => { void refreshMatches(); void refreshMine() }} leftIcon={<RefreshCw className="w-4 h-4" />}>Refresh</Button>
+        <Button variant="secondary" size="sm" onClick={() => { void refreshMatches(); void refreshMine() }} leftIcon={<RefreshCw className="w-4 h-4" />}>{tr('Refresh')}</Button>
       </div>
 
       <label className="block text-xs text-slate-400">Prediction stake (₹)
@@ -207,7 +208,7 @@ export const Cricket: React.FC = () => {
       {source === 'simulated' && (
         <p className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">
           <Info className="mt-0.5 h-4 w-4 shrink-0" />
-          Showing the Virtual League. Add a free CRICAPI_KEY from cricketdata.org to backend/.env to show every real match being played worldwide.
+          {tr('Showing the Virtual League. Add a free CRICAPI_KEY from cricketdata.org to backend/.env to show every real match being played worldwide.')}
         </p>
       )}
 
@@ -220,12 +221,12 @@ export const Cricket: React.FC = () => {
       </div>
       <div className="inline-flex rounded-full bg-dark-card border border-dark-border p-0.5 text-xs font-bold">
         {STATUS_FILTERS.map(([key, label]) => (
-          <button key={key} type="button" onClick={() => setStatusFilter(key)} className={`rounded-full px-4 py-1 ${statusFilter === key ? 'bg-dark-elevated text-white' : 'text-slate-400'}`}>{label}</button>
+          <button key={key} type="button" onClick={() => setStatusFilter(key)} className={`rounded-full px-4 py-1 ${statusFilter === key ? 'bg-dark-elevated text-white' : 'text-slate-400'}`}>{tr(label)}</button>
         ))}
       </div>
 
-      {loading ? <p className="text-sm text-slate-400">Loading matches…</p> : visible.length === 0 ? (
-        <div className="rounded-2xl border border-dark-border bg-dark-card p-6 text-center text-sm text-slate-400">No matches in this view right now.</div>
+      {loading ? <p className="text-sm text-slate-400">{tr('Loading matches…')}</p> : visible.length === 0 ? (
+        <div className="rounded-2xl border border-dark-border bg-dark-card p-6 text-center text-sm text-slate-400">{tr('No matches in this view right now.')}</div>
       ) : visible.map((match) => {
         const status = match.status.toUpperCase()
         const open = OPEN_STATUSES.includes(status)
@@ -253,7 +254,7 @@ export const Cricket: React.FC = () => {
                 <p className="font-mono text-sm text-emerald-400">{match.home_score ?? '—'}</p>
                 </div>
               </div>
-              <span className="text-xs text-slate-500">vs</span>
+              <span className="text-xs text-slate-500">{tr('vs')}</span>
               <div className="flex items-center justify-end gap-2 text-right">
                 <div>
                   <p className="font-black text-white">{match.away_team}</p>
@@ -269,7 +270,7 @@ export const Cricket: React.FC = () => {
                   {meta.batting ? `${meta.batting} batting` : ''}{meta.target ? ` • target ${meta.target}` : ''}
                 </span>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-slate-400 font-semibold">This over:</span>
+                  <span className="text-slate-400 font-semibold">{tr('This over:')}</span>
                   {(meta.this_over ?? []).map((ball, index) => (
                     <span key={index} className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black font-mono ${ballClass(ball)}`}>{ball}</span>
                   ))}
@@ -293,7 +294,7 @@ export const Cricket: React.FC = () => {
                 const odds = match.odds?.[selection]
                 return (
                   <button key={selection} type="button" onClick={() => void handleBet(match, selection)} disabled={!open || placing === match.match_id} className="rounded-xl border border-dark-border bg-dark-elevated p-4 text-left transition hover:border-emerald-500 disabled:cursor-not-allowed disabled:opacity-50">
-                    <span className="block text-xs text-slate-400">Match winner</span>
+                    <span className="block text-xs text-slate-400">{tr('Match winner')}</span>
                     <span className="mt-1 block font-bold text-white">{team}</span>
                     <span className="mt-2 block text-xs font-mono font-black text-emerald-400">
                       {placing === match.match_id ? 'Submitting…' : open ? `${odds ? odds.toFixed(2) : '—'}× payout` : 'Market closed'}
@@ -305,7 +306,7 @@ export const Cricket: React.FC = () => {
 
             {myPick && (
               <p className="text-xs text-slate-300">
-                Your pick: <span className="font-bold">{myPick.team}</span> • {formatPaiseToRupee(myPick.stake)} @ {myPick.odds.toFixed(2)}× •{' '}
+                {tr('Your pick:')} <span className="font-bold">{myPick.team}</span> • {formatPaiseToRupee(myPick.stake)} @ {myPick.odds.toFixed(2)}× •{' '}
                 <span className={`font-bold ${predictionPill[myPick.status] ?? ''}`}>{myPick.status === 'PLACED' ? 'Pending' : myPick.status}</span>
               </p>
             )}
@@ -315,7 +316,7 @@ export const Cricket: React.FC = () => {
 
       {mine.length > 0 && (
         <section className="space-y-2">
-          <h3 className="text-sm font-bold text-white">My recent predictions</h3>
+          <h3 className="text-sm font-bold text-white">{tr('My recent predictions')}</h3>
           {mine.map((prediction) => (
             <div key={prediction.prediction_id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-dark-card border border-dark-border p-3 text-xs">
               <span className="text-slate-300">{prediction.home_team} vs {prediction.away_team} • picked <span className="font-bold text-white">{prediction.team}</span></span>

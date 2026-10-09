@@ -52,7 +52,7 @@ export const PartnerLayout: React.FC = () => {
   }, [isAuthenticated, user?.role, load, pathname])
   useEffect(() => { setMenuOpen(false) }, [pathname])
   useEffect(() => {
-    if (me?.partner.locale && me.partner.locale !== locale && !localStorage.getItem('aff_locale')) setLocale(me.partner.locale)
+    if (me?.partner.locale && me.partner.locale !== locale && !localStorage.getItem('locale')) setLocale(me.partner.locale)
   }, [me?.partner.locale, locale, setLocale])
 
   if (isLoading) return <Loader fullScreen />

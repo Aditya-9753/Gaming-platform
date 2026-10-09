@@ -1,4 +1,5 @@
 import React from 'react'
+import { t as tr } from '../../../i18n'
 
 const SUIT: Record<string, { symbol: string; red: boolean }> = {
   S: { symbol: '♠', red: false },
@@ -12,7 +13,7 @@ export const PlayingCard: React.FC<{ code: string | null; delayMs?: number; high
   if (!code) {
     return (
       <div className="flex aspect-[5/7] w-[clamp(44px,13vw,72px)] items-center justify-center rounded-lg border-2 border-white/80 bg-[repeating-linear-gradient(45deg,#7f1d1d_0_6px,#991b1b_6px_12px)] shadow-lg">
-        <span className="text-lg font-black italic text-amber-300/90">R</span>
+        <span className="text-lg font-black italic text-amber-300/90">{tr('R')}</span>
       </div>
     )
   }

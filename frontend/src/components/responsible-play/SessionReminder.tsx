@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Clock } from 'lucide-react'
 import { Modal } from '../common/Modal'
 import { Button } from '../common/Button'
+import { t as tr } from '../../i18n'
 
 export interface SessionReminderProps {
   sessionLimitMinutes?: number
@@ -36,10 +37,10 @@ export const SessionReminder: React.FC<SessionReminderProps> = ({
               <Clock className="w-7 h-7" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white">Time Check Reminder</h3>
+              <h3 className="text-lg font-bold text-white">{tr('Time Check Reminder')}</h3>
               <p className="text-xs text-slate-400 mt-1 leading-relaxed">
                 You have been playing continuously for{' '}
-                <span className="text-white font-bold">{elapsedMinutes} minutes</span>. Take a break, stay hydrated, and play responsibly.
+                <span className="text-white font-bold">{elapsedMinutes} minutes</span>{tr('. Take a break, stay hydrated, and play responsibly.')}
               </p>
             </div>
             <div className="flex gap-2">

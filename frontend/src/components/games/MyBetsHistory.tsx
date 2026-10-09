@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react'
 import { apiClient } from '../../services/api'
 import { formatPaiseToRupee } from '../../utils/formatters'
 import { useAuthStore } from '../../store/auth.store'
+import { t as tr } from '../../i18n'
 
 export interface BetHistoryItem {
   entry_id: string
@@ -82,13 +83,13 @@ export const MyBetsHistory: React.FC<MyBetsHistoryProps> = ({ gameId, pageSize =
   useEffect(() => { void load() }, [load, refreshKey])
   useEffect(() => { setPage(1) }, [gameId])
 
-  if (!isAuthenticated) return <p className="p-4 text-center text-xs text-slate-400">Sign in to see your bet history.</p>
+  if (!isAuthenticated) return <p className="p-4 text-center text-xs text-slate-400">{tr('Sign in to see your bet history.')}</p>
 
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         {title ? <h3 className="text-sm font-bold text-white">{title}</h3> : <span />}
-        <button type="button" onClick={() => void load()} className="flex items-center gap-1 text-xs text-slate-400 hover:text-white"><RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />Refresh</button>
+        <button type="button" onClick={() => void load()} className="flex items-center gap-1 text-xs text-slate-400 hover:text-white"><RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />{tr('Refresh')}</button>
       </div>
       {data.items.length === 0 ? (
         <p className="py-6 text-center text-xs text-slate-400">{loading ? 'Loading…' : 'No bets yet.'}</p>
@@ -97,12 +98,12 @@ export const MyBetsHistory: React.FC<MyBetsHistoryProps> = ({ gameId, pageSize =
           <table className="w-full text-xs">
             <thead>
               <tr className="text-left text-slate-400">
-                <th className="py-2 pr-2 font-semibold">Time</th>
-                {showGame && <th className="py-2 pr-2 font-semibold">Game</th>}
-                <th className="py-2 pr-2 font-semibold">Pick</th>
-                <th className="py-2 pr-2 font-semibold text-right">Bet</th>
-                <th className="py-2 pr-2 font-semibold text-right">Result</th>
-                <th className="py-2 font-semibold text-right">Win</th>
+                <th className="py-2 pr-2 font-semibold">{tr('Time')}</th>
+                {showGame && <th className="py-2 pr-2 font-semibold">{tr('Game')}</th>}
+                <th className="py-2 pr-2 font-semibold">{tr('Pick')}</th>
+                <th className="py-2 pr-2 font-semibold text-right">{tr('Bet')}</th>
+                <th className="py-2 pr-2 font-semibold text-right">{tr('Result')}</th>
+                <th className="py-2 font-semibold text-right">{tr('Win')}</th>
               </tr>
             </thead>
             <tbody>

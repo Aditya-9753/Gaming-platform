@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { AlertTriangle, RefreshCw } from 'lucide-react'
 import { Button } from './Button'
+import { t as tr } from '../../i18n'
 
 interface Props {
   children: ReactNode
@@ -38,9 +39,9 @@ export class ErrorBoundary extends Component<Props, State> {
               <AlertTriangle className="w-7 h-7" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white">Something crashed</h3>
+              <h3 className="text-lg font-bold text-white">{tr('Something crashed')}</h3>
               <p className="text-xs text-slate-400 mt-1">
-                An unexpected interface error occurred. You can reload the page to restore state.
+                {tr('An unexpected interface error occurred. You can reload the page to restore state.')}
               </p>
             </div>
             <Button

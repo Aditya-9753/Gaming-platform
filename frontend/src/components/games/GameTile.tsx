@@ -5,6 +5,7 @@ import { GameArt, hasGameArt } from './GameArt'
 import { demoPlayers, useLivePlayers } from '../../hooks/useLivePlayers'
 import { useAuthStore } from '../../store/auth.store'
 import { isStaffRole } from '../../types/auth.types'
+import { t as tr } from '../../i18n'
 
 /** Portrait lobby tile (tag on top, big title, illustration). */
 export const GameTile: React.FC<{ game: LobbyGame; disabled?: boolean }> = ({ game, disabled = false }) => {
@@ -24,7 +25,7 @@ export const GameTile: React.FC<{ game: LobbyGame; disabled?: boolean }> = ({ ga
             <div className="absolute inset-x-0 top-0 h-[42%] bg-gradient-to-b from-black/75 via-black/35 to-transparent" />
           </>
         )}
-        <span className="absolute left-1/2 top-0 z-10 -translate-x-1/2 rounded-b-md bg-black/55 px-2 py-0.5 text-[9px] font-black tracking-wider text-white/90">{game.tag}</span>
+        <span className="absolute left-1/2 top-0 z-10 -translate-x-1/2 rounded-b-md bg-black/55 px-2 py-0.5 text-[9px] font-black tracking-wider text-white/90">{tr(game.tag)}</span>
         <h3 className="absolute inset-x-2 top-6 z-10 text-center text-[clamp(14px,4.2vw,22px)] font-black uppercase leading-[1.05] text-white drop-shadow-[0_2px_0_rgba(0,0,0,0.35)]">
           {game.title}
         </h3>
@@ -32,21 +33,21 @@ export const GameTile: React.FC<{ game: LobbyGame; disabled?: boolean }> = ({ ga
         {!playable && (
           <div className="absolute inset-0 z-10 flex items-end justify-center bg-black/45 pb-2">
             <span className="rounded-full bg-black/70 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-amber-300">
-              {disabled ? 'Maintenance' : 'Coming soon'}
+              {disabled ? tr('Maintenance') : tr('Coming soon')}
             </span>
           </div>
         )}
       </div>
       <p className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400">
         {playable
-          ? <><span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />{players > 0 ? `${players.toLocaleString('en-IN')} playing` : 'Live now'}{demo && <span className="rounded bg-amber-500/20 px-1 text-[9px] font-black uppercase text-amber-300">demo</span>}</>
+          ? <><span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />{players > 0 ? `${players.toLocaleString('en-IN')} playing` : 'Live now'}{demo && <span className="rounded bg-amber-500/20 px-1 text-[9px] font-black uppercase text-amber-300">{tr('demo')}</span>}</>
           : <><span className="h-1.5 w-1.5 rounded-full bg-slate-600" />{game.title}</>}
       </p>
     </div>
   )
   return playable
-    ? <Link to={game.to!} className="group block" aria-label={`Play ${game.title}`}>{body}</Link>
-    : <div className="group block cursor-default select-none" aria-label={`${game.title} — coming soon`}>{body}</div>
+    ? <Link to={game.to!} className="group block" aria-label={tr('Play {game}', { game: game.title })}>{body}</Link>
+    : <div className="group block cursor-default select-none" aria-label={tr('{game} — coming soon', { game: game.title })}>{body}</div>
 }
 
 /** Section heading + 3-per-row on phones, more on larger screens. */

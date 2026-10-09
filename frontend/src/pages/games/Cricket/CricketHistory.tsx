@@ -1,4 +1,5 @@
 import React from 'react'
+import { t as tr } from '../../../i18n'
 
 export interface CricketBetRecord {
   id: string
@@ -14,7 +15,7 @@ export interface CricketHistoryProps {
 
 export const CricketHistory: React.FC<CricketHistoryProps> = ({ bets }) => {
   if (bets.length === 0) {
-    return <div className="text-center py-6 text-xs text-slate-500">No bets placed on cricket yet</div>
+    return <div className="text-center py-6 text-xs text-slate-500">{tr('No bets placed on cricket yet')}</div>
   }
 
   return (

@@ -5,6 +5,7 @@ import { Input } from '../../components/common/Input'
 import { Button } from '../../components/common/Button'
 import { authApi } from '../../services/auth.api'
 import { showToast } from '../../components/common/Toast'
+import { t as tr } from '../../i18n'
 
 export const ForgotPassword: React.FC = () => {
   const [email, setEmail] = useState('')
@@ -18,7 +19,7 @@ export const ForgotPassword: React.FC = () => {
       await authApi.forgotPassword(email)
       setIsSubmitted(true)
     } catch {
-      showToast({ title: 'Request failed', message: 'Password reset could not be requested. Please try again.', type: 'error' })
+      showToast({ title: tr('Request failed'), message: tr('Password reset could not be requested. Please try again.'), type: 'error' })
     } finally {
       setIsLoading(false)
     }
@@ -29,7 +30,7 @@ export const ForgotPassword: React.FC = () => {
       <div className="bg-dark-card border border-dark-border rounded-3xl p-8 shadow-2xl space-y-6">
         <Link to="/login" className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors">
           <ArrowLeft className="w-4 h-4" />
-          <span>Back to Login</span>
+          <span>{tr('Back to Login')}</span>
         </Link>
 
         {isSubmitted ? (
@@ -38,7 +39,7 @@ export const ForgotPassword: React.FC = () => {
               <CheckCircle2 className="w-8 h-8" />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-white">Reset Link Sent</h3>
+              <h3 className="text-xl font-bold text-white">{tr('Reset Link Sent')}</h3>
               <p className="text-xs text-slate-400 mt-1">
                 If an account exists for {email}, a password reset link has been dispatched.
               </p>
@@ -47,17 +48,17 @@ export const ForgotPassword: React.FC = () => {
         ) : (
           <>
             <div>
-              <h2 className="text-2xl font-black text-white">Reset Password</h2>
+              <h2 className="text-2xl font-black text-white">{tr('Reset Password')}</h2>
               <p className="text-xs text-slate-400 mt-1">
-                Enter your registered email address to receive recovery instructions.
+                {tr('Enter your registered email address to receive recovery instructions.')}
               </p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <Input
-                label="Email Address"
+                label={tr('Email Address')}
                 type="email"
-                placeholder="you@example.com"
+                placeholder={tr('you@example.com')}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 leftElement={<Mail className="w-4 h-4 text-slate-400" />}
@@ -65,7 +66,7 @@ export const ForgotPassword: React.FC = () => {
               />
 
               <Button type="submit" variant="primary" className="w-full font-bold py-3" isLoading={isLoading}>
-                Send Reset Link
+                {tr('Send Reset Link')}
               </Button>
             </form>
           </>

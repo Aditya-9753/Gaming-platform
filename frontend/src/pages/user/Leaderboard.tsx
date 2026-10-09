@@ -3,6 +3,7 @@ import { Crown, Trophy, Sparkles } from 'lucide-react'
 import { formatPaiseToRupee } from '../../utils/formatters'
 import { apiClient } from '../../services/api'
 import { useAuthStore } from '../../store/auth.store'
+import { t as tr } from '../../i18n'
 
 interface Entry {
   rank: number
@@ -71,13 +72,13 @@ export const Leaderboard: React.FC = () => {
         <div className="flex items-center gap-3">
           <Trophy className="h-7 w-7 text-amber-400" />
           <div>
-            <h2 className="text-2xl font-black text-white">Leaderboard</h2>
-            <p className="text-xs text-slate-400">Top winners by total winnings • updates every minute</p>
+            <h2 className="text-2xl font-black text-white">{tr('Leaderboard')}</h2>
+            <p className="text-xs text-slate-400">{tr('Top winners by total winnings • updates every minute')}</p>
           </div>
         </div>
         <div className="inline-flex rounded-full border border-dark-border bg-dark-card p-0.5 text-xs font-bold">
           {PERIODS.map(([key, label]) => (
-            <button key={key} type="button" onClick={() => setPeriod(key)} className={`rounded-full px-4 py-1.5 ${period === key ? 'bg-amber-500 text-dark-bg' : 'text-slate-400'}`}>{label}</button>
+            <button key={key} type="button" onClick={() => setPeriod(key)} className={`rounded-full px-4 py-1.5 ${period === key ? 'bg-amber-500 text-dark-bg' : 'text-slate-400'}`}>{tr(label)}</button>
           ))}
         </div>
       </div>
@@ -99,14 +100,14 @@ export const Leaderboard: React.FC = () => {
           )}
 
           {myRank && (
-            <p className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-300">You are ranked <b>#{myRank.rank}</b> with {formatPaiseToRupee(myRank.total_won)} won.</p>
+            <p className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-300">{tr('You are ranked')} <b>#{myRank.rank}</b> with {formatPaiseToRupee(myRank.total_won)} won.</p>
           )}
 
           <div className="overflow-hidden rounded-2xl border border-dark-border bg-dark-card shadow-xl">
             <div className="grid grid-cols-[60px_1fr_1fr_1fr_1fr] bg-dark-elevated px-4 py-3 text-[11px] font-bold uppercase text-slate-500">
-              <span>Rank</span><span>Player</span><span className="text-right">Wagered</span><span className="text-right">Won</span><span className="text-right">Net</span>
+              <span>{tr('Rank')}</span><span>{tr('Player')}</span><span className="text-right">{tr('Wagered')}</span><span className="text-right">{tr('Won')}</span><span className="text-right">{tr('Net')}</span>
             </div>
-            {loading ? <p className="p-5 text-sm text-slate-400">Loading rankings…</p> : entries.length === 0 ? <p className="p-5 text-sm text-slate-400">No rankings for this period yet — play a round to get on the board!</p> : entries.map((entry) => (
+            {loading ? <p className="p-5 text-sm text-slate-400">{tr('Loading rankings…')}</p> : entries.length === 0 ? <p className="p-5 text-sm text-slate-400">{tr('No rankings for this period yet — play a round to get on the board!')}</p> : entries.map((entry) => (
               <div key={`${entry.rank}-${entry.username}`} className={`grid grid-cols-[60px_1fr_1fr_1fr_1fr] items-center border-t border-dark-border/50 px-4 py-3 ${entry.username === user?.username ? 'bg-emerald-500/10' : ''}`}>
                 <span className={`text-sm font-black ${entry.rank === 1 ? 'text-amber-400' : entry.rank === 2 ? 'text-slate-300' : entry.rank === 3 ? 'text-orange-400' : 'text-slate-500'}`}>#{entry.rank}</span>
                 <span className="truncate text-xs font-bold text-white">{entry.username}</span>
@@ -119,8 +120,8 @@ export const Leaderboard: React.FC = () => {
         </div>
 
         <aside className="h-fit space-y-3 rounded-2xl border border-dark-border bg-dark-card p-4">
-          <h3 className="flex items-center gap-2 text-sm font-black text-white"><Sparkles className="h-4 w-4 text-amber-400" />Winning information</h3>
-          {wins.length === 0 ? <p className="text-xs text-slate-400">No wins yet.</p> : wins.map((win, index) => (
+          <h3 className="flex items-center gap-2 text-sm font-black text-white"><Sparkles className="h-4 w-4 text-amber-400" />{tr('Winning information')}</h3>
+          {wins.length === 0 ? <p className="text-xs text-slate-400">{tr('No wins yet.')}</p> : wins.map((win, index) => (
             <div key={index} className="flex items-center gap-3 rounded-xl bg-dark-elevated px-3 py-2">
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/20 text-xs font-black text-amber-300">{win.player.charAt(0).toUpperCase()}</span>
               <div className="min-w-0 flex-1">
@@ -132,7 +133,7 @@ export const Leaderboard: React.FC = () => {
           ))}
         </aside>
       </div>
-      <p className="text-[11px] text-slate-500">Rankings are calculated from settled bets in virtual credits — not cash.</p>
+      <p className="text-[11px] text-slate-500">{tr('Rankings are calculated from settled bets in virtual credits — not cash.')}</p>
     </div>
   )
 }

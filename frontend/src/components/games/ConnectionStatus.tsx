@@ -1,6 +1,7 @@
 import React from 'react'
 import { Wifi, WifiOff, Loader2 } from 'lucide-react'
 import { useGameStore } from '../../store/game.store'
+import { t as tr } from '../../i18n'
 
 export interface ConnectionStatusProps {
   /** Status of the page's own game socket; falls back to the global client. */
@@ -16,7 +17,7 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({ connected })
     return (
       <div className="flex items-center gap-1.5 text-xs text-amber-400">
         <Loader2 className="w-3.5 h-3.5 animate-spin" />
-        <span>Reconnecting...</span>
+        <span>{tr('Reconnecting...')}</span>
       </div>
     )
   }
@@ -25,7 +26,7 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({ connected })
     return (
       <div className="flex items-center gap-1.5 text-xs text-emerald-400">
         <Wifi className="w-3.5 h-3.5" />
-        <span>Live Sync</span>
+        <span>{tr('Live Sync')}</span>
       </div>
     )
   }
@@ -33,7 +34,7 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({ connected })
   return (
     <div className="flex items-center gap-1.5 text-xs text-slate-400">
       <WifiOff className="w-3.5 h-3.5" />
-      <span>Connecting…</span>
+      <span>{tr('Connecting…')}</span>
     </div>
   )
 }

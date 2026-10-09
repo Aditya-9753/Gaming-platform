@@ -121,11 +121,12 @@ def format_crash(crash_x100: int) -> str:
 # Growth curves
 #   "power"       : m(t) = 1 + (rate * t) ** power   (legacy; very slow at high x)
 #   "exponential" : m(t) = e ** (rate * t)           (classic crash curve)
-# With the default exponential rate of 0.045/s the plane reaches 2x in ~15 s,
-# 10x in ~51 s and the 100x cap in ~102 s.
+# With the default exponential rate of 0.06/s the plane reaches 2x in ~11.6 s,
+# 10x in ~38 s and the 100x cap in ~77 s. Speed never changes the crash point
+# (that comes from the seeds); it only changes how quickly the curve gets there.
 GROWTH_MODEL_POWER = "power"
 GROWTH_MODEL_EXPONENTIAL = "exponential"
-DEFAULT_EXP_GROWTH_RATE = 0.045
+DEFAULT_EXP_GROWTH_RATE = 0.06
 
 
 def multiplier_x100_at(

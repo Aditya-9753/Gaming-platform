@@ -9,6 +9,7 @@ import { authApi } from '../../services/auth.api'
 import { showToast } from '../../components/common/Toast'
 import { apiClient } from '../../services/api'
 import { clearReferral, getReferral } from '../../utils/referral'
+import { t as tr } from '../../i18n'
 
 // Must match PLAYER_PASSWORD_PATTERN on the server
 const USERNAME_PATTERN = /^[a-zA-Z0-9_]{3,50}$/
@@ -32,7 +33,7 @@ const getRegistrationError = (error: unknown): string => {
       if (field === 'password') return 'Password must be at least 8 characters with a letter and a number.'
       if (field === 'username') return 'Username must be 3–50 characters using only letters, numbers, and underscores.'
       if (field === 'age_confirmed') return 'Confirm that you meet the legal age requirement.'
-      return message || body?.error?.message || 'Please check your details and try again.'
+      return message || body?.error?.message || tr('Please check your details and try again.')
     }).join(' ')
   }
 
@@ -40,7 +41,7 @@ const getRegistrationError = (error: unknown): string => {
   if (error.response?.status === 429) return 'Too many registration attempts. Please wait a few minutes and try again.'
   if (error.response && error.response.status >= 500) return 'The server could not save your account right now. Please try again in a minute.'
   if (!error.response) return 'Cannot reach the server. Check your internet connection and try again.'
-  return body?.error?.message || 'Registration could not be completed. Please try again.'
+  return body?.error?.message || tr('Registration could not be completed. Please try again.')
 }
 
 type NameStatus = { checking: boolean; available?: boolean; reason?: string | null; suggestions?: string[] }
@@ -77,23 +78,23 @@ export const Register: React.FC = () => {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
     if (!USERNAME_PATTERN.test(username.trim())) {
-      showToast({ title: 'Invalid username', message: 'Use 3–50 letters, numbers or _ (for example Rahul_007).', type: 'error' })
+      showToast({ title: tr('Invalid username'), message: tr('Use 3–50 letters, numbers or _ (for example Rahul_007).'), type: 'error' })
       return
     }
     if (nameStatus.available === false) {
-      showToast({ title: 'Username taken', message: 'Try another username, or pick one of the suggestions.', type: 'error' })
+      showToast({ title: tr('Username taken'), message: tr('Try another username, or pick one of the suggestions.'), type: 'error' })
       return
     }
     if (!passwordOk) {
-      showToast({ title: 'Password too weak', message: 'Use at least 8 characters with a letter and a number.', type: 'error' })
+      showToast({ title: tr('Password too weak'), message: tr('Use at least 8 characters with a letter and a number.'), type: 'error' })
       return
     }
     if (password !== confirmPassword) {
-      showToast({ title: 'Passwords do not match', message: 'Re-enter the same password in both fields.', type: 'error' })
+      showToast({ title: tr('Passwords do not match'), message: tr('Re-enter the same password in both fields.'), type: 'error' })
       return
     }
     if (!is18) {
-      showToast({ title: 'Age restriction', message: 'You must confirm you are of legal age.', type: 'error' })
+      showToast({ title: tr('Age restriction'), message: tr('You must confirm you are of legal age.'), type: 'error' })
       return
     }
     setIsLoading(true)
@@ -103,10 +104,10 @@ export const Register: React.FC = () => {
       setAccessToken(access_token)
       const user = await authApi.getCurrentUser()
       setAuth(user, access_token)
-      showToast({ title: 'Account created', message: 'Your account is ready.', type: 'success' })
+      showToast({ title: tr('Account created'), message: tr('Your account is ready.'), type: 'success' })
       navigate('/dashboard')
     } catch (error) {
-      showToast({ title: 'Registration failed', message: getRegistrationError(error), type: 'error', duration: 9000 })
+      showToast({ title: tr('Registration failed'), message: getRegistrationError(error), type: 'error', duration: 9000 })
     } finally {
       setIsLoading(false)
     }
@@ -124,23 +125,23 @@ export const Register: React.FC = () => {
     <div className="max-w-md mx-auto py-8">
       <div className="bg-dark-card border border-dark-border rounded-3xl p-8 shadow-2xl space-y-6">
         <div className="text-center space-y-2">
-          <h2 className="text-2xl font-black text-white">Create Account</h2>
-          <p className="text-xs text-slate-400">Pick a username and password, that's all you need</p>
+          <h2 className="text-2xl font-black text-white">{tr('Create Account')}</h2>
+          <p className="text-xs text-slate-400">{tr("Pick a username and password, that's all you need")}</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Input
-              label="Username" autoComplete="username" maxLength={50} placeholder="e.g. Rahul_007"
+              label={tr('Username')} autoComplete="username" maxLength={50} placeholder={tr('e.g. Rahul_007')}
               value={username} onChange={(e) => setUsername(e.target.value.replace(/\s/g, ''))}
               leftElement={<User className="w-4 h-4 text-slate-400" />} rightElement={nameIcon}
               error={nameError}
               success={!nameStatus.checking && nameStatus.available ? '✓ Great! This username is available' : undefined}
-              helperText={nameStatus.checking ? 'Checking availability…' : 'Examples: Rahul_007, sanu27, King_Khan · 3–50 letters, numbers or _ (no spaces)'}
+              helperText={nameStatus.checking ? tr('Checking availability…') : tr('Examples: Rahul_007, sanu27, King_Khan · 3–50 letters, numbers or _ (no spaces)')}
               required
             />
             {!nameStatus.checking && nameStatus.available === false && (nameStatus.suggestions?.length ?? 0) > 0 && (
               <div className="flex flex-wrap items-center gap-2 text-xs">
-                <span className="text-slate-400">Available:</span>
+                <span className="text-slate-400">{tr('Available:')}</span>
                 {nameStatus.suggestions!.map((s) => (
                   <button key={s} type="button" onClick={() => setUsername(s)}
                     className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 font-semibold text-emerald-300 hover:bg-emerald-500/20">{s}</button>
@@ -150,7 +151,7 @@ export const Register: React.FC = () => {
           </div>
           <div className="space-y-2">
             <Input
-              label="Password" type={showPassword ? 'text' : 'password'} autoComplete="new-password" maxLength={128} placeholder="e.g. sanu1234"
+              label={tr('Password')} type={showPassword ? 'text' : 'password'} autoComplete="new-password" maxLength={128} placeholder={tr('e.g. sanu1234')}
               value={password} onChange={(e) => setPassword(e.target.value)}
               leftElement={<Lock className="w-4 h-4 text-slate-400" />}
               rightElement={<button type="button" onClick={() => setShowPassword((v) => !v)} aria-label={showPassword ? 'Hide password' : 'Show password'} className="text-slate-400 hover:text-white">{showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</button>}
@@ -159,13 +160,13 @@ export const Register: React.FC = () => {
             <ul className="grid gap-1 text-xs">
               {checks.map((c) => (
                 <li key={c.label} className={`flex items-center gap-1.5 ${password ? (c.ok ? 'text-emerald-400' : 'text-rose-400') : 'text-slate-500'}`}>
-                  {password && c.ok ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}{c.label}
+                  {password && c.ok ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}{tr(c.label)}
                 </li>
               ))}
             </ul>
           </div>
           <Input
-            label="Confirm password" type={showPassword ? 'text' : 'password'} autoComplete="new-password" maxLength={128}
+            label={tr('Confirm password')} type={showPassword ? 'text' : 'password'} autoComplete="new-password" maxLength={128}
             value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
             leftElement={<Lock className="w-4 h-4 text-slate-400" />}
             error={confirmPassword && confirmPassword !== password ? '✗ Passwords do not match' : undefined}
@@ -173,23 +174,23 @@ export const Register: React.FC = () => {
             required
           />
           <Input
-            label="Promo code (optional)" autoCapitalize="characters" maxLength={32}
+            label={tr('Promo code (optional)')} autoCapitalize="characters" maxLength={32}
             value={promoCode} onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
           />
           <div className="p-3 rounded-xl bg-dark-elevated border border-dark-border">
             <label className="flex items-start gap-2.5 text-xs text-slate-300 cursor-pointer">
               <input type="checkbox" checked={is18} onChange={(e) => setIs18(e.target.checked)} className="mt-0.5 rounded" required />
-              <span>I confirm I am of legal age to use this platform.</span>
+              <span>{tr('I confirm I am of legal age to use this platform.')}</span>
             </label>
           </div>
-          <Button type="submit" variant="primary" className="w-full font-black py-3" isLoading={isLoading} rightIcon={<ArrowRight className="w-4 h-4" />}>Create My Account</Button>
+          <Button type="submit" variant="primary" className="w-full font-black py-3" isLoading={isLoading} rightIcon={<ArrowRight className="w-4 h-4" />}>{tr('Create My Account')}</Button>
         </form>
         <p className="text-center text-xs text-slate-400">
-          Already have an account? <Link to="/login" className="text-emerald-400 font-bold hover:underline">Sign In</Link>
+          {tr('Already have an account?')} <Link to="/login" className="text-emerald-400 font-bold hover:underline">{tr('Sign In')}</Link>
         </p>
         <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-500 text-center">
           <ShieldAlert className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-          <span>Age eligibility is required to register.</span>
+          <span>{tr('Age eligibility is required to register.')}</span>
         </div>
       </div>
     </div>

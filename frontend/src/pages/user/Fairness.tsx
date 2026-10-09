@@ -5,6 +5,7 @@ import { Button } from '../../components/common/Button'
 import { apiClient } from '../../services/api'
 import { showToast } from '../../components/common/Toast'
 import { verifyManually, type ManualVerification } from '../../utils/provablyFair'
+import { t as tr } from '../../i18n'
 
 interface Verification {
   round_id: string
@@ -75,7 +76,7 @@ export const FairnessPage: React.FC = () => {
       const { data } = await apiClient.get<Verification>(`/rounds/${encodeURIComponent(id.trim())}/verify`)
       setResult(data)
     } catch {
-      showToast({ title: 'Verification unavailable', message: 'This round may not be settled yet, or its ID is invalid.', type: 'error' })
+      showToast({ title: tr('Verification unavailable'), message: tr('This round may not be settled yet, or its ID is invalid.'), type: 'error' })
     } finally {
       setLoading(false)
     }
@@ -101,7 +102,7 @@ export const FairnessPage: React.FC = () => {
     try {
       setManual(await verifyManually({ game: mGame, serverSeed, serverSeedHash: seedHash, clientSeed, nonce: Number(nonce), houseEdgeBp: Number(edge), crashFormula: Number(formula) }))
     } catch {
-      showToast({ title: 'Could not compute', message: 'Your browser blocked WebCrypto (open the site over https).', type: 'error' })
+      showToast({ title: tr('Could not compute'), message: tr('Your browser blocked WebCrypto (open the site over https).'), type: 'error' })
     }
   }
 
@@ -111,7 +112,7 @@ export const FairnessPage: React.FC = () => {
     <div className="mx-auto max-w-4xl space-y-7">
       <div className="flex items-center gap-3">
         <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-500/20 bg-cyan-500/10 text-cyan-400"><ShieldCheck className="h-7 w-7" /></div>
-        <div><h2 className="text-2xl font-black text-white">Provably Fair</h2><p className="text-xs text-slate-400">Check for yourself that every result was fixed before anyone could bet</p></div>
+        <div><h2 className="text-2xl font-black text-white">{tr('Provably Fair')}</h2><p className="text-xs text-slate-400">{tr('Check for yourself that every result was fixed before anyone could bet')}</p></div>
       </div>
 
       <ol className="grid gap-3 text-xs text-slate-300 sm:grid-cols-2 lg:grid-cols-4">
@@ -124,22 +125,22 @@ export const FairnessPage: React.FC = () => {
           <li key={t} className="rounded-2xl border border-dark-border bg-dark-card p-4"><p className="font-black text-cyan-300">{t}</p><p className="mt-1 text-slate-400">{d}</p></li>
         ))}
       </ol>
-      <p className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 text-xs text-emerald-200">No one — including the platform's super admin — can see a seed or change a result while a round is running. There is no admin setting, endpoint or "test mode" that reads or overrides outcomes.</p>
+      <p className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 text-xs text-emerald-200">{tr("No one — including the platform's super admin — can see a seed or change a result while a round is running. There is no admin setting, endpoint or \"test mode\" that reads or overrides outcomes.")}</p>
 
       {/* Recent rounds */}
       <section className="space-y-3 rounded-2xl border border-dark-border bg-dark-card p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h3 className="font-black text-white">Recent settled rounds</h3>
+          <h3 className="font-black text-white">{tr('Recent settled rounds')}</h3>
           <div className="flex flex-wrap gap-1.5">
             {GAMES.map((g) => (
               <button key={g.id} type="button" onClick={() => setGameId(g.id)} className={`rounded-full px-3 py-1 text-xs font-bold ${gameId === g.id ? 'bg-cyan-500 text-dark-bg' : 'bg-dark-elevated text-slate-400'}`}>{g.label}</button>
             ))}
           </div>
         </div>
-        {recent.length === 0 ? <p className="text-xs text-slate-400">No settled rounds yet.</p> : (
+        {recent.length === 0 ? <p className="text-xs text-slate-400">{tr('No settled rounds yet.')}</p> : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[520px] text-xs">
-              <thead><tr className="text-left text-slate-400"><th className="py-1.5">Round</th><th className="py-1.5">Result</th><th className="py-1.5">Commitment (hash)</th><th className="py-1.5 text-right">Verify</th></tr></thead>
+              <thead><tr className="text-left text-slate-400"><th className="py-1.5">{tr('Round')}</th><th className="py-1.5">{tr('Result')}</th><th className="py-1.5">Commitment (hash)</th><th className="py-1.5 text-right">{tr('Verify')}</th></tr></thead>
               <tbody>
                 {recent.map((r) => (
                   <tr key={r.round_id} className="border-t border-dark-border/50">
@@ -148,8 +149,8 @@ export const FairnessPage: React.FC = () => {
                     <td className="py-2 font-mono text-slate-500">{r.server_seed_hash.slice(0, 18)}…</td>
                     <td className="py-2 text-right">
                       <div className="flex justify-end gap-1.5">
-                        <button type="button" onClick={() => { setRoundId(r.round_id); void verifyOnServer(r.round_id) }} className="flex items-center gap-1 rounded-lg bg-dark-elevated px-2 py-1 text-slate-300 hover:text-white"><Server className="h-3 w-3" />Server</button>
-                        <button type="button" onClick={() => fillManual(r)} className="flex items-center gap-1 rounded-lg bg-cyan-500/15 px-2 py-1 font-bold text-cyan-300"><Cpu className="h-3 w-3" />My browser</button>
+                        <button type="button" onClick={() => { setRoundId(r.round_id); void verifyOnServer(r.round_id) }} className="flex items-center gap-1 rounded-lg bg-dark-elevated px-2 py-1 text-slate-300 hover:text-white"><Server className="h-3 w-3" />{tr('Server')}</button>
+                        <button type="button" onClick={() => fillManual(r)} className="flex items-center gap-1 rounded-lg bg-cyan-500/15 px-2 py-1 font-bold text-cyan-300"><Cpu className="h-3 w-3" />{tr('My browser')}</button>
                       </div>
                     </td>
                   </tr>
@@ -162,21 +163,21 @@ export const FairnessPage: React.FC = () => {
 
       {/* Server verification */}
       <form onSubmit={(e) => { e.preventDefault(); void verifyOnServer(roundId) }} className="space-y-3 rounded-2xl border border-dark-border bg-dark-card p-5">
-        <h3 className="font-black text-white">Verify a round by ID</h3>
-        <Input label="Settled round ID" value={roundId} onChange={(event) => setRoundId(event.target.value)} required placeholder="Paste the round ID" />
-        <Button type="submit" isLoading={loading} disabled={!roundId.trim()} className="w-full">Verify with server</Button>
+        <h3 className="font-black text-white">{tr('Verify a round by ID')}</h3>
+        <Input label={tr('Settled round ID')} value={roundId} onChange={(event) => setRoundId(event.target.value)} required placeholder={tr('Paste the round ID')} />
+        <Button type="submit" isLoading={loading} disabled={!roundId.trim()} className="w-full">{tr('Verify with server')}</Button>
       </form>
       {result && (
         <section className={`space-y-4 rounded-2xl border p-5 ${verified ? 'border-emerald-500/30 bg-emerald-950/20' : 'border-rose-500/30 bg-rose-950/20'}`}>
           <div className="flex items-center gap-2 text-white">{verified ? <CheckCircle2 className="h-5 w-5 text-emerald-400" /> : <XCircle className="h-5 w-5 text-rose-400" />}<h3 className="font-bold">{verified ? 'Round verified' : 'Verification mismatch'}</h3></div>
           <dl className="grid gap-3 text-xs sm:grid-cols-2">
-            <div><dt className="text-slate-400">Game / round</dt><dd className="mt-1 text-white">{result.game_id} / #{result.round_no}</dd></div>
-            <div><dt className="text-slate-400">Nonce</dt><dd className="mt-1 text-white">{result.nonce}</dd></div>
+            <div><dt className="text-slate-400">{tr('Game / round')}</dt><dd className="mt-1 text-white">{result.game_id} / #{result.round_no}</dd></div>
+            <div><dt className="text-slate-400">{tr('Nonce')}</dt><dd className="mt-1 text-white">{result.nonce}</dd></div>
             <div className="sm:col-span-2"><dt className="text-slate-400">Server seed hash (commitment)</dt><dd className="mt-1 break-all font-mono text-slate-200">{result.server_seed_hash}</dd></div>
-            <div className="sm:col-span-2"><dt className="text-slate-400">Revealed server seed</dt><dd className="mt-1 break-all font-mono text-slate-200">{result.server_seed}</dd></div>
-            <div className="sm:col-span-2"><dt className="text-slate-400">Client seed</dt><dd className="mt-1 break-all font-mono text-slate-200">{result.client_seed}</dd></div>
-            <div><dt className="text-slate-400">Stored result</dt><dd className="mt-1 break-all font-mono text-slate-200">{JSON.stringify(result.stored_result)}</dd></div>
-            <div><dt className="text-slate-400">Recomputed result</dt><dd className="mt-1 break-all font-mono text-slate-200">{JSON.stringify(result.recomputed_result)}</dd></div>
+            <div className="sm:col-span-2"><dt className="text-slate-400">{tr('Revealed server seed')}</dt><dd className="mt-1 break-all font-mono text-slate-200">{result.server_seed}</dd></div>
+            <div className="sm:col-span-2"><dt className="text-slate-400">{tr('Client seed')}</dt><dd className="mt-1 break-all font-mono text-slate-200">{result.client_seed}</dd></div>
+            <div><dt className="text-slate-400">{tr('Stored result')}</dt><dd className="mt-1 break-all font-mono text-slate-200">{JSON.stringify(result.stored_result)}</dd></div>
+            <div><dt className="text-slate-400">{tr('Recomputed result')}</dt><dd className="mt-1 break-all font-mono text-slate-200">{JSON.stringify(result.recomputed_result)}</dd></div>
           </dl>
         </section>
       )}
@@ -185,38 +186,38 @@ export const FairnessPage: React.FC = () => {
       <form id="manual-verify" onSubmit={(e) => void runManual(e)} className="space-y-4 rounded-2xl border border-cyan-500/20 bg-dark-card p-5">
         <div>
           <h3 className="flex items-center gap-2 font-black text-white"><Cpu className="h-4 w-4 text-cyan-400" />Verify in your browser (no server involved)</h3>
-          <p className="text-xs text-slate-400">Paste the revealed seed, the commitment hash, the client seed and the nonce. Everything is computed locally with your browser's WebCrypto.</p>
+          <p className="text-xs text-slate-400">{tr("Paste the revealed seed, the commitment hash, the client seed and the nonce. Everything is computed locally with your browser's WebCrypto.")}</p>
         </div>
         <div className="flex gap-2">
           {(['wingo', 'aviator'] as const).map((g) => (
             <button key={g} type="button" onClick={() => setMGame(g)} className={`rounded-full px-3 py-1 text-xs font-bold ${mGame === g ? 'bg-cyan-500 text-dark-bg' : 'bg-dark-elevated text-slate-400'}`}>{g === 'wingo' ? 'WinGo' : 'Aviator'}</button>
           ))}
         </div>
-        <Input label="Server seed (revealed after the round)" value={serverSeed} onChange={(e) => setServerSeed(e.target.value)} required spellCheck={false} />
-        <Input label="Server seed hash (published before the round)" value={seedHash} onChange={(e) => setSeedHash(e.target.value)} required spellCheck={false} />
+        <Input label={tr('Server seed (revealed after the round)')} value={serverSeed} onChange={(e) => setServerSeed(e.target.value)} required spellCheck={false} />
+        <Input label={tr('Server seed hash (published before the round)')} value={seedHash} onChange={(e) => setSeedHash(e.target.value)} required spellCheck={false} />
         <div className="grid gap-3 sm:grid-cols-3">
-          <Input label="Client seed" value={clientSeed} onChange={(e) => setClientSeed(e.target.value)} required spellCheck={false} />
-          <Input label="Nonce (round number)" type="number" value={nonce} onChange={(e) => setNonce(e.target.value)} required />
-          {mGame === 'aviator' && <Input label="House edge (bp)" type="number" value={edge} onChange={(e) => setEdge(e.target.value)} />}
+          <Input label={tr('Client seed')} value={clientSeed} onChange={(e) => setClientSeed(e.target.value)} required spellCheck={false} />
+          <Input label={tr('Nonce (round number)')} type="number" value={nonce} onChange={(e) => setNonce(e.target.value)} required />
+          {mGame === 'aviator' && <Input label={tr('House edge (bp)')} type="number" value={edge} onChange={(e) => setEdge(e.target.value)} />}
           {mGame === 'aviator' && (
             <label className="block space-y-1.5 text-left">
-              <span className="block text-xs font-semibold text-slate-300">Crash formula</span>
+              <span className="block text-xs font-semibold text-slate-300">{tr('Crash formula')}</span>
               <select value={formula} onChange={(e) => setFormula(e.target.value)} className="w-full rounded-xl border border-dark-border bg-dark-card px-3.5 py-2.5 text-sm text-white">
                 <option value="2">v2 — current (edge applied once)</option>
-                <option value="1">v1 — rounds before the fix</option>
+                <option value="1">{tr('v1 — rounds before the fix')}</option>
               </select>
             </label>
           )}
         </div>
-        <Button type="submit" className="w-full" disabled={!serverSeed || !seedHash || !clientSeed || nonce === ''}>Check fairness</Button>
+        <Button type="submit" className="w-full" disabled={!serverSeed || !seedHash || !clientSeed || nonce === ''}>{tr('Check fairness')}</Button>
 
         {manual && (
           <div className={`space-y-2 rounded-xl border p-4 text-xs ${manual.hashMatches ? 'border-emerald-500/30 bg-emerald-950/20' : 'border-rose-500/30 bg-rose-950/20'}`}>
             <p className="flex items-center gap-2 text-sm font-bold text-white">
               {manual.hashMatches ? <CheckCircle2 className="h-5 w-5 text-emerald-400" /> : <XCircle className="h-5 w-5 text-rose-400" />}
-              {manual.hashMatches ? 'Seed matches the commitment — the result was fixed before betting' : 'Seed does NOT match the commitment'}
+              {manual.hashMatches ? tr('Seed matches the commitment — the result was fixed before betting') : tr('Seed does NOT match the commitment')}
             </p>
-            <p className="text-slate-300">Result from these seeds: <b className="text-white">{manual.outcome}</b> {Object.entries(manual.details).map(([k, v]) => <span key={k} className="ml-2 font-mono text-slate-400">{k}={String(v)}</span>)}</p>
+            <p className="text-slate-300">{tr('Result from these seeds:')} <b className="text-white">{manual.outcome}</b> {Object.entries(manual.details).map(([k, v]) => <span key={k} className="ml-2 font-mono text-slate-400">{k}={String(v)}</span>)}</p>
             <p className="break-all font-mono text-slate-500">SHA-256(seed) = {manual.computedHash}</p>
             <p className="font-mono text-slate-500">random float = {manual.float}</p>
           </div>

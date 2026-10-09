@@ -24,6 +24,8 @@ import { useUIStore } from '../../store/ui.store'
 import { useAuthStore } from '../../store/auth.store'
 import { authApi } from '../../services/auth.api'
 import { isStaffRole } from '../../types/auth.types'
+import { LanguageSwitcher } from '../common/LanguageSwitcher'
+import { t as tr } from '../../i18n'
 
 interface NavItem {
   name: string
@@ -97,11 +99,11 @@ export const Sidebar: React.FC = () => {
               </Link>
             ) : (
               <div className="flex flex-1 gap-2">
-                <Link to="/login" onClick={close} className="flex-1 rounded-xl bg-dark-elevated py-2.5 text-center text-sm font-bold text-white">Log in</Link>
-                <Link to="/register" onClick={close} className="flex-1 rounded-xl bg-brand-blue py-2.5 text-center text-sm font-bold text-white">Sign up</Link>
+                <Link to="/login" onClick={close} className="flex-1 rounded-xl bg-dark-elevated py-2.5 text-center text-sm font-bold text-white">{tr('Log in')}</Link>
+                <Link to="/register" onClick={close} className="flex-1 rounded-xl bg-brand-blue py-2.5 text-center text-sm font-bold text-white">{tr('Sign up')}</Link>
               </div>
             )}
-            <button onClick={close} aria-label="Close menu" className="rounded-full bg-dark-elevated p-1.5 text-slate-300 hover:text-white lg:hidden">
+            <button onClick={close} aria-label={tr('Close menu')} className="rounded-full bg-dark-elevated p-1.5 text-slate-300 hover:text-white lg:hidden">
               <X className="h-5 w-5" />
             </button>
           </div>
@@ -110,7 +112,7 @@ export const Sidebar: React.FC = () => {
             onClick={close}
             className="relative flex h-16 items-center overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-900 via-emerald-800 to-emerald-600 px-4"
           >
-            <span className="text-sm font-black leading-tight text-white">Free<br />bonus</span>
+            <span className="text-sm font-black leading-tight text-white">{tr('Free')}<br />{tr('bonus')}</span>
             <Gift aria-hidden className="absolute right-4 h-9 w-9 text-white/80" />
           </Link>
         </div>
@@ -130,25 +132,29 @@ export const Sidebar: React.FC = () => {
             >
               <span className="flex items-center gap-3.5 text-slate-200">
                 <span className="text-slate-400">{item.icon}</span>
-                <span>{item.name}</span>
+                <span>{tr(item.name)}</span>
               </span>
               {item.badge && (
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${badgeTone[item.badge] ?? ''}`}>{item.badge}</span>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${badgeTone[item.badge] ?? ''}`}>{tr(item.badge)}</span>
               )}
             </NavLink>
           ))}
         </nav>
 
         <div className="p-3 border-t border-dark-border space-y-2">
+          <div className="flex items-center justify-between sm:hidden">
+            <span className="text-xs font-semibold text-slate-400">{tr('Language')}</span>
+            <LanguageSwitcher />
+          </div>
           {isAuthenticated && (
             <div className="flex gap-2 lg:hidden">
               {isStaffRole(user?.role) && (
                 <Link to="/admin/dashboard" onClick={close} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-purple-500/15 py-2.5 text-xs font-bold text-purple-300">
-                  <Shield className="h-4 w-4" />Admin
+                  <Shield className="h-4 w-4" />{tr('Admin')}
                 </Link>
               )}
               <button type="button" onClick={() => void handleLogout()} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-dark-elevated py-2.5 text-xs font-bold text-rose-300">
-                <LogOut className="h-4 w-4" />Log out
+                <LogOut className="h-4 w-4" />{tr('Log out')}
               </button>
             </div>
           )}
@@ -157,7 +163,7 @@ export const Sidebar: React.FC = () => {
             onClick={close}
             className="flex items-center justify-between rounded-xl bg-dark-elevated px-3 py-3 text-sm font-semibold text-white"
           >
-            <span className="flex items-center gap-3"><Headphones className="h-5 w-5 text-slate-400" />Support</span>
+            <span className="flex items-center gap-3"><Headphones className="h-5 w-5 text-slate-400" />{tr('Support')}</span>
             <span className="rounded-full bg-brand-blue px-2 py-0.5 text-[10px] font-black">24/7</span>
           </Link>
         </div>

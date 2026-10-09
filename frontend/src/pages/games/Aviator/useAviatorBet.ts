@@ -4,9 +4,10 @@ import { apiClient } from '../../../services/api'
 import { useIdempotencyKey } from '../../../hooks/useIdempotencyKey'
 import { syncWalletBalance } from '../../../services/wallet.api'
 import { showToast } from '../../../components/common/Toast'
-import { playSound, playWinFor } from '../../../utils/sounds'
+import { playCashout, playSound } from '../../../utils/sounds'
 import { formatPaiseToRupee } from '../../../utils/formatters'
 import { getApiErrorMessage } from '../../../utils/apiError'
+import { t as tr } from '../../../i18n'
 
 interface BetResponse { entry_id: string; bet_amount: number }
 interface CashoutResponse { multiplier: number; payout_amount: number }
@@ -45,13 +46,14 @@ export function useAviatorBet(round: AviatorState, label: string, onSettled?: ()
   useEffect(() => {
     const cashout = round.lastCashout
     if (!cashout || !entryId || cashout.entryId !== entryId) return
-    playWinFor(cashout.payout, betPaise ?? 0)
+    playCashout(cashout.multiplier)
+    if (cashout.multiplier >= 10) window.setTimeout(() => playSound('bigWin'), 350)
     clear()
     refreshWallet()
     onSettled?.()
     showToast({
-      title: cashout.automatic ? `${label}: auto cashout!` : `${label}: cashed out!`,
-      message: `Won ${formatPaiseToRupee(cashout.payout)} at ${cashout.multiplier.toFixed(2)}x.`,
+      title: cashout.automatic ? tr('{label}: auto cashout!', { label }) : tr('{label}: cashed out!', { label }),
+      message: tr('Won {amount} at {x}x.', { amount: formatPaiseToRupee(cashout.payout), x: cashout.multiplier.toFixed(2) }),
       type: 'success',
     })
   }, [round.lastCashout, entryId, clear, label, onSettled])
@@ -60,7 +62,7 @@ export function useAviatorBet(round: AviatorState, label: string, onSettled?: ()
   useEffect(() => {
     if (round.phase !== 'crashed' || betPaise === null || roundId !== round.roundId) return
     window.setTimeout(() => playSound('lose'), 700) // after the fly-away whoosh
-    showToast({ title: `${label}: flew away`, message: `Lost ${formatPaiseToRupee(betPaise)} at ${round.multiplier.toFixed(2)}x.`, type: 'error' })
+    showToast({ title: tr('{label}: flew away', { label }), message: tr('Lost {amount} at {x}x.', { amount: formatPaiseToRupee(betPaise), x: round.multiplier.toFixed(2) }), type: 'error' })
     clear()
     refreshWallet()
     onSettled?.()
@@ -94,9 +96,9 @@ export function useAviatorBet(round: AviatorState, label: string, onSettled?: ()
       setAutoCashout(auto ?? null)
       refreshWallet()
       playSound('bet')
-      showToast({ title: `${label}: bet placed`, message: `${formatPaiseToRupee(data.bet_amount)} on round #${round.roundNumber}${auto ? ` • auto ${auto.toFixed(2)}x` : ''}.`, type: 'success' })
+      showToast({ title: tr('{label}: bet placed', { label }), message: tr('{amount} on round #{round}', { amount: formatPaiseToRupee(data.bet_amount), round: round.roundNumber }) + (auto ? ` • ${tr('auto')} ${auto.toFixed(2)}x` : '') + '.', type: 'success' })
     } catch (error) {
-      showToast({ title: `${label}: bet rejected`, message: getApiErrorMessage(error, 'The server rejected this bet.'), type: 'error' })
+      showToast({ title: tr('{label}: bet rejected', { label }), message: getApiErrorMessage(error, tr('The server rejected this bet.')), type: 'error' })
     } finally {
       rotateKey()
     }
@@ -108,13 +110,14 @@ export function useAviatorBet(round: AviatorState, label: string, onSettled?: ()
       const { data } = await apiClient.post<CashoutResponse>('/games/aviator/action', {
         action: 'cashout', round_id: roundId, entry_id: entryId,
       }, { headers: { 'Idempotency-Key': key } })
-      playWinFor(data.payout_amount, betPaise ?? 0)
+      playCashout(data.multiplier)
+      if (data.multiplier >= 10) window.setTimeout(() => playSound('bigWin'), 350)
       clear()
       refreshWallet()
       onSettled?.()
-      showToast({ title: `${label}: cashed out!`, message: `Won ${formatPaiseToRupee(data.payout_amount)} at ${data.multiplier.toFixed(2)}x.`, type: 'success' })
+      showToast({ title: tr('{label}: cashed out!', { label }), message: tr('Won {amount} at {x}x.', { amount: formatPaiseToRupee(data.payout_amount), x: data.multiplier.toFixed(2) }), type: 'success' })
     } catch (error) {
-      showToast({ title: `${label}: cashout failed`, message: getApiErrorMessage(error, 'The plane may have already flown away.'), type: 'error' })
+      showToast({ title: tr('{label}: cashout failed', { label }), message: getApiErrorMessage(error, tr('The plane may have already flown away.')), type: 'error' })
     } finally {
       rotateKey()
     }

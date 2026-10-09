@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Minus, Plus } from 'lucide-react'
 import { EditableQuickAmounts, useQuickAmounts } from '../../../components/games/EditableQuickAmounts'
 import { pickLabel, pickTheme, type WingoPick } from './wingoRules'
+import { t as tr } from '../../../i18n'
 
 export const QUANTITY_MULTIPLIERS = [1, 5, 10, 20, 50, 100]
 
@@ -46,7 +47,7 @@ export const WinGoBetSheet: React.FC<WinGoBetSheetProps> = ({
 
         <div className="space-y-4 px-5 py-4 text-slate-700">
           <div className="flex items-start justify-between gap-4">
-            <span className="pt-1 text-sm font-semibold">Balance</span>
+            <span className="pt-1 text-sm font-semibold">{tr('Balance')}</span>
             <div className="w-56">
               <EditableQuickAmounts
                 amounts={quick.amounts}
@@ -63,11 +64,11 @@ export const WinGoBetSheet: React.FC<WinGoBetSheetProps> = ({
           </div>
 
           <div className="flex items-center justify-between gap-4">
-            <span className="text-sm font-semibold">Quantity</span>
+            <span className="text-sm font-semibold">{tr('Quantity')}</span>
             <div className="flex items-center gap-2">
-              <button type="button" aria-label="Decrease quantity" onClick={() => setQuantity((q) => Math.max(1, q - 1))} className="w-8 h-8 rounded-lg bg-rose-500 text-white flex items-center justify-center"><Minus className="w-4 h-4" /></button>
-              <input type="number" min={1} value={quantity} onChange={(e) => setQuantity(Math.max(1, Math.round(Number(e.target.value)) || 1))} aria-label="Quantity" className="w-16 rounded-lg border border-slate-300 bg-white py-1 text-center font-bold text-slate-800 [color-scheme:light]" />
-              <button type="button" aria-label="Increase quantity" onClick={() => setQuantity((q) => q + 1)} className="w-8 h-8 rounded-lg bg-rose-500 text-white flex items-center justify-center"><Plus className="w-4 h-4" /></button>
+              <button type="button" aria-label={tr('Decrease quantity')} onClick={() => setQuantity((q) => Math.max(1, q - 1))} className="w-8 h-8 rounded-lg bg-rose-500 text-white flex items-center justify-center"><Minus className="w-4 h-4" /></button>
+              <input type="number" min={1} value={quantity} onChange={(e) => setQuantity(Math.max(1, Math.round(Number(e.target.value)) || 1))} aria-label={tr('Quantity')} className="w-16 rounded-lg border border-slate-300 bg-white py-1 text-center font-bold text-slate-800 [color-scheme:light]" />
+              <button type="button" aria-label={tr('Increase quantity')} onClick={() => setQuantity((q) => q + 1)} className="w-8 h-8 rounded-lg bg-rose-500 text-white flex items-center justify-center"><Plus className="w-4 h-4" /></button>
             </div>
           </div>
 
@@ -79,20 +80,20 @@ export const WinGoBetSheet: React.FC<WinGoBetSheetProps> = ({
 
           <label className="flex items-center gap-2 text-xs text-slate-500">
             <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="rounded" />
-            I agree to the <span className="text-rose-500">game rules</span> (virtual credits only)
+            {tr('I agree to the')} <span className="text-rose-500">{tr('game rules')}</span> (virtual credits only)
           </label>
           {(tooLow || tooHigh) && <p className="text-xs text-rose-500">Total must be between ₹{minRupees} and ₹{maxRupees}.</p>}
         </div>
 
         <div className="grid grid-cols-[1fr_2fr]">
-          <button type="button" onClick={onClose} className="bg-slate-100 py-4 text-sm font-bold text-slate-500">Cancel</button>
+          <button type="button" onClick={onClose} className="bg-slate-100 py-4 text-sm font-bold text-slate-500">{tr('Cancel')}</button>
           <button
             type="button"
             disabled={!agree || busy || locked || tooLow || tooHigh}
             onClick={() => onConfirm(total)}
             className={`bg-gradient-to-r ${pickTheme(pick)} py-4 text-sm font-black text-white disabled:opacity-50`}
           >
-            {busy ? 'Placing…' : `Total amount ₹${total.toFixed(2)}`}
+            {busy ? tr('Placing…') : tr('Total amount ₹{amount}', { amount: total.toFixed(2) })}
           </button>
         </div>
       </div>

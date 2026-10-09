@@ -17,6 +17,7 @@ import { ToastContainer } from '../components/common/Toast'
 import { ErrorBoundary } from '../components/common/ErrorBoundary'
 import { Loader } from '../components/common/Loader'
 import { useAuthStore } from '../store/auth.store'
+import { useUIStore } from '../store/ui.store'
 import { authApi } from '../services/auth.api'
 import { isStaffRole } from '../types/auth.types'
 import { captureReferral } from '../utils/referral'
@@ -213,7 +214,9 @@ const GAME_PAGE = /^\/games\/(aviator|color|mines|teen-patti|cricket)(\/|$)/
 const AppShell: React.FC = () => {
   // The site uses the navy + blue theme; game pages keep their own look (see .game-theme in index.css)
   const isGamePage = GAME_PAGE.test(useLocation().pathname)
-  return <div className="min-h-screen bg-dark-bg flex flex-col dark">
+  // Re-mount the page in the chosen language when it changes (every label is read through t())
+  const locale = useUIStore((s) => s.locale)
+  return <div key={locale} className="min-h-screen bg-dark-bg flex flex-col dark">
     <AgeGateModal />
     <MaintenanceBanner />
     <Header />

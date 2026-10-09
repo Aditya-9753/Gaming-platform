@@ -2,6 +2,7 @@ import React from 'react'
 import { ShieldAlert } from 'lucide-react'
 import { useUIStore } from '../../store/ui.store'
 import { Button } from './Button'
+import { t as tr } from '../../i18n'
 
 export const AgeGateModal: React.FC = () => {
   const { ageGateCleared, clearAgeGate } = useUIStore()
@@ -17,11 +18,11 @@ export const AgeGateModal: React.FC = () => {
 
         <div className="space-y-2">
           <span className="px-3 py-1 rounded-full text-xs font-black bg-amber-500/20 text-amber-400 border border-amber-500/30 inline-block uppercase tracking-wider">
-            18+ Age Restricted
+            {tr('18+ Age Restricted')}
           </span>
           <h2 className="text-xl font-black text-white">Age & Jurisdiction Notice</h2>
           <p className="text-xs text-slate-400 leading-relaxed">
-            You must be at least 18 years old and eligible to use this platform in your location. Please review the terms and local laws before playing.
+            {tr('You must be at least 18 years old and eligible to use this platform in your location. Please review the terms and local laws before playing.')}
           </p>
         </div>
 

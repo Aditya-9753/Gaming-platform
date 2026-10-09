@@ -18,16 +18,25 @@ interface UIState {
   toggleSidebar: () => void
 }
 
+function readLocale(): Locale {
+  let value: string | null = null
+  try { value = localStorage.getItem('locale') } catch { /* private mode */ }
+  const locale: Locale = value === 'hi' ? 'hi' : 'en'
+  if (typeof document !== 'undefined') document.documentElement.lang = locale
+  return locale
+}
+
 export const useUIStore = create<UIState>((set) => ({
   theme: 'dark',
-  locale: (localStorage.getItem('locale') as Locale) || 'en',
+  locale: readLocale(),
   soundEnabled: localStorage.getItem('sound') !== 'false',
   ageGateCleared: localStorage.getItem('ageGate') === 'true',
   sidebarOpen: false,
 
   setTheme: (t) => set({ theme: t }),
   setLocale: (l) => {
-    localStorage.setItem('locale', l)
+    try { localStorage.setItem('locale', l) } catch { /* private mode */ }
+    if (typeof document !== 'undefined') document.documentElement.lang = l
     set({ locale: l })
   },
   toggleSound: () =>

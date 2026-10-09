@@ -1,5 +1,6 @@
 import React from 'react'
 import { GoldGem, SkullBomb } from './MinesArt'
+import { t as tr } from '../../../i18n'
 
 export interface MinesCellProps {
   revealed: boolean
@@ -30,7 +31,7 @@ export const MinesCell: React.FC<MinesCellProps> = ({
         type="button"
         disabled={disabled}
         onClick={onClick}
-        aria-label="Hidden tile"
+        aria-label={tr('Hidden tile')}
         aria-busy={pending}
         className={`${base} bg-gradient-to-b from-[#5b2a86] to-[#3a1760] border-b-4 border-[#26103f] shadow-[inset_0_2px_0_rgba(255,255,255,0.15)] hover:from-[#6d34a0] hover:-translate-y-0.5 active:translate-y-0.5 active:border-b-2 disabled:cursor-not-allowed disabled:hover:translate-y-0 ${pending ? 'from-[#7c3aed] to-[#4c1d95] ring-2 ring-amber-300' : ''}`}
       >

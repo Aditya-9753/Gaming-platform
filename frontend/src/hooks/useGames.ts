@@ -2,6 +2,7 @@ import { useCallback } from 'react'
 import { useGameStore } from '../store/game.store'
 import { gameApi } from '../services/game.api'
 import { showToast } from '../components/common/Toast'
+import { t as tr } from '../i18n'
 
 export function useGames() {
   const { gamesList, currentRound, setGamesList, setCurrentRound } = useGameStore()
@@ -21,7 +22,7 @@ export function useGames() {
       setCurrentRound(gameId as Parameters<typeof setCurrentRound>[0], round)
       return round
     } catch {
-      showToast({ title: 'Round unavailable', message: `Could not load the current ${gameId} round.`, type: 'warning' })
+      showToast({ title: tr('Round unavailable'), message: tr('Could not load the current {game} round.', { game: gameId }), type: 'warning' })
       return null
     }
   }, [setCurrentRound])

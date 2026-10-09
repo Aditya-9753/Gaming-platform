@@ -2,6 +2,7 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import { ShieldCheck, HeartHandshake } from 'lucide-react'
 import { usePlatformConfig } from '../../hooks/usePlatformConfig'
+import { t as tr } from '../../i18n'
 
 export const Footer: React.FC = () => {
   const { platform_name: platformName } = usePlatformConfig()
@@ -11,23 +12,23 @@ export const Footer: React.FC = () => {
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5 text-emerald-400 font-bold">
             <ShieldCheck className="w-4 h-4" />
-            <span>Provably Fair RNG</span>
+            <span>{tr('Provably Fair RNG')}</span>
           </div>
           <div className="flex items-center gap-1.5 text-amber-400 font-bold">
             <HeartHandshake className="w-4 h-4" />
-            <span>18+ Play Responsibly</span>
+            <span>{tr('18+ Play Responsibly')}</span>
           </div>
         </div>
 
         <div className="flex items-center gap-4">
           <Link to="/terms" className="hover:text-white transition-colors">
-            Terms of Service
+            {tr('Terms of Service')}
           </Link>
           <Link to="/privacy" className="hover:text-white transition-colors">
-            Privacy Policy
+            {tr('Privacy Policy')}
           </Link>
           <Link to="/support" className="hover:text-white transition-colors">
-            Support
+            {tr('Support')}
           </Link>
         </div>
 

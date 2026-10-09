@@ -5,6 +5,7 @@ import { Input } from '../common/Input'
 import { showToast } from '../common/Toast'
 import type { ResponsiblePlayLimits } from '../../types/user.types'
 import { formatPaiseToRupee, rupeeToPaise } from '../../utils/formatters'
+import { t as tr } from '../../i18n'
 
 export interface LimitsFormProps {
   initialLimits?: ResponsiblePlayLimits
@@ -39,12 +40,12 @@ export const LimitsForm: React.FC<LimitsFormProps> = ({ initialLimits, onSave })
       }
       await onSave?.(payload)
       showToast({
-        title: 'Limits Saved',
-        message: 'Your server-backed daily wagering and loss limits are active.',
+        title: tr('Limits Saved'),
+        message: tr('Your server-backed daily wagering and loss limits are active.'),
         type: 'success',
       })
     } catch {
-      showToast({ title: 'Could not save limits', message: 'Please check your values and try again.', type: 'error' })
+      showToast({ title: tr('Could not save limits'), message: tr('Please check your values and try again.'), type: 'error' })
     } finally {
       setIsSaving(false)
     }
@@ -61,31 +62,31 @@ export const LimitsForm: React.FC<LimitsFormProps> = ({ initialLimits, onSave })
       </div>
 
       <p className="text-xs text-slate-400">
-        Set daily wagering and loss boundaries to support safer play.
+        {tr('Set daily wagering and loss boundaries to support safer play.')}
       </p>
 
       <Input
-        label="Daily Bet Limit (₹)"
+        label={tr('Daily Bet Limit (₹)')}
         type="number"
         value={dailyBet}
         onChange={(e) => setDailyBet(e.target.value)}
-        helperText={dailyBet ? `Current limit: ${formatPaiseToRupee(rupeeToPaise(Number(dailyBet) || 0))}` : 'Leave blank for no daily bet limit'}
+        helperText={dailyBet ? tr('Current limit: {amount}', { amount: formatPaiseToRupee(rupeeToPaise(Number(dailyBet) || 0)) }) : tr('Leave blank for no daily bet limit')}
       />
 
       <Input
-        label="Daily Loss Limit (₹)"
+        label={tr('Daily Loss Limit (₹)')}
         type="number"
         value={dailyLoss}
         onChange={(e) => setDailyLoss(e.target.value)}
-        helperText={dailyLoss ? `Current limit: ${formatPaiseToRupee(rupeeToPaise(Number(dailyLoss) || 0))}` : 'Leave blank for no daily loss limit'}
+        helperText={dailyLoss ? tr('Current limit: {amount}', { amount: formatPaiseToRupee(rupeeToPaise(Number(dailyLoss) || 0)) }) : tr('Leave blank for no daily loss limit')}
       />
 
       <Input
-        label="Session Reminder Interval (Minutes)"
+        label={tr('Session Reminder Interval (Minutes)')}
         type="number"
         value={sessionLimit}
         onChange={(e) => setSessionLimit(e.target.value)}
-        helperText="A reminder pop-up will notify you when you exceed this continuous play time."
+        helperText={tr('A reminder pop-up will notify you when you exceed this continuous play time.')}
       />
 
       <Button

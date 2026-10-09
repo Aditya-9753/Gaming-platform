@@ -18,6 +18,7 @@ import { playSound } from '../../../utils/sounds'
 import { BrandLogo } from '../../../components/common/BrandLogo'
 import { formatPaiseToRupee, rupeeToPaise } from '../../../utils/formatters'
 import { getApiErrorMessage } from '../../../utils/apiError'
+import { t as tr } from '../../../i18n'
 
 interface MyBet { id: number; roundId: string; period: string; gameId: string; pick: WingoPick; amountPaise: number }
 interface GameLimits { min_bet: number; max_bet: number }
@@ -59,7 +60,7 @@ const DrawingBall: React.FC = () => {
   return (
     <div className="flex flex-col items-center gap-3">
       <div className="animate-bounce"><WinGoBall number={n} size={84} /></div>
-      <p className="rounded-full bg-white/90 px-4 py-1 text-sm font-black text-rose-500 shadow">Drawing result…</p>
+      <p className="rounded-full bg-white/90 px-4 py-1 text-sm font-black text-rose-500 shadow">{tr('Drawing result…')}</p>
     </div>
   )
 }
@@ -120,7 +121,7 @@ export const WinGo: React.FC = () => {
 
   const choose = (next: WingoPick) => {
     if (!isAuthenticated) {
-      showToast({ title: 'Sign in to play', message: 'Create an account or sign in to place bets.', type: 'info' })
+      showToast({ title: tr('Sign in to play'), message: tr('Create an account or sign in to place bets.'), type: 'info' })
       return
     }
     if (round.locked || !round.roundId) return
@@ -147,10 +148,10 @@ export const WinGo: React.FC = () => {
       void syncWalletBalance().catch(() => undefined)
       setMyHistoryKey((k) => k + 1)
       playSound('bet')
-      showToast({ title: 'Bet placed', message: `₹${totalRupees} on ${pick.type === 'NUMBER' ? `number ${pick.value}` : pickLabel(pick)} • ${round.period}`, type: 'success', duration: 2500 })
+      showToast({ title: tr('Bet placed'), message: `₹${totalRupees} on ${pick.type === 'NUMBER' ? `number ${pick.value}` : pickLabel(pick)} • ${round.period}`, type: 'success', duration: 2500 })
       setPick(null)
     } catch (error) {
-      showToast({ title: 'Bet rejected', message: getApiErrorMessage(error, 'Betting may be closed for this period.'), type: 'error' })
+      showToast({ title: tr('Bet rejected'), message: getApiErrorMessage(error, 'Betting may be closed for this period.'), type: 'error' })
     } finally {
       rotateKey()
       setBusy(false)
@@ -175,19 +176,19 @@ export const WinGo: React.FC = () => {
           <div className="relative bg-gradient-to-b from-rose-500 to-orange-400 px-4 pb-20 pt-4">
             <div className="flex items-center justify-center gap-2 text-white">
               <BrandLogo iconClassName="h-9 w-9 rounded-xl bg-white/20 text-white" textClassName="text-xl font-black tracking-wide" />
-              <span className="ml-1 rounded-md bg-white/20 px-2 py-0.5 text-xs font-bold">WinGo</span>
+              <span className="ml-1 rounded-md bg-white/20 px-2 py-0.5 text-xs font-bold">{tr('WinGo')}</span>
             </div>
           </div>
           <div className="relative -mt-16 px-3 sm:px-4">
             <div className="rounded-3xl bg-white p-4 text-center shadow-lg">
               <div className="flex items-center justify-center gap-2">
                 <span className="text-2xl font-black text-slate-800">{formatPaiseToRupee(balance)}</span>
-                <button type="button" aria-label="Refresh balance" onClick={() => void syncWalletBalance().catch(() => undefined)} className="text-slate-400 hover:text-slate-600"><RefreshCw className="h-4 w-4" /></button>
+                <button type="button" aria-label={tr('Refresh balance')} onClick={() => void syncWalletBalance().catch(() => undefined)} className="text-slate-400 hover:text-slate-600"><RefreshCw className="h-4 w-4" /></button>
               </div>
-              <p className="mt-1 flex items-center justify-center gap-1.5 text-sm text-slate-500"><Wallet className="h-4 w-4 text-rose-500" />Wallet balance</p>
+              <p className="mt-1 flex items-center justify-center gap-1.5 text-sm text-slate-500"><Wallet className="h-4 w-4 text-rose-500" />{tr('Wallet balance')}</p>
               <div className="mt-3 grid grid-cols-2 gap-3">
-                <Link to="/wallet" className="rounded-full bg-rose-500 py-2.5 text-sm font-bold text-white shadow">Wallet</Link>
-                <Link to="/wallet" className="flex items-center justify-center gap-1.5 rounded-full bg-emerald-500 py-2.5 text-sm font-bold text-white shadow"><Gift className="h-4 w-4" />Daily bonus</Link>
+                <Link to="/wallet" className="rounded-full bg-rose-500 py-2.5 text-sm font-bold text-white shadow">{tr('Wallet')}</Link>
+                <Link to="/wallet" className="flex items-center justify-center gap-1.5 rounded-full bg-emerald-500 py-2.5 text-sm font-bold text-white shadow"><Gift className="h-4 w-4" />{tr('Daily bonus')}</Link>
               </div>
             </div>
           </div>
@@ -196,7 +197,7 @@ export const WinGo: React.FC = () => {
             <div className="flex items-center gap-2 overflow-hidden rounded-full bg-white px-3 py-2 shadow-sm">
               <Volume2 className="h-4 w-4 shrink-0 text-rose-500" />
               <div className="relative flex-1 overflow-hidden whitespace-nowrap text-xs text-slate-600">
-                <span className="inline-block animate-[marquee_18s_linear_infinite]">Virtual credits only — play for fun, never share your password, and take breaks with Responsible Play.</span>
+                <span className="inline-block animate-[marquee_18s_linear_infinite]">{tr('Virtual credits only — play for fun, never share your password, and take breaks with Responsible Play.')}</span>
               </div>
             </div>
 
@@ -204,19 +205,19 @@ export const WinGo: React.FC = () => {
               {WINGO_MODES.map((m, index) => (
                 <button key={m.gameId} type="button" onClick={() => { setModeIndex(index); setPick(null) }} className={`flex flex-col items-center gap-1 rounded-xl py-2 text-[11px] transition sm:text-xs ${index === modeIndex ? 'bg-gradient-to-b from-rose-400 to-rose-500 text-white shadow' : 'text-slate-400'}`}>
                   <Clock3 className="h-6 w-6 sm:h-7 sm:w-7" />
-                  <span className="text-center leading-tight">WinGo<br />{m.short}</span>
+                  <span className="text-center leading-tight">{tr('WinGo')}<br />{m.short}</span>
                 </button>
               ))}
             </div>
 
             <div className="grid grid-cols-[1fr_auto] gap-3 rounded-2xl bg-gradient-to-r from-rose-500 to-orange-400 p-3 text-white shadow">
               <div className="min-w-0 space-y-2 border-r border-dashed border-white/50 pr-3">
-                <button type="button" onClick={() => setShowRules(true)} className="flex items-center gap-1.5 rounded-full border border-white/70 px-3 py-1 text-xs"><BookOpen className="h-3.5 w-3.5" />How to play</button>
+                <button type="button" onClick={() => setShowRules(true)} className="flex items-center gap-1.5 rounded-full border border-white/70 px-3 py-1 text-xs"><BookOpen className="h-3.5 w-3.5" />{tr('How to play')}</button>
                 <p className="text-sm">{mode.label}</p>
                 <div className="flex gap-1 overflow-hidden">{recent.map((n, i) => <WinGoBall key={i} number={n} size={24} />)}</div>
               </div>
               <div className="text-right">
-                <p className="text-sm font-bold">Time remaining</p>
+                <p className="text-sm font-bold">{tr('Time remaining')}</p>
                 <div className="mt-1 flex justify-end gap-1">
                   {digits.map((d, i) => (d === ':'
                     ? <span key={i} className="flex w-2.5 items-center justify-center text-xl font-black">:</span>
@@ -228,7 +229,7 @@ export const WinGo: React.FC = () => {
 
             {/* Betting board */}
             <div className="relative space-y-3 rounded-2xl bg-white p-3 shadow-sm">
-              {!round.connected && <p className="text-center text-xs text-slate-400">Connecting to the game server…</p>}
+              {!round.connected && <p className="text-center text-xs text-slate-400">{tr('Connecting to the game server…')}</p>}
               <div className="grid grid-cols-3 gap-2">
                 {(['GREEN', 'VIOLET', 'RED'] as const).map((c) => (
                   <button
@@ -250,15 +251,15 @@ export const WinGo: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
-                <button type="button" disabled={!canBet} onClick={() => choose({ type: 'NUMBER', value: String(Math.floor(Math.random() * 10)) })} className="shrink-0 rounded-lg border border-rose-500 px-3 py-1.5 text-xs font-bold text-rose-500 disabled:opacity-50">Random</button>
+                <button type="button" disabled={!canBet} onClick={() => choose({ type: 'NUMBER', value: String(Math.floor(Math.random() * 10)) })} className="shrink-0 rounded-lg border border-rose-500 px-3 py-1.5 text-xs font-bold text-rose-500 disabled:opacity-50">{tr('Random')}</button>
                 {QUANTITY_MULTIPLIERS.map((m) => (
                   <button key={m} type="button" onClick={() => setMultiplier(m)} className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-bold ${multiplier === m ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-500'}`}>X{m}</button>
                 ))}
               </div>
 
               <div className="grid grid-cols-2 overflow-hidden rounded-full">
-                <button type="button" disabled={!canBet} onClick={() => choose({ type: 'SIZE', value: 'BIG' })} className="bg-amber-400 py-3 text-sm font-black text-white disabled:opacity-60">Big</button>
-                <button type="button" disabled={!canBet} onClick={() => choose({ type: 'SIZE', value: 'SMALL' })} className="bg-sky-500 py-3 text-sm font-black text-white disabled:opacity-60">Small</button>
+                <button type="button" disabled={!canBet} onClick={() => choose({ type: 'SIZE', value: 'BIG' })} className="bg-amber-400 py-3 text-sm font-black text-white disabled:opacity-60">{tr('Big')}</button>
+                <button type="button" disabled={!canBet} onClick={() => choose({ type: 'SIZE', value: 'SMALL' })} className="bg-sky-500 py-3 text-sm font-black text-white disabled:opacity-60">{tr('Small')}</button>
               </div>
 
               {finalCountdown && (
@@ -274,7 +275,7 @@ export const WinGo: React.FC = () => {
                 </div>
               )}
               {!isAuthenticated && (
-                <p className="text-center text-xs text-slate-500"><Link to="/login" className="font-bold text-rose-500">Sign in</Link> to place bets.</p>
+                <p className="text-center text-xs text-slate-500"><Link to="/login" className="font-bold text-rose-500">{tr('Sign in')}</Link> {tr('to place bets.')}</p>
               )}
             </div>
 
@@ -283,7 +284,7 @@ export const WinGo: React.FC = () => {
               <div className="rounded-2xl bg-white p-3 shadow-sm">
                 <div className="mb-2 flex items-center justify-between">
                   <p className="flex items-center gap-1.5 text-sm font-black text-slate-800"><Ticket className="h-4 w-4 text-rose-500" />My bets • {slip[0].period}</p>
-                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-700">Waiting for result</span>
+                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-700">{tr('Waiting for result')}</span>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {slip.map((b) => (
@@ -293,8 +294,8 @@ export const WinGo: React.FC = () => {
                   ))}
                 </div>
                 <div className="mt-2 flex justify-between border-t border-slate-100 pt-2 text-xs text-slate-500">
-                  <span>Total stake <b className="text-slate-800">{formatPaiseToRupee(slipTotal)}</b></span>
-                  <span>Max win <b className="text-emerald-600">{formatPaiseToRupee(slipMaxWin)}</b></span>
+                  <span>{tr('Total stake')} <b className="text-slate-800">{formatPaiseToRupee(slipTotal)}</b></span>
+                  <span>{tr('Max win')} <b className="text-emerald-600">{formatPaiseToRupee(slipMaxWin)}</b></span>
                 </div>
               </div>
             )}
@@ -329,18 +330,18 @@ export const WinGo: React.FC = () => {
       {showRules && (
         <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 p-4" onClick={() => setShowRules(false)}>
           <div className="relative max-h-[85vh] w-full max-w-sm overflow-y-auto rounded-3xl bg-white p-5 text-sm text-slate-600" onClick={(e) => e.stopPropagation()}>
-            <button type="button" aria-label="Close" onClick={() => setShowRules(false)} className="absolute right-4 top-4 text-slate-400"><X className="h-5 w-5" /></button>
-            <h3 className="mb-3 text-center text-lg font-black text-rose-500">How to play</h3>
+            <button type="button" aria-label={tr('Close')} onClick={() => setShowRules(false)} className="absolute right-4 top-4 text-slate-400"><X className="h-5 w-5" /></button>
+            <h3 className="mb-3 text-center text-lg font-black text-rose-500">{tr('How to play')}</h3>
             <p>Every {mode.label} period draws one number from 0 to 9. Betting closes 5 seconds before the draw.</p>
             <ul className="mt-3 list-disc space-y-1 pl-5">
-              <li><b className="text-emerald-600">Green</b>: 1, 3, 7, 9 pay {fmtX(payouts.GREEN)} · 5 pays {fmtX(payouts.COLOR_HALF)}</li>
-              <li><b className="text-rose-600">Red</b>: 2, 4, 6, 8 pay {fmtX(payouts.RED)} · 0 pays {fmtX(payouts.COLOR_HALF)}</li>
-              <li><b className="text-violet-600">Violet</b>: 0 or 5 pays {fmtX(payouts.VIOLET)}</li>
-              <li><b>Number</b>: exact number pays {fmtX(payouts.NUMBER)}</li>
-              <li><b className="text-amber-500">Big</b> (5-9) / <b className="text-sky-600">Small</b> (0-4): {fmtX(payouts.SIZE)}</li>
+              <li><b className="text-emerald-600">{tr('Green')}</b>: 1, 3, 7, 9 pay {fmtX(payouts.GREEN)} · 5 pays {fmtX(payouts.COLOR_HALF)}</li>
+              <li><b className="text-rose-600">{tr('Red')}</b>: 2, 4, 6, 8 pay {fmtX(payouts.RED)} · 0 pays {fmtX(payouts.COLOR_HALF)}</li>
+              <li><b className="text-violet-600">{tr('Violet')}</b>: 0 or 5 pays {fmtX(payouts.VIOLET)}</li>
+              <li><b>{tr('Number')}</b>: exact number pays {fmtX(payouts.NUMBER)}</li>
+              <li><b className="text-amber-500">{tr('Big')}</b> (5-9) / <b className="text-sky-600">{tr('Small')}</b> (0-4): {fmtX(payouts.SIZE)}</li>
             </ul>
             <p className="mt-3">Your total bet = amount × quantity. You can place several bets in one period. Results are provably fair: the server seed hash is published before betting and revealed after the draw.</p>
-            <button type="button" onClick={() => setShowRules(false)} className="mt-4 w-full rounded-full bg-gradient-to-r from-rose-500 to-orange-400 py-2.5 font-bold text-white">Got it</button>
+            <button type="button" onClick={() => setShowRules(false)} className="mt-4 w-full rounded-full bg-gradient-to-r from-rose-500 to-orange-400 py-2.5 font-bold text-white">{tr('Got it')}</button>
           </div>
         </div>
       )}

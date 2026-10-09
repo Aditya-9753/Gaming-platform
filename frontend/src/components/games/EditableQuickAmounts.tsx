@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Check, Pencil, RotateCcw } from 'lucide-react'
+import { t as tr } from '../../i18n'
 
 /**
  * Quick-bet chips the player can edit (pencil). Values are rupees and are
@@ -95,11 +96,11 @@ export const EditableQuickAmounts: React.FC<EditableQuickAmountsProps> = ({
       <div className="flex items-center justify-end gap-3 text-[11px]">
         {editing ? (
           <>
-            <button type="button" onClick={() => { onReset(); setEditing(false) }} className="flex items-center gap-1 text-slate-400 hover:text-white"><RotateCcw className="w-3 h-3" />Reset</button>
-            <button type="button" onClick={commit} className="flex items-center gap-1 font-bold text-emerald-400"><Check className="w-3 h-3" />Save</button>
+            <button type="button" onClick={() => { onReset(); setEditing(false) }} className="flex items-center gap-1 text-slate-400 hover:text-white"><RotateCcw className="w-3 h-3" />{tr('Reset')}</button>
+            <button type="button" onClick={commit} className="flex items-center gap-1 font-bold text-emerald-400"><Check className="w-3 h-3" />{tr('Save')}</button>
           </>
         ) : (
-          <button type="button" onClick={() => setEditing(true)} disabled={disabled} className="flex items-center gap-1 text-slate-400 hover:text-white disabled:opacity-40"><Pencil className="w-3 h-3" />Edit amounts</button>
+          <button type="button" onClick={() => setEditing(true)} disabled={disabled} className="flex items-center gap-1 text-slate-400 hover:text-white disabled:opacity-40"><Pencil className="w-3 h-3" />{tr('Edit amounts')}</button>
         )}
       </div>
     </div>

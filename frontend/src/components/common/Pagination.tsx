@@ -1,6 +1,7 @@
 import React from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from './Button'
+import { t as tr } from '../../i18n'
 
 export interface PaginationProps {
   currentPage: number
@@ -18,7 +19,7 @@ export const Pagination: React.FC<PaginationProps> = ({
   return (
     <div className="flex items-center justify-between py-3">
       <span className="text-xs text-slate-400">
-        Page <span className="text-white font-bold">{currentPage}</span> of{' '}
+        {tr('Page')} <span className="text-white font-bold">{currentPage}</span> of{' '}
         <span className="text-white font-bold">{totalPages}</span>
       </span>
 

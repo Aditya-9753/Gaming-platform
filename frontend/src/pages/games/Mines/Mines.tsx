@@ -10,6 +10,7 @@ import { apiClient } from '../../../services/api'
 import { syncWalletBalance } from '../../../services/wallet.api'
 import { getApiErrorMessage } from '../../../utils/apiError'
 import { playSound, playWinFor } from '../../../utils/sounds'
+import { t as tr } from '../../../i18n'
 
 interface MinesSession {
   round_id: string
@@ -69,11 +70,11 @@ export const Mines: React.FC = () => {
       setSession(data)
       if (data.status !== 'IN_PROGRESS') setHistoryKey((k) => k + 1)
       if (body.action === 'start' || data.status !== 'IN_PROGRESS') {
-        void syncWalletBalance().catch(() => showToast({ title: 'Wallet refresh delayed', message: 'The game action completed; refresh your wallet to see the latest balance.', type: 'warning' }))
+        void syncWalletBalance().catch(() => showToast({ title: tr('Wallet refresh delayed'), message: tr('The game action completed; refresh your wallet to see the latest balance.'), type: 'warning' }))
       }
       return data
     } catch (error) {
-      showToast({ title: 'Action failed', message: getApiErrorMessage(error, 'The server could not process that move. Please retry.'), type: 'error' })
+      showToast({ title: tr('Action failed'), message: getApiErrorMessage(error, 'The server could not process that move. Please retry.'), type: 'error' })
       return undefined
     } finally {
       busyRef.current = false
@@ -84,7 +85,7 @@ export const Mines: React.FC = () => {
   const handleStart = async () => {
     const amount = Number(betRupees)
     if (!Number.isFinite(amount) || amount <= 0) {
-      showToast({ title: 'Invalid bet', message: 'Enter a valid bet amount.', type: 'error' })
+      showToast({ title: tr('Invalid bet'), message: tr('Enter a valid bet amount.'), type: 'error' })
       return
     }
     const result = await sendAction({
@@ -93,7 +94,7 @@ export const Mines: React.FC = () => {
       mine_count: mineCount,
     })
     if (result) playSound('bet')
-    if (result) showToast({ title: 'Game started', message: `${mineCount} mines hidden. Reveal gems and cash out before you hit one!`, type: 'info' })
+    if (result) showToast({ title: tr('Game started'), message: tr('{count} mines hidden. Reveal gems and cash out before you hit one!', { count: mineCount }), type: 'info' })
   }
 
   const drainQueue = async () => {
@@ -109,7 +110,7 @@ export const Mines: React.FC = () => {
         if (!result || result.status !== 'IN_PROGRESS') {
           queueRef.current = [] // mine hit, round over or error: drop the remaining taps
           if (result?.status === 'LOST') {
-            showToast({ title: 'Boom! Mine hit', message: `You lost ${formatPaiseToRupee(result.bet_amount)}. The mine layout is now revealed.`, type: 'error' })
+            showToast({ title: tr('Boom! Mine hit'), message: tr('You lost {amount}. The mine layout is now revealed.', { amount: formatPaiseToRupee(result.bet_amount) }), type: 'error' })
           }
         }
         setPendingTiles([...queueRef.current])
@@ -132,7 +133,7 @@ export const Mines: React.FC = () => {
       playSound('cashout')
       window.setTimeout(() => playWinFor(result.current_payout, result.bet_amount), 150)
       showToast({
-        title: 'Cashed out!',
+        title: tr('Cashed out!'),
         message: `You won ${formatPaiseToRupee(result.current_payout)} at ${result.current_multiplier.toFixed(2)}x.`,
         type: 'success',
       })
@@ -149,8 +150,8 @@ export const Mines: React.FC = () => {
         <div className="flex items-center gap-2 sm:gap-3">
           <SkullBomb className="h-10 w-10 sm:h-14 sm:w-14 drop-shadow-[0_0_12px_rgba(251,146,60,0.9)]" />
           <div>
-            <h2 className="bg-gradient-to-b from-[#fff6c9] via-[#fbbf24] to-[#b45309] bg-clip-text font-black italic tracking-wide text-transparent drop-shadow-[0_3px_0_rgba(80,10,40,0.9)] text-2xl sm:text-4xl">MINES</h2>
-            <span className="text-[11px] sm:text-xs font-semibold text-amber-100/80">Find the gems • dodge the bombs</span>
+            <h2 className="bg-gradient-to-b from-[#fff6c9] via-[#fbbf24] to-[#b45309] bg-clip-text font-black italic tracking-wide text-transparent drop-shadow-[0_3px_0_rgba(80,10,40,0.9)] text-2xl sm:text-4xl">{tr('MINES')}</h2>
+            <span className="text-[11px] sm:text-xs font-semibold text-amber-100/80">{tr('Find the gems • dodge the bombs')}</span>
           </div>
         </div>
         <ProvablyFairBadge className="hidden sm:inline-flex" />
@@ -168,9 +169,9 @@ export const Mines: React.FC = () => {
           )}
           {session && (
             <details className="rounded-xl bg-black/30 px-3 py-2 text-[11px] text-amber-100/70">
-              <summary className="cursor-pointer font-semibold">Provably fair details</summary>
-              <p className="mt-1 break-all">Commitment: <span className="font-mono">{session.server_seed_hash}</span></p>
-              {ended && session.server_seed && <p className="mt-1 break-all">Server seed: <span className="font-mono">{session.server_seed}</span></p>}
+              <summary className="cursor-pointer font-semibold">{tr('Provably fair details')}</summary>
+              <p className="mt-1 break-all">{tr('Commitment:')} <span className="font-mono">{session.server_seed_hash}</span></p>
+              {ended && session.server_seed && <p className="mt-1 break-all">{tr('Server seed:')} <span className="font-mono">{session.server_seed}</span></p>}
             </details>
           )}
         </div>
@@ -192,7 +193,7 @@ export const Mines: React.FC = () => {
       </div>
 
       <section className="mt-4 sm:mt-5 rounded-2xl bg-black/40 p-3 sm:p-4">
-        <MyBetsHistory gameId="mines" refreshKey={historyKey} title="My Mines history" />
+        <MyBetsHistory gameId="mines" refreshKey={historyKey} title={tr('My Mines history')} />
       </section>
     </div>
   )

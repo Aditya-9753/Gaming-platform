@@ -1,6 +1,7 @@
 import React from 'react'
 import type { GameMetadata } from '../../types/game.types'
 import { GameCard } from './GameCard'
+import { t as tr } from '../../i18n'
 
 export interface GameGridProps {
   games: GameMetadata[]
@@ -8,7 +9,7 @@ export interface GameGridProps {
 
 export const GameGrid: React.FC<GameGridProps> = ({ games }) => {
   if (games.length === 0) {
-    return <p className="rounded-2xl border border-dark-border bg-dark-card p-6 text-sm text-slate-400">No games are currently available. Check back later or contact support if the issue persists.</p>
+    return <p className="rounded-2xl border border-dark-border bg-dark-card p-6 text-sm text-slate-400">{tr('No games are currently available. Check back later or contact support if the issue persists.')}</p>
   }
 
   return (
