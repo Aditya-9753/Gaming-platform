@@ -2,7 +2,8 @@ import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { Lock, User, ArrowRight, ShieldCheck, KeyRound } from 'lucide-react'
-import { BrandLogo } from '../../components/common/BrandLogo'
+import { BrandHero } from '../../components/brand/BrandHero'
+import { useLogoSplash } from '../../components/brand/LogoSplash'
 import { Turnstile, captchaSiteKey } from '../../components/common/Turnstile'
 import { Input } from '../../components/common/Input'
 import { Button } from '../../components/common/Button'
@@ -44,6 +45,7 @@ export const Login: React.FC = () => {
       setAccessToken(access_token)
       const user = await authApi.getCurrentUser()
       setAuth(user, access_token)
+      useLogoSplash.getState().show()
       showToast({ title: tr('Welcome back!'), message: tr('Signed in successfully.'), type: 'success' })
       navigate(user.role === 'partner' ? '/partner/dashboard' : isStaffRole(user.role)
         ? user.requires2FASetup ? '/admin/2fa' : '/admin/dashboard'
@@ -77,7 +79,7 @@ export const Login: React.FC = () => {
     <div className="max-w-md mx-auto py-8">
       <div className="bg-dark-card border border-dark-border rounded-3xl p-8 shadow-2xl space-y-6">
         <div className="text-center space-y-2">
-          <BrandLogo wordmark className="flex justify-center" textClassName="text-2xl font-black tracking-tight" />
+          <BrandHero className="w-44 sm:w-52" />
           <h2 className="text-2xl font-black text-white">{tr('Welcome Back')}</h2>
           <p className="text-xs text-slate-400">{tr('Sign in with your username and password')}</p>
         </div>

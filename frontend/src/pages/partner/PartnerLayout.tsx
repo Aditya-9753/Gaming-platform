@@ -8,7 +8,8 @@ import { BrandLogo } from '../../components/common/BrandLogo'
 import { Loader } from '../../components/common/Loader'
 import { ToastContainer } from '../../components/common/Toast'
 import { ErrorBoundary } from '../../components/common/ErrorBoundary'
-import { Badge, Btn, Money, cx, errorText, pct } from '../../components/affiliate/ui'
+import { Badge, Btn, Money, PremiumUI, cx, errorText, pct } from '../../components/affiliate/ui'
+import '../../components/brand/brand.css'
 import { authApi } from '../../services/auth.api'
 import { partnerApi } from '../../services/affiliate.api'
 import { useAuthStore } from '../../store/auth.store'
@@ -91,13 +92,26 @@ export const PartnerLayout: React.FC = () => {
   const tiles = TILES.filter((tile) => !tile.sub || me.subpartners_enabled)
 
   return (
-    <div className="dark flex min-h-[100dvh] flex-col bg-dark-bg text-white">
+    <PremiumUI.Provider value>
+    <div className="dark relative flex min-h-[100dvh] flex-col overflow-x-hidden bg-[#050b1c] text-white">
+      {/* Ambient background: drifting glow orbs over a faint grid */}
+      <div aria-hidden className="pointer-events-none fixed inset-0 overflow-hidden">
+        <div className="rw-orb left-[-15%] top-[-10%] h-[420px] w-[420px] bg-blue-600" />
+        <div className="rw-orb right-[-15%] top-[25%] h-[380px] w-[380px] bg-violet-700" style={{ animationDelay: '-5s' }} />
+        <div className="rw-orb bottom-[-15%] left-[25%] h-[360px] w-[360px] bg-cyan-600" style={{ animationDelay: '-9s', opacity: 0.25 }} />
+        <div className="absolute inset-0 opacity-[0.06]" style={{
+          backgroundImage: 'linear-gradient(rgba(255,255,255,.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.6) 1px, transparent 1px)',
+          backgroundSize: '44px 44px',
+          maskImage: 'radial-gradient(ellipse at top, #000 20%, transparent 70%)',
+          WebkitMaskImage: 'radial-gradient(ellipse at top, #000 20%, transparent 70%)',
+        }} />
+      </div>
       {me.impersonated_by && (
         <div className="flex items-center justify-center gap-2 bg-amber-500 px-3 py-1.5 text-center text-xs font-bold text-black">
           <Eye className="h-4 w-4" /> Read-only view of partner {p.partner_code} — changes are disabled
         </div>
       )}
-      <header className="sticky top-0 z-40 border-b border-dark-border bg-dark-card/95 backdrop-blur">
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#071027]/80 backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-5xl items-center gap-1 px-2 sm:px-4">
           <Link to="/partner/notifications" className="relative rounded-xl p-2.5 text-slate-300 hover:bg-dark-elevated" aria-label={t('notifications')}>
             <Mail className="h-5 w-5" />
@@ -136,8 +150,8 @@ export const PartnerLayout: React.FC = () => {
         )}
         <nav className="mx-auto hidden max-w-5xl gap-1 overflow-x-auto px-4 pb-2 lg:flex" aria-label="Partner navigation">
           {tiles.map((tile) => (
-            <NavLink key={tile.to} to={tile.to} className={({ isActive }) => cx('flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-bold',
-              isActive ? 'bg-brand-blue text-white' : 'text-slate-400 hover:text-white')}>
+            <NavLink key={tile.to} to={tile.to} className={({ isActive }) => cx('flex items-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-1.5 text-xs font-bold transition-all duration-300',
+              isActive ? 'bg-gradient-to-r from-blue-500 to-violet-600 text-white shadow-md shadow-blue-600/40' : 'text-slate-400 hover:-translate-y-0.5 hover:bg-white/5 hover:text-white')}>
               {tile.icon}{t(tile.key)}
             </NavLink>
           ))}
@@ -146,10 +160,10 @@ export const PartnerLayout: React.FC = () => {
 
       {/* Hamburger menu */}
       <div className={cx('fixed inset-0 z-50 bg-black/70 transition-opacity', menuOpen ? 'opacity-100' : 'pointer-events-none opacity-0')} onClick={() => setMenuOpen(false)} aria-hidden="true" />
-      <aside className={cx('fixed inset-y-0 right-0 z-50 flex w-[92vw] max-w-sm flex-col bg-dark-card shadow-2xl transition-transform',
+      <aside className={cx('fixed inset-y-0 right-0 z-50 flex w-[92vw] max-w-sm flex-col border-l border-white/10 bg-[#0a1430]/95 shadow-2xl backdrop-blur-xl transition-transform duration-300',
         menuOpen ? 'translate-x-0' : 'translate-x-full')} aria-label="Menu">
         <div className="flex items-center gap-3 border-b border-dark-border p-4">
-          <div className="relative flex h-11 w-11 items-center justify-center rounded-full bg-brand-blue text-lg font-black">
+          <div className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 via-indigo-500 to-violet-600 text-lg font-black shadow-lg shadow-indigo-500/30">
             {(me.name || '?').slice(0, 1).toUpperCase()}
             <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-dark-card bg-emerald-400" aria-label="online" />
           </div>
@@ -160,9 +174,9 @@ export const PartnerLayout: React.FC = () => {
           <button type="button" onClick={() => setMenuOpen(false)} className="rounded-lg p-2 text-slate-400 hover:text-white" aria-label="Close menu"><X className="h-5 w-5" /></button>
         </div>
         <div className="flex-1 space-y-4 overflow-y-auto p-4">
-          <Link to="/partner/withdrawal" className="block rounded-2xl bg-gradient-to-br from-brand-blue to-indigo-700 p-4 shadow-lg">
+          <Link to="/partner/withdrawal" className="rw-glow-card rw-lift block bg-gradient-to-br from-[#1b2f7a] via-[#1a1f5c] to-[#2a1660] p-4">
             <div className="text-[11px] font-bold uppercase tracking-wide text-blue-100">{t('available')}</div>
-            <Money value={me.wallet.available} className={cx('text-2xl font-black', Number(me.wallet.available) < 0 ? 'text-rose-200' : 'text-white')} />
+            <Money value={me.wallet.available} className={cx('text-2xl font-black', Number(me.wallet.available) < 0 ? 'text-rose-200' : 'rw-shimmer-text')} />
             <div className="mt-1 text-xs font-bold text-blue-100">{dealLabel(me.deal?.deal_type, me.deal?.revshare_rate, t)}</div>
             <div className="mt-2 flex gap-3 text-[11px] text-blue-100/80">
               <span>{t('pending')}: {Number(me.wallet.pending).toFixed(2)} $</span>
@@ -171,8 +185,8 @@ export const PartnerLayout: React.FC = () => {
           </Link>
           <div className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 pb-1">
             {[...tiles, { to: '/partner/profile', key: 'profile' as TKey, icon: <User className="h-5 w-5" /> }].map((tile) => (
-              <NavLink key={tile.to} to={tile.to} className={({ isActive }) => cx('flex h-20 w-24 shrink-0 snap-start flex-col items-center justify-center gap-1.5 rounded-2xl border text-center text-[11px] font-bold',
-                isActive ? 'border-brand-blue bg-brand-blue/15 text-white' : 'border-dark-border bg-dark-bg text-slate-300')}>
+              <NavLink key={tile.to} to={tile.to} className={({ isActive }) => cx('flex h-20 w-24 shrink-0 snap-start flex-col items-center justify-center gap-1.5 rounded-2xl border text-center text-[11px] font-bold transition-all duration-300',
+                isActive ? 'border-blue-400/60 bg-gradient-to-br from-blue-500/25 to-violet-600/25 text-white shadow-lg shadow-blue-600/20' : 'border-white/10 bg-white/[0.03] text-slate-300 hover:-translate-y-0.5 hover:border-blue-400/40')}>
                 {tile.icon}<span className="px-1 leading-tight">{t(tile.key)}</span>
               </NavLink>
             ))}
@@ -200,20 +214,24 @@ export const PartnerLayout: React.FC = () => {
         </div>
       </aside>
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-4 sm:py-6">
+      <main className="relative mx-auto w-full max-w-5xl flex-1 px-4 py-4 sm:py-6">
         <ErrorBoundary>
           <Suspense fallback={<Loader text={t('loading')} />}>
-            {gate && gated ? gate : <Outlet />}
+            {/* Re-keyed per page so every page enters with the same motion */}
+            <div key={pathname} className="rw-rise">
+              {gate && gated ? gate : <Outlet />}
+            </div>
           </Suspense>
         </ErrorBoundary>
       </main>
       <ToastContainer />
     </div>
+    </PremiumUI.Provider>
   )
 }
 
 const StateCard: React.FC<{ title: string; text: string; children?: React.ReactNode }> = ({ title, text, children }) => (
-  <div className="mx-auto mt-6 max-w-md space-y-3 rounded-3xl border border-dark-border bg-dark-card p-6 text-center">
+  <div className="rw-glass rw-rise mx-auto mt-6 max-w-md space-y-3 rounded-3xl p-6 text-center">
     <h2 className="text-lg font-black">{title}</h2>
     <p className="text-sm text-slate-400">{text}</p>
     {children}

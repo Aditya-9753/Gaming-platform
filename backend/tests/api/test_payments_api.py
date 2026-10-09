@@ -194,10 +194,10 @@ async def test_deposit_intent_is_idempotent_and_has_qr(env):
     assert first["amount_paise"] == 50_000  # exact amount by default
     payment = first["payment"]
     assert set(payment) == {"upi_link", "qr"}  # no UPI id, payee name, bank or uploaded QR for players
-    assert "Rudra%20Collections" not in payment["upi_link"] and "pn=Rudra247" in payment["upi_link"]
+    assert "Rudra%20Collections" not in payment["upi_link"] and "pn=RudraWin" in payment["upi_link"]
     assert payment["qr"].startswith("data:image/svg+xml;base64,")
     import base64
-    assert ">Rudra247</text>" in base64.b64decode(payment["qr"].split(",", 1)[1]).decode()  # brand drawn on the QR
+    assert ">RudraWin</text>" in base64.b64decode(payment["qr"].split(",", 1)[1]).decode()  # brand drawn on the QR
     assert f"tn={first['reference']}" in payment["upi_link"]
 
 

@@ -10,6 +10,8 @@ import { showToast } from '../../components/common/Toast'
 import { apiClient } from '../../services/api'
 import { clearReferral, getReferral } from '../../utils/referral'
 import { t as tr } from '../../i18n'
+import { useLogoSplash } from '../../components/brand/LogoSplash'
+import { BrandHero } from '../../components/brand/BrandHero'
 
 // Must match PLAYER_PASSWORD_PATTERN on the server
 const USERNAME_PATTERN = /^[a-zA-Z0-9_]{3,50}$/
@@ -104,6 +106,7 @@ export const Register: React.FC = () => {
       setAccessToken(access_token)
       const user = await authApi.getCurrentUser()
       setAuth(user, access_token)
+      useLogoSplash.getState().show()
       showToast({ title: tr('Account created'), message: tr('Your account is ready.'), type: 'success' })
       navigate('/dashboard')
     } catch (error) {
@@ -125,6 +128,7 @@ export const Register: React.FC = () => {
     <div className="max-w-md mx-auto py-8">
       <div className="bg-dark-card border border-dark-border rounded-3xl p-8 shadow-2xl space-y-6">
         <div className="text-center space-y-2">
+          <BrandHero className="w-36 sm:w-44" />
           <h2 className="text-2xl font-black text-white">{tr('Create Account')}</h2>
           <p className="text-xs text-slate-400">{tr("Pick a username and password, that's all you need")}</p>
         </div>

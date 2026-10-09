@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import axios from 'axios'
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react'
-import { BrandLogo } from '../../components/common/BrandLogo'
+import { BrandHero } from '../../components/brand/BrandHero'
+import { useLogoSplash } from '../../components/brand/LogoSplash'
 import { Turnstile, captchaSiteKey } from '../../components/common/Turnstile'
 import { Btn, Field, cx, errorText, inputCls } from '../../components/affiliate/ui'
 import { authApi } from '../../services/auth.api'
@@ -15,7 +16,7 @@ const Shell: React.FC<{ title: string; subtitle?: string; children: React.ReactN
   <div className="dark flex min-h-[100dvh] items-start justify-center bg-dark-bg px-4 py-8 text-white sm:items-center">
     <div className="w-full max-w-md space-y-5 rounded-3xl border border-dark-border bg-dark-card p-6 shadow-2xl sm:p-8">
       <div className="space-y-1 text-center">
-        <BrandLogo wordmark className="flex justify-center" textClassName="text-xl font-black" />
+        <BrandHero className="w-36 sm:w-40" />
         <div className="text-[11px] font-black uppercase tracking-[0.2em] text-blue-300">Partners</div>
         <h1 className="pt-2 text-xl font-black">{title}</h1>
         {subtitle && <p className="text-xs text-slate-400">{subtitle}</p>}
@@ -61,6 +62,7 @@ export const PartnerLogin: React.FC = () => {
       setAccessToken(access_token)
       const user = await authApi.getCurrentUser()
       setAuth(user, access_token)
+      useLogoSplash.getState().show()
       navigate(user.role === 'partner' ? '/partner/dashboard' : user.role === 'user' ? '/dashboard' : '/admin/dashboard', { replace: true })
     } catch (err) {
       const key = captchaSiteKey(err)

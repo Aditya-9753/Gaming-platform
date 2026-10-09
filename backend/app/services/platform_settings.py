@@ -17,8 +17,8 @@ from app.models.system_setting import SystemSetting
 
 # key -> (type, default, description)
 SETTINGS_SCHEMA: Dict[str, tuple] = {
-    "platform_name": (str, "Rudra247", "Brand name shown across the site"),
-    "platform_logo_url": (str, "", "Logo image URL (empty = default flame logo)"),
+    "platform_name": (str, "RudraWin", "Brand name shown across the site"),
+    "platform_logo_url": (str, "", "Logo image URL (empty = built-in RudraWin logo)"),
     "maintenance_mode": (bool, False, "Block new bets for everyone except staff"),
     "maintenance_message": (str, "We are upgrading the platform. Betting resumes shortly.", "Banner text during maintenance"),
     "signup_bonus_paise": (int, 10000, "Virtual credits given at sign-up (paise)"),

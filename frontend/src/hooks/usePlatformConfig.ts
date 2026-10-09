@@ -17,7 +17,7 @@ interface ConfigState {
 }
 
 const DEFAULTS: PlatformConfig = {
-  platform_name: 'Rudra247',
+  platform_name: 'RudraWin',
   platform_logo_url: '',
   maintenance_mode: false,
   maintenance_message: '',

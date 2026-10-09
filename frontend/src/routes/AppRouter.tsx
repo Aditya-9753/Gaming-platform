@@ -16,6 +16,7 @@ import { AgeGateModal } from '../components/common/AgeGateModal'
 import { ToastContainer } from '../components/common/Toast'
 import { ErrorBoundary } from '../components/common/ErrorBoundary'
 import { Loader } from '../components/common/Loader'
+import { LogoSplash } from '../components/brand/LogoSplash'
 import { useAuthStore } from '../store/auth.store'
 import { useUIStore } from '../store/ui.store'
 import { authApi } from '../services/auth.api'
@@ -395,5 +396,10 @@ export const router = createBrowserRouter([
 
 export const AppRouter: React.FC = () => {
   useSessionBootstrap()
-  return <RouterProvider router={router} />
+  return (
+    <>
+      <RouterProvider router={router} />
+      <LogoSplash />
+    </>
+  )
 }

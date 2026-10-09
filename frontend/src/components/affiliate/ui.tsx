@@ -5,6 +5,14 @@ import { showToast } from '../common/Toast'
 
 /** Small building blocks shared by the partner portal and the affiliate back office. */
 
+/**
+ * True inside the partner portal: cards, buttons and tabs switch to the RudraWin
+ * premium look (glass, gradients, entrance motion; see components/brand/brand.css).
+ * The affiliate back office leaves it off and keeps the plain admin style.
+ */
+export const PremiumUI = React.createContext(false)
+const usePremium = () => React.useContext(PremiumUI)
+
 export const cx = (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(' ')
 
 export const usd = (value: string | number | null | undefined, sign = false): string => {
@@ -31,17 +39,25 @@ export const toastError = (e: unknown, title = 'Could not complete') =>
 
 export const Card: React.FC<{ title?: React.ReactNode; actions?: React.ReactNode; className?: string; children: React.ReactNode }> = ({
   title, actions, className, children,
-}) => (
-  <section className={cx('rounded-2xl border border-dark-border bg-dark-card p-4 sm:p-5', className)}>
-    {(title || actions) && (
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        {title && <h3 className="text-sm font-extrabold text-white">{title}</h3>}
-        {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
-      </div>
-    )}
-    {children}
-  </section>
-)
+}) => {
+  const premium = usePremium()
+  return (
+    <section className={cx(premium ? 'rw-glass rw-rise rounded-3xl p-4 sm:p-5' : 'rounded-2xl border border-dark-border bg-dark-card p-4 sm:p-5', className)}>
+      {(title || actions) && (
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          {title && (
+            <h3 className={cx('text-sm font-extrabold text-white', premium && 'flex items-center gap-2')}>
+              {premium && <span className="h-4 w-1 rounded-full bg-gradient-to-b from-blue-400 to-violet-500" aria-hidden />}
+              {title}
+            </h3>
+          )}
+          {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+        </div>
+      )}
+      {children}
+    </section>
+  )
+}
 
 export const Money: React.FC<{ value: string | number | null | undefined; className?: string; sign?: boolean }> = ({ value, className, sign }) => {
   const n = Number(value)
@@ -88,17 +104,22 @@ export const Empty: React.FC<{ children?: React.ReactNode }> = ({ children }) =>
   <div className="rounded-xl border border-dashed border-dark-border px-4 py-8 text-center text-sm text-slate-400">{children || 'Nothing here yet'}</div>
 )
 
-export const Tabs: React.FC<{ tabs: Array<{ id: string; label: React.ReactNode }>; value: string; onChange: (id: string) => void }> = ({ tabs, value, onChange }) => (
-  <div className="flex gap-1 overflow-x-auto rounded-xl border border-dark-border bg-dark-bg/60 p-1" role="tablist">
-    {tabs.map((tab) => (
-      <button key={tab.id} type="button" role="tab" aria-selected={value === tab.id} onClick={() => onChange(tab.id)}
-        className={cx('min-h-[40px] whitespace-nowrap rounded-lg px-3 text-xs font-bold transition',
-          value === tab.id ? 'bg-brand-blue text-white' : 'text-slate-400 hover:text-white')}>
-        {tab.label}
-      </button>
-    ))}
-  </div>
-)
+export const Tabs: React.FC<{ tabs: Array<{ id: string; label: React.ReactNode }>; value: string; onChange: (id: string) => void }> = ({ tabs, value, onChange }) => {
+  const premium = usePremium()
+  return (
+    <div className={cx('flex gap-1 overflow-x-auto p-1', premium ? 'rw-glass rounded-2xl' : 'rounded-xl border border-dark-border bg-dark-bg/60')} role="tablist">
+      {tabs.map((tab) => (
+        <button key={tab.id} type="button" role="tab" aria-selected={value === tab.id} onClick={() => onChange(tab.id)}
+          className={cx('min-h-[40px] whitespace-nowrap rounded-lg px-3 text-xs font-bold transition-all duration-300',
+            value === tab.id
+              ? premium ? 'rounded-xl bg-gradient-to-r from-blue-500 to-violet-600 text-white shadow-md shadow-blue-600/40' : 'bg-brand-blue text-white'
+              : 'text-slate-400 hover:text-white')}>
+          {tab.label}
+        </button>
+      ))}
+    </div>
+  )
+}
 
 export const Field: React.FC<{ label: string; hint?: React.ReactNode; children: React.ReactNode; className?: string }> = ({ label, hint, children, className }) => (
   <label className={cx('block space-y-1', className)}>
@@ -113,19 +134,27 @@ export const inputCls =
 
 export const Btn: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { tone?: 'primary' | 'ghost' | 'danger' | 'success'; busy?: boolean; small?: boolean }> = ({
   tone = 'primary', busy, small, className, children, disabled, ...rest
-}) => (
+}) => {
+  const premium = usePremium()
+  return (
   <button type="button" disabled={disabled || busy} {...rest}
     className={cx('inline-flex items-center justify-center gap-1.5 rounded-xl font-extrabold transition disabled:cursor-not-allowed disabled:opacity-50',
+      premium && 'duration-300 active:scale-[0.97] enabled:hover:-translate-y-0.5',
       small ? 'min-h-[36px] px-3 text-xs' : 'min-h-[44px] px-4 text-sm',
-      tone === 'primary' && 'bg-brand-blue text-white hover:brightness-110',
-      tone === 'ghost' && 'border border-dark-border text-slate-200 hover:border-slate-500 hover:text-white',
+      tone === 'primary' && (premium
+        ? 'bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-600 text-white shadow-lg shadow-blue-600/30 hover:shadow-blue-500/50 hover:brightness-110'
+        : 'bg-brand-blue text-white hover:brightness-110'),
+      tone === 'ghost' && (premium
+        ? 'border border-white/10 bg-white/[0.04] text-slate-200 hover:border-blue-400/50 hover:text-white'
+        : 'border border-dark-border text-slate-200 hover:border-slate-500 hover:text-white'),
       tone === 'danger' && 'bg-rose-600 text-white hover:bg-rose-500',
       tone === 'success' && 'bg-emerald-600 text-white hover:bg-emerald-500',
       className)}>
     {busy && <Loader2 className="h-4 w-4 animate-spin" />}
     {children}
   </button>
-)
+  )
+}
 
 export const CopyButton: React.FC<{ text: string; label?: string; small?: boolean }> = ({ text, label, small = true }) => {
   const [done, setDone] = useState(false)

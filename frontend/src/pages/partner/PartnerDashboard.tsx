@@ -28,8 +28,8 @@ export const PeriodPicker: React.FC<{ value: StatsQuery; onChange: (q: StatsQuer
   )
 }
 
-const Metric: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
-  <div className="flex items-center justify-between gap-3 border-b border-white/10 py-2.5 last:border-0">
+const Metric: React.FC<{ label: string; value: React.ReactNode; i?: number }> = ({ label, value, i = 0 }) => (
+  <div className="rw-rise flex items-center justify-between gap-3 border-b border-white/10 py-2.5 last:border-0" style={{ '--i': i } as React.CSSProperties}>
     <span className="text-xs text-blue-100/80">{label}</span>
     <span className="text-sm font-black tabular-nums text-white">{value ?? '—'}</span>
   </div>
@@ -80,7 +80,7 @@ export const PartnerDashboard: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-[#1d3b8f] to-[#14245a] shadow-xl">
+      <section className="rw-glow-card overflow-hidden bg-gradient-to-br from-[#1d3b8f] via-[#18286b] to-[#2a1660] shadow-2xl shadow-blue-900/40">
         <div className="flex items-center justify-between gap-2 p-4 pb-2">
           <h1 className="text-base font-black">{t('dashboard')}</h1>
           <PeriodPicker value={kpiQuery} onChange={setKpiQuery} />
@@ -90,19 +90,19 @@ export const PartnerDashboard: React.FC = () => {
         {kpis && (
           <>
             <div className="px-4 pb-2">
-              <Metric label={t('transition')} value={kpis.transitions.toLocaleString()} />
-              <Metric label={t('registration')} value={kpis.registrations.toLocaleString()} />
-              <Metric label={t('firstDeposits')} value={kpis.first_deposits.toLocaleString()} />
-              <Metric label={t('numberDeposits')} value={kpis.deposit_count.toLocaleString()} />
-              <Metric label={t('ratioRegistrations')} value={dash(kpis.ratio_registrations)} />
-              <Metric label={t('ratioDeposits')} value={dash(kpis.ratio_deposits)} />
-              <Metric label={t('amountDeposit')} value={<Money value={kpis.amount_deposit} />} />
-              <Metric label={t('costTransition')} value={kpis.cost_transition === null ? '—' : <Money value={kpis.cost_transition} />} />
-              <Metric label={t('avgPlayerIncome')} value={kpis.avg_player_income === null ? '—' : <Money value={kpis.avg_player_income} />} />
+              <Metric i={1} label={t('transition')} value={kpis.transitions.toLocaleString()} />
+              <Metric i={2} label={t('registration')} value={kpis.registrations.toLocaleString()} />
+              <Metric i={3} label={t('firstDeposits')} value={kpis.first_deposits.toLocaleString()} />
+              <Metric i={4} label={t('numberDeposits')} value={kpis.deposit_count.toLocaleString()} />
+              <Metric i={5} label={t('ratioRegistrations')} value={dash(kpis.ratio_registrations)} />
+              <Metric i={6} label={t('ratioDeposits')} value={dash(kpis.ratio_deposits)} />
+              <Metric i={7} label={t('amountDeposit')} value={<Money value={kpis.amount_deposit} />} />
+              <Metric i={8} label={t('costTransition')} value={kpis.cost_transition === null ? '—' : <Money value={kpis.cost_transition} />} />
+              <Metric i={9} label={t('avgPlayerIncome')} value={kpis.avg_player_income === null ? '—' : <Money value={kpis.avg_player_income} />} />
             </div>
-            <div className="flex items-center justify-between bg-purple-600 px-4 py-3">
+            <div className="flex items-center justify-between bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-700 px-4 py-3.5">
               <span className="text-sm font-black">{t('income')}</span>
-              <Money value={kpis.income} className={cx('text-lg font-black', Number(kpis.income) < 0 ? 'text-rose-100' : 'text-white')} />
+              <Money value={kpis.income} className={cx('text-xl font-black', Number(kpis.income) < 0 ? 'text-rose-100' : 'rw-shimmer-text')} />
             </div>
           </>
         )}

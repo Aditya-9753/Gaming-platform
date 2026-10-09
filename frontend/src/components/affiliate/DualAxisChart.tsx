@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { cx } from './ui'
+import { PremiumUI, cx } from './ui'
 
 export interface ChartSeries {
   key: string
@@ -26,6 +26,7 @@ const niceMax = (value: number) => {
 
 /** Daily line chart with counts on the left axis and dollars (incl. negatives) on the right; legend chips toggle series. */
 export const DualAxisChart: React.FC<Props> = ({ points, xKey, series, height = 240, formatX }) => {
+  const premium = React.useContext(PremiumUI)
   const [hidden, setHidden] = useState<Record<string, boolean>>({})
   const [hover, setHover] = useState<number | null>(null)
   const width = 720
@@ -91,7 +92,8 @@ export const DualAxisChart: React.FC<Props> = ({ points, xKey, series, height = 
           {scales.uMin < 0 && <line x1={pad.l} x2={width - pad.r} y1={zeroUsd} y2={zeroUsd} stroke="#64748b" strokeWidth={1} />}
           {visible.map((s) => {
             const d = points.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(Number(p[s.key]) || 0, s.axis).toFixed(1)}`).join(' ')
-            return <path key={s.key} d={d} fill="none" stroke={s.color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+            return <path key={`${s.key}-${points.length}-${d.length}`} d={d} fill="none" stroke={s.color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round"
+              {...(premium ? { className: 'rw-draw', pathLength: 1, style: { filter: `drop-shadow(0 0 4px ${s.color}88)` } } : {})} />
           })}
           {points.map((p, i) => i % labelEvery === 0 && (
             <text key={i} x={x(i)} y={height - 6} textAnchor="middle" className="fill-slate-500 text-[10px]">
