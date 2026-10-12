@@ -289,8 +289,19 @@ const WithdrawTab: React.FC = () => {
   }, [])
   useEffect(() => { void load() }, [load])
 
-  const usable = useMemo(() => accounts.filter((a) => new Date(a.cooling_until).getTime() <= Date.now()), [accounts])
-  useEffect(() => { if (!target && usable[0]) setTarget(usable[0].id) }, [usable, target])
+  // Re-check every 30 s so an account becomes selectable as soon as its cooling period ends
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 30000)
+    return () => clearInterval(timer)
+  }, [])
+  const usable = useMemo(() => accounts.filter((a) => new Date(a.cooling_until).getTime() <= now), [accounts, now])
+  const nextReady = useMemo(() => accounts.filter((a) => new Date(a.cooling_until).getTime() > now)
+    .sort((a, b) => a.cooling_until.localeCompare(b.cooling_until))[0], [accounts, now])
+  useEffect(() => {
+    if (target && !usable.some((a) => a.id === target)) setTarget('')
+    else if (!target && usable[0]) setTarget(usable[0].id)
+  }, [usable, target])
 
   const submit = async () => {
     setBusy(true)
@@ -309,11 +320,30 @@ const WithdrawTab: React.FC = () => {
   }
 
   if (!elig) return <p className="text-sm text-slate-400">{tr('Loading…')}</p>
+
+  // The first thing still missing, shown above the button so it is never disabled without a reason
+  const amountPaise = Number(amount) ? rupeeToPaise(amount) : 0
+  const missing = (() => {
+    if (!elig.can_withdraw) return elig.blockers.length ? tr(elig.blockers[0]) : tr('Withdrawals are not available right now.')
+    if (!accounts.length) return tr('Add a payout account first.')
+    if (!usable.length && nextReady) {
+      return tr('Your payout account is in the {hours}-hour security cooling period. You can withdraw from {time}.', { hours: elig.cooling_hours, time: formatDateTime(nextReady.cooling_until) })
+    }
+    if (!target) return tr('Choose a payout account.')
+    if (!amountPaise) return tr('Enter the amount.')
+    if (amountPaise < elig.min_paise) return tr('The minimum withdrawal is {amount}.', { amount: formatPaiseToRupee(elig.min_paise, false) })
+    if (amountPaise > elig.available_paise) return tr('You can withdraw at most {amount} now.', { amount: formatPaiseToRupee(elig.available_paise, false) })
+    if (elig.max_paise && amountPaise > elig.max_paise) return tr('The maximum per withdrawal is {amount}.', { amount: formatPaiseToRupee(elig.max_paise, false) })
+    if (amountPaise > elig.daily_amount_left_paise) return tr('Today you can still withdraw {amount}.', { amount: formatPaiseToRupee(elig.daily_amount_left_paise, false) })
+    if (pin.length < 4) return tr('Enter your transaction PIN.')
+    return null
+  })()
+
   return (
     <div className="space-y-5">
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-2xl border border-dark-border bg-dark-card p-4"><p className="text-[10px] font-bold uppercase text-slate-500">{tr('Withdrawable now')}</p><p className="text-xl font-black text-white">{formatPaiseToRupee(elig.available_paise)}</p></div>
-        <div className="rounded-2xl border border-dark-border bg-dark-card p-4"><p className="text-[10px] font-bold uppercase text-slate-500">On hold (pending payouts)</p><p className="text-xl font-black text-amber-300">{formatPaiseToRupee(elig.pending_withdrawal_paise)}</p></div>
+        <div className="rounded-2xl border border-dark-border bg-dark-card p-4"><p className="text-[10px] font-bold uppercase text-slate-500">{tr('On hold (pending payouts)')}</p><p className="text-xl font-black text-amber-300">{formatPaiseToRupee(elig.pending_withdrawal_paise)}</p></div>
         <div className="rounded-2xl border border-dark-border bg-dark-card p-4"><p className="text-[10px] font-bold uppercase text-slate-500">{tr('Left today')}</p><p className="text-xl font-black text-white">{formatPaiseToRupee(elig.daily_amount_left_paise, false)} · {elig.daily_count_left}×</p></div>
       </div>
 
@@ -326,7 +356,7 @@ const WithdrawTab: React.FC = () => {
       <section className="space-y-3 rounded-2xl border border-dark-border bg-dark-card p-5">
         <div className="flex items-center justify-between">
           <h3 className="flex items-center gap-2 text-sm font-black text-white"><KeyRound className="h-4 w-4 text-emerald-400" />{tr('Transaction PIN')}</h3>
-          {elig.pin_set && <button type="button" className="text-xs font-bold text-emerald-400" onClick={() => setShowPin((v) => !v)}>{showPin ? 'Close' : 'Change PIN'}</button>}
+          {elig.pin_set && <button type="button" className="text-xs font-bold text-emerald-400" onClick={() => setShowPin((v) => !v)}>{showPin ? tr('Close') : tr('Change PIN')}</button>}
         </div>
         {!elig.pin_set ? <PinForm hasPin={false} onDone={load} /> : showPin ? <PinForm hasPin onDone={() => { setShowPin(false); void load() }} /> : <p className="text-xs text-slate-400">{tr('PIN is set. It is needed for every withdrawal and payout-account change.')}</p>}
       </section>
@@ -334,16 +364,16 @@ const WithdrawTab: React.FC = () => {
       <section className="space-y-3 rounded-2xl border border-dark-border bg-dark-card p-5">
         <div className="flex items-center justify-between">
           <h3 className="flex items-center gap-2 text-sm font-black text-white"><Banknote className="h-4 w-4 text-emerald-400" />{tr('Payout accounts')}</h3>
-          {elig.pin_set && accounts.length < 3 && <button type="button" className="text-xs font-bold text-emerald-400" onClick={() => setShowAdd((v) => !v)}>{showAdd ? 'Close' : '+ Add'}</button>}
+          {elig.pin_set && accounts.length < 3 && <button type="button" className="text-xs font-bold text-emerald-400" onClick={() => setShowAdd((v) => !v)}>{showAdd ? tr('Close') : `+ ${tr('Add')}`}</button>}
         </div>
         {accounts.length === 0 && !showAdd && <p className="text-xs text-slate-400">{tr('No payout account yet.')}</p>}
         {accounts.map((a) => {
-          const cooling = new Date(a.cooling_until).getTime() > Date.now()
+          const cooling = new Date(a.cooling_until).getTime() > now
           return (
             <div key={a.id} className="flex items-center justify-between rounded-xl bg-dark-elevated px-3 py-2">
               <div>
                 <p className="text-sm font-bold text-white">{a.holder_name} <span className="font-mono text-slate-400">{a.masked}</span></p>
-                <p className={`text-[11px] ${cooling ? 'text-amber-300' : 'text-emerald-400'}`}>{cooling ? `Usable from ${formatDateTime(a.cooling_until)}` : 'Ready'}</p>
+                <p className={`text-[11px] ${cooling ? 'text-amber-300' : 'text-emerald-400'}`}>{cooling ? tr('Usable from {time} (security cooling period)', { time: formatDateTime(a.cooling_until) }) : tr('Ready')}</p>
               </div>
               <button type="button" aria-label={tr('Remove payout account')} onClick={() => remove(a.id)} className="rounded-lg p-2 text-slate-500 hover:text-rose-300"><Trash2 className="h-4 w-4" /></button>
             </div>
@@ -355,17 +385,25 @@ const WithdrawTab: React.FC = () => {
       <section className="space-y-3 rounded-2xl border border-dark-border bg-dark-card p-5">
         <h3 className="flex items-center gap-2 text-sm font-black text-white"><ArrowUpRight className="h-4 w-4 text-emerald-400" />{tr('Withdraw')}</h3>
         <div className="grid gap-2 sm:grid-cols-3">
-          <input className={inputCls} inputMode="decimal" placeholder={`Amount (min ₹${elig.min_paise / 100})`} value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^\d.]/g, ''))} />
+          <input className={inputCls} inputMode="decimal" placeholder={tr('Amount (min ₹{min})', { min: elig.min_paise / 100 })} value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^\d.]/g, ''))} />
           <select className={inputCls} value={target} onChange={(e) => setTarget(e.target.value)}>
             <option value="">{tr('Choose payout account')}</option>
-            {usable.map((a) => <option key={a.id} value={a.id}>{a.holder_name} · {a.masked}</option>)}
+            {accounts.map((a) => {
+              const ready = usable.some((u) => u.id === a.id)
+              return (
+                <option key={a.id} value={a.id} disabled={!ready}>
+                  {a.holder_name} · {a.masked}{ready ? '' : ` — ${tr('from {time}', { time: formatDateTime(a.cooling_until) })}`}
+                </option>
+              )
+            })}
           </select>
           <input className={inputCls} type="password" inputMode="numeric" maxLength={6} placeholder={tr('Transaction PIN')} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} />
         </div>
-        <Button className="w-full" onClick={submit} isLoading={busy} disabled={!elig.can_withdraw || !Number(amount) || !target || pin.length < 4}>{tr('Request withdrawal')}</Button>
+        {missing && <p className="flex items-start gap-2 rounded-xl bg-amber-950/30 px-3 py-2 text-xs text-amber-200" role="status"><Clock className="mt-0.5 h-3.5 w-3.5 shrink-0" />{missing}</p>}
+        <Button className="w-full" onClick={submit} isLoading={busy} disabled={!elig.can_withdraw || missing !== null}>{tr('Request withdrawal')}</Button>
         <p className="text-[11px] text-slate-500">
-          The amount is held from your balance immediately and sent to your account after review. If it cannot be paid it is returned to your wallet.
-          {elig.turnover_required_paise > 0 && ` Turnover: ${formatPaiseToRupee(elig.wagered_paise, false)} of ${formatPaiseToRupee(elig.turnover_required_paise, false)} played.`}
+          {tr('The amount is held from your balance immediately and sent to your account after review. If it cannot be paid it is returned to your wallet.')}
+          {elig.turnover_required_paise > 0 && ` ${tr('Turnover: {played} of {required} played.', { played: formatPaiseToRupee(elig.wagered_paise, false), required: formatPaiseToRupee(elig.turnover_required_paise, false) })}`}
         </p>
       </section>
     </div>
