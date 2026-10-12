@@ -19,6 +19,24 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   return config
 })
 
+// ── Cold start: the free backend sleeps when idle and needs up to a minute to wake ──
+// Reads and sign-in calls are retried while the host answers 502/503/504 (the app never
+// saw the request); reads are also retried after a timeout / dropped connection.
+const WAKING_STATUS = new Set([502, 503, 504])
+const RETRYABLE_POSTS = ['/auth/refresh', '/auth/login']
+export const SESSION_TIMEOUT_MS = 70000
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+function shouldRetry(error: AxiosError, config: InternalAxiosRequestConfig & { _attempt?: number }): boolean {
+  if ((config._attempt || 0) >= 4 || axios.isCancel(error)) return false
+  const method = (config.method || 'get').toLowerCase()
+  const status = error.response?.status
+  if (status !== undefined) {
+    return WAKING_STATUS.has(status) && (method === 'get' || RETRYABLE_POSTS.some((path) => config.url?.includes(path)))
+  }
+  return method === 'get'
+}
+
 // ── Response interceptor: silent token refresh on 401 ─────────────────────────
 let isRefreshing = false
 let queue: Array<(result: { token?: string; error?: unknown }) => void> = []
@@ -26,7 +44,12 @@ let queue: Array<(result: { token?: string; error?: unknown }) => void> = []
 apiClient.interceptors.response.use(
   (res) => res,
   async (error: AxiosError) => {
-    const original = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
+    const original = error.config as InternalAxiosRequestConfig & { _retry?: boolean; _attempt?: number }
+    if (original && shouldRetry(error, original)) {
+      original._attempt = (original._attempt || 0) + 1
+      await sleep(2000 * original._attempt)
+      return apiClient(original)
+    }
     if (
       error.response?.status !== 401 ||
       original._retry ||
@@ -62,7 +85,7 @@ apiClient.interceptors.response.use(
       const { data, status } = await axios.post<{ access_token: string } | undefined>(
         `${API_BASE}/auth/refresh`,
         {},
-        { withCredentials: true }
+        { withCredentials: true, timeout: SESSION_TIMEOUT_MS }
       )
       if (status === 204 || !data?.access_token) {
         throw new Error('Refresh session is missing')

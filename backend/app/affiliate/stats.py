@@ -250,7 +250,9 @@ async def grouped(db: AsyncSession, partner_ids: Sequence[int], tz_name: str, pr
     if group_by == "day":
         series = await timeseries(db, partner_ids, tz_name, preset, date_from, date_to, source_ids, link_ids, countries)
         return [{"key": s["date"], "label": s["date"], "clicks": s["referrals"], "registrations": s["registrations"],
-                 "first_deposits": s["first_deposits"], "deposit_amount": s["deposit_amount"], "income": s["income"]} for s in series]
+                 "first_deposits": s["first_deposits"], "deposit_amount": s["deposit_amount"], "income": s["income"],
+                 "ratio_registrations": _div(Decimal(s["referrals"]), Decimal(s["registrations"])),
+                 "cost_transition": _div(money(s["income"]), Decimal(s["referrals"]))} for s in series]
     start, end, _f, _l = period_range(preset, tz_name, date_from, date_to)
     column = {"source": AffAnalyticsHourly.source_id, "link": AffAnalyticsHourly.tracking_link_id,
               "country": AffAnalyticsHourly.country, "campaign": AffAnalyticsHourly.campaign_id,

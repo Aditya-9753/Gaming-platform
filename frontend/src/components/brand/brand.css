@@ -73,9 +73,13 @@
 
 /* Staggered entrance: set --i on each child */
 .rw-rise {
-  animation: rw-rise 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-  animation-delay: calc(var(--i, 0) * 70ms);
+  animation: rw-rise 0.38s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
 }
+
+/* Bottom sheet / dialog entrance */
+.rw-fade { animation: rw-fade 0.18s ease-out both; }
+.rw-sheet { animation: rw-sheet 0.26s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 
 /* Hover lift for interactive cards */
 .rw-lift {
@@ -101,6 +105,7 @@
   filter: blur(60px);
   opacity: 0.45;
   pointer-events: none;
+  will-change: transform;
   animation: rw-orb 14s ease-in-out infinite alternate;
 }
 
@@ -126,7 +131,15 @@
   to { --rw-angle: 360deg; }
 }
 @keyframes rw-rise {
-  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes rw-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes rw-sheet {
+  from { opacity: 0; transform: translateY(24px); }
   to { opacity: 1; transform: none; }
 }
 @keyframes rw-draw {
@@ -137,7 +150,21 @@
   to { transform: translate(40px, -30px) scale(1.15); }
 }
 
+/*
+ * Phones and tablets: keep the look but drop the effects that repaint every frame
+ * (moving blurred orbs, spinning borders, glass blur over scrolling content).
+ */
+@media (max-width: 1023px), (hover: none) {
+  .rw-orb, .rw-glow-card::before, .rw-shimmer-text { animation: none; }
+  .rw-glass {
+    background: rgba(13, 22, 50, 0.86);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .rw-fade, .rw-sheet { animation: none; }
   .rw-hero::before, .rw-hero img, .rw-shimmer-text, .rw-glow-card::before, .rw-orb { animation: none; }
   .rw-rise { animation: none; }
   .rw-draw { animation: none; stroke-dashoffset: 0; }

@@ -29,6 +29,7 @@ export const PartnerStatistics: React.FC = () => {
 }
 
 const CommonStats: React.FC = () => {
+  const t = useT()
   const [groupBy, setGroupBy] = useState('day')
   const [query, setQuery] = useState<StatsQuery>({ period: '30d' })
   const [applied, setApplied] = useState<{ groupBy: string; query: StatsQuery }>({ groupBy: 'day', query: { period: '30d' } })
@@ -42,7 +43,8 @@ const CommonStats: React.FC = () => {
     return () => clearTimeout(timer)
   }, [jobs])
 
-  const rows = data.data?.items || []
+  // Newest day first; the CSV export keeps calendar order
+  const rows = applied.groupBy === 'day' ? [...(data.data?.items || [])].reverse() : data.data?.items || []
   const totals = rows.reduce((acc, r) => ({
     clicks: acc.clicks + r.clicks, registrations: acc.registrations + r.registrations, first_deposits: acc.first_deposits + r.first_deposits,
     deposit_amount: acc.deposit_amount + Number(r.deposit_amount), income: acc.income + Number(r.income),
@@ -53,21 +55,21 @@ const CommonStats: React.FC = () => {
       <Card>
         <div className="flex flex-wrap items-end gap-2">
           <select value={groupBy} onChange={(e) => setGroupBy(e.target.value)} className={cx(inputCls, 'w-auto')} aria-label="Group by">
-            {GROUPS.map(([id, label]) => <option key={id} value={id}>By {label.toLowerCase()}</option>)}
+            {GROUPS.map(([id, label]) => <option key={id} value={id}>{t(`By ${label.toLowerCase()}`)}</option>)}
           </select>
           <PeriodPicker value={query} onChange={setQuery} />
-          <Btn onClick={() => setApplied({ groupBy, query })}>Apply</Btn>
+          <Btn onClick={() => setApplied({ groupBy, query })}>{t('Apply')}</Btn>
           <Btn tone="ghost" onClick={async () => {
             try {
               await partnerApi.exportStats({ kind: 'common', group_by: applied.groupBy, period: applied.query.period, date_from: applied.query.date_from, date_to: applied.query.date_to })
               await refreshJobs()
             } catch (e) { toastError(e) }
-          }}><FileDown className="h-4 w-4" />Export CSV</Btn>
+          }}><FileDown className="h-4 w-4" />{t('Export CSV')}</Btn>
         </div>
       </Card>
       <Card>
         {data.loading && !data.data ? <Spinner /> : data.error ? <ErrorBox message={data.error} onRetry={data.reload} /> : (
-          <Table head={['', 'Clicks', 'Registrations', 'Ratio', 'FTD', 'Deposits $', 'Income $', 'EPC']} empty={!rows.length}>
+          <Table head={['', t('Clicks'), t('Registrations'), t('Ratio'), t('FTD'), t('Deposits $'), t('Income $'), 'EPC']} empty={!rows.length}>
             {rows.map((r) => (
               <tr key={String(r.key)}>
                 <Td className="font-bold">{applied.groupBy === 'day' ? dateOnly(String(r.label)) : r.label}</Td>
@@ -77,7 +79,7 @@ const CommonStats: React.FC = () => {
             ))}
             {rows.length > 0 && (
               <tr className="bg-dark-elevated/50 font-black">
-                <Td>Total</Td><Td>{totals.clicks}</Td><Td>{totals.registrations}</Td>
+                <Td>{t('Total')}</Td><Td>{totals.clicks}</Td><Td>{totals.registrations}</Td>
                 <Td>{totals.registrations ? (totals.clicks / totals.registrations).toFixed(2) : '—'}</Td><Td>{totals.first_deposits}</Td>
                 <Td><Money value={totals.deposit_amount} /></Td><Td><Money value={totals.income} /></Td>
                 <Td>{totals.clicks ? (totals.income / totals.clicks).toFixed(2) : '—'}</Td>
@@ -87,16 +89,16 @@ const CommonStats: React.FC = () => {
         )}
       </Card>
       {jobs.length > 0 && (
-        <Card title="Exports">
+        <Card title={t('Exports')}>
           <div className="space-y-2">
             {jobs.slice(0, 5).map((j) => (
               <div key={j.id} className="flex flex-wrap items-center gap-2 text-xs">
-                <Badge status={j.status === 'DONE' ? 'COMPLETED' : j.status}>{j.status}</Badge>
+                <Badge status={j.status === 'DONE' ? 'COMPLETED' : j.status}>{t(j.status)}</Badge>
                 <span className="text-slate-300">{String(j.params.group_by || j.type)} · {String(j.params.period)}</span>
                 <span className="text-slate-500">{j.row_count} rows</span>
                 {j.status === 'DONE' && (
                   <Btn tone="ghost" small className="ml-auto" onClick={async () => saveBlob(await partnerApi.downloadExport(j.id), `statistics-${j.id}.csv`)}>
-                    <Download className="h-3.5 w-3.5" />Download
+                    <Download className="h-3.5 w-3.5" />{t('Download')}
                   </Btn>
                 )}
                 {j.error && <span className="text-rose-300">{j.error}</span>}
@@ -110,17 +112,18 @@ const CommonStats: React.FC = () => {
 }
 
 const SubpartnerStats: React.FC = () => {
+  const t = useT()
   const [query, setQuery] = useState<StatsQuery>({ period: 'all' })
   const data = useAsync(() => partnerApi.subpartnerStats(query), [query])
   return (
-    <Card actions={<PeriodPicker value={query} onChange={setQuery} />} title="Your subpartners">
+    <Card actions={<PeriodPicker value={query} onChange={setQuery} />} title={t('Your subpartners')}>
       {data.loading && !data.data ? <Spinner /> : (
-        <Table head={['Partner', 'Status', 'Clicks', 'Registrations', 'FTD', 'Their income', 'Your commission']} empty={!data.data?.items.length}
-          emptyText="No subpartners yet — share your invite link from the Subpartners page.">
+        <Table head={[t('Partner'), t('Status'), t('Clicks'), t('Registrations'), t('FTD'), t('Their income'), t('Your commission')]} empty={!data.data?.items.length}
+          emptyText={t('No subpartners yet — share your invite link from the Subpartners page.')}>
           {(data.data?.items || []).map((r) => (
             <tr key={r.partner_code}>
               <Td className="font-bold">{r.partner_code}<div className="text-[10px] font-normal text-slate-500">{r.email_masked}</div></Td>
-              <Td><Badge status={r.status}>{r.status}</Badge></Td><Td>{r.clicks}</Td><Td>{r.registrations}</Td><Td>{r.first_deposits}</Td>
+              <Td><Badge status={r.status}>{t(r.status)}</Badge></Td><Td>{r.clicks}</Td><Td>{r.registrations}</Td><Td>{r.first_deposits}</Td>
               <Td><Money value={r.income} /></Td><Td><Money value={r.your_commission} className="font-bold text-emerald-300" /></Td>
             </tr>
           ))}
@@ -140,21 +143,21 @@ export const PartnerSubpartners: React.FC = () => {
     <div className="space-y-4">
       <h1 className="text-lg font-black">{t('subpartners')}</h1>
       {d.invite_link ? (
-        <Card title="Invite partners and earn from their commission">
-          <p className="mb-3 text-sm text-slate-300">You earn <b className="text-emerald-300">{pct(d.rate)}</b> of every direct subpartner's positive commission each period. A subpartner's negative period never costs you.</p>
+        <Card title={t('Invite partners and earn from their commission')}>
+          <p className="mb-3 text-sm text-slate-300">{t("You earn {rate} of every direct subpartner's positive commission each period. A subpartner's negative period never costs you.", { rate: pct(d.rate) })}</p>
           <div className="flex items-center gap-2">
             <code className="min-w-0 flex-1 truncate rounded-lg bg-dark-elevated px-2 py-2 text-xs text-blue-200">{d.invite_link}</code>
-            <CopyButton text={d.invite_link} label="Copy" />
+            <CopyButton text={d.invite_link} label={t('Copy')} />
           </div>
         </Card>
-      ) : <Card><p className="text-sm text-slate-400">Subpartner invites are not available for this account.</p></Card>}
-      <Card title="Subpartners">
-        {d.items.length === 0 ? <Empty>No subpartners yet.</Empty> : (
-          <Table head={['Partner', 'Status', 'Joined', 'Registrations', 'FTD', 'Your commission']}>
+      ) : <Card><p className="text-sm text-slate-400">{t('Subpartner invites are not available for this account.')}</p></Card>}
+      <Card title={t('Subpartners')}>
+        {d.items.length === 0 ? <Empty>{t('No subpartners yet.')}</Empty> : (
+          <Table head={[t('Partner'), t('Status'), t('Joined'), t('Registrations'), t('FTD'), t('Your commission')]}>
             {d.items.map((r) => (
               <tr key={r.partner_code}>
                 <Td className="font-bold">{r.partner_code}<div className="text-[10px] font-normal text-slate-500">{r.email_masked}</div></Td>
-                <Td><Badge status={r.status}>{r.status}</Badge></Td><Td>{dateOnly(r.joined_at)}</Td><Td>{r.registrations}</Td><Td>{r.first_deposits}</Td>
+                <Td><Badge status={r.status}>{t(r.status)}</Badge></Td><Td>{dateOnly(r.joined_at)}</Td><Td>{r.registrations}</Td><Td>{r.first_deposits}</Td>
                 <Td><Money value={r.your_commission} className="font-bold" /></Td>
               </tr>
             ))}

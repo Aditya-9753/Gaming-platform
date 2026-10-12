@@ -529,5 +529,12 @@
   "We collect personal credentials including phone numbers, email addresses, and verification documents strictly for fraud prevention, KYC verification, and payout processing in compliance with Indian regulatory standards.": "हम फ़ोन नंबर, ईमेल पता और सत्यापन दस्तावेज़ जैसी निजी जानकारी केवल धोखाधड़ी रोकने, KYC सत्यापन और भुगतान के लिए, भारतीय नियमों के अनुसार लेते हैं।",
   "Authentication tokens are held in volatile memory and never persisted in unencrypted client-side web storage. Refresh tokens are transmitted strictly via secure, httpOnly, SameSite cookies.": "लॉगिन टोकन सिर्फ़ अस्थायी मेमोरी में रखे जाते हैं और ब्राउज़र स्टोरेज में कभी सेव नहीं होते। रिफ्रेश टोकन केवल सुरक्षित, httpOnly, SameSite कुकी से भेजे जाते हैं।",
   "You must be at least 18 years of age to access and use our platform. The platform is not intended for users residing in states where skill-based gaming with stakes is legally restricted or prohibited, including but not limited to Andhra Pradesh, Telangana, Assam, Odisha, Nagaland, and Sikkim.": "हमारे प्लेटफ़ॉर्म का उपयोग करने के लिए आपकी उम्र कम से कम 18 साल होनी चाहिए। यह प्लेटफ़ॉर्म उन राज्यों के लोगों के लिए नहीं है जहां दांव वाले कौशल गेम कानूनन प्रतिबंधित हैं, जैसे आंध्र प्रदेश, तेलंगाना, असम, ओडिशा, नागालैंड और सिक्किम।",
-  "All round outcomes in Aviator and Color Prediction are deterministically evaluated using client-side verifiable HMAC-SHA256 cryptography. The server seed hash is released prior to each round, making retroactive manipulation mathematically impossible.": "Aviator और Color Prediction के हर राउंड का नतीजा HMAC-SHA256 क्रिप्टोग्राफ़ी से तय होता है, जिसे आप खुद जांच सकते हैं। हर राउंड से पहले सर्वर सीड का हैश जारी होता है, इसलिए बाद में नतीजा बदलना गणितीय रूप से असंभव है।"
+  "All round outcomes in Aviator and Color Prediction are deterministically evaluated using client-side verifiable HMAC-SHA256 cryptography. The server seed hash is released prior to each round, making retroactive manipulation mathematically impossible.": "Aviator और Color Prediction के हर राउंड का नतीजा HMAC-SHA256 क्रिप्टोग्राफ़ी से तय होता है, जिसे आप खुद जांच सकते हैं। हर राउंड से पहले सर्वर सीड का हैश जारी होता है, इसलिए बाद में नतीजा बदलना गणितीय रूप से असंभव है।",
+  "Something went wrong": "कुछ गलत हो गया",
+  "Could not complete": "पूरा नहीं हो सका",
+  "Nothing here yet": "अभी यहां कुछ नहीं है",
+  "Copied": "कॉपी हो गया",
+  "Confirm": "पक्का करें",
+  "Retry": "फिर कोशिश करें",
+  "Nothing to show": "दिखाने के लिए कुछ नहीं"
 }

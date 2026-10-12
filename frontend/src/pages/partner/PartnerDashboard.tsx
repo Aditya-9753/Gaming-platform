@@ -110,27 +110,27 @@ export const PartnerDashboard: React.FC = () => {
 
       <Card title={t('statistics')} actions={
         <>
-          <Btn tone="ghost" small onClick={() => setFiltersOpen(true)}><SlidersHorizontal className="h-4 w-4" />Filters</Btn>
+          <Btn tone="ghost" small onClick={() => setFiltersOpen(true)}><SlidersHorizontal className="h-4 w-4" />{t('Filters')}</Btn>
           <Btn tone="ghost" small onClick={() => setFull(true)} aria-label="Full screen"><Maximize2 className="h-4 w-4" /></Btn>
         </>
       }>
         <div className="mb-3 flex flex-wrap gap-2 text-[11px] text-slate-400">
           <span>{PERIODS.find(([id]) => id === chartQuery.period)?.[1] ? t(PERIODS.find(([id]) => id === chartQuery.period)![1]) : ''}</span>
-          {chartQuery.source_ids?.length ? <span>· {chartQuery.source_ids.length} source(s)</span> : <span>· {t('allSources')}</span>}
-          {chartQuery.link_ids?.length ? <span>· {chartQuery.link_ids.length} link(s)</span> : <span>· {t('allLinks')}</span>}
+          {chartQuery.source_ids?.length ? <span>· {t('{n} source(s)', { n: chartQuery.source_ids.length })}</span> : <span>· {t('allSources')}</span>}
+          {chartQuery.link_ids?.length ? <span>· {t('{n} link(s)', { n: chartQuery.link_ids.length })}</span> : <span>· {t('allLinks')}</span>}
           {chartQuery.countries?.length ? <span>· {chartQuery.countries.join(', ')}</span> : <span>· {t('allCountries')}</span>}
         </div>
         {series === null ? <Spinner /> : series.length === 0 ? <p className="py-8 text-center text-sm text-slate-500">{t('noData')}</p> : chart}
       </Card>
 
-      <Modal open={filtersOpen} title="Filters" onClose={() => setFiltersOpen(false)}>
+      <Modal open={filtersOpen} title={t('Filters')} onClose={() => setFiltersOpen(false)}>
         <div className="space-y-4">
-          <Field label="Period"><PeriodPicker value={draft} onChange={setDraft} /></Field>
+          <Field label={t('Period')}><PeriodPicker value={draft} onChange={setDraft} /></Field>
           {options && (
             <>
               <Chips label={t('sources')} items={options.sources.map((s) => ({ id: s.id, label: s.name }))} selected={draft.source_ids || []} onToggle={(id) => toggle('source_ids', id)} />
-              <Chips label="Links" items={options.links.map((l) => ({ id: l.id, label: `${l.name} · ${l.code}` }))} selected={draft.link_ids || []} onToggle={(id) => toggle('link_ids', id)} />
-              <Chips label="Countries" items={options.countries.map((c) => ({ id: c, label: c }))} selected={draft.countries || []} onToggle={(id) => toggle('countries', id)} />
+              <Chips label={t('Links')} items={options.links.map((l) => ({ id: l.id, label: `${l.name} · ${l.code}` }))} selected={draft.link_ids || []} onToggle={(id) => toggle('link_ids', id)} />
+              <Chips label={t('Countries')} items={options.countries.map((c) => ({ id: c, label: c }))} selected={draft.countries || []} onToggle={(id) => toggle('countries', id)} />
             </>
           )}
           <Btn className="w-full" onClick={() => { setChartQuery(draft); setFiltersOpen(false) }}>{t('apply')}</Btn>
@@ -139,7 +139,7 @@ export const PartnerDashboard: React.FC = () => {
 
       {full && (
         <div className="fixed inset-0 z-[90] flex flex-col bg-dark-bg p-3" role="dialog" aria-label="Chart full screen">
-          <div className="mb-2 flex justify-end"><Btn tone="ghost" small onClick={() => setFull(false)}>Close</Btn></div>
+          <div className="mb-2 flex justify-end"><Btn tone="ghost" small onClick={() => setFull(false)}>{t('Close')}</Btn></div>
           <div className="flex flex-1 items-center overflow-auto landscape:items-stretch">
             <div className="w-full min-w-[640px]">{chart}</div>
           </div>

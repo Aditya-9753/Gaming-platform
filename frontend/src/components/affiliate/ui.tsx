@@ -1,5 +1,7 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Check, Copy, Loader2, X } from 'lucide-react'
+import { t as tr } from '../../i18n'
+import { useAuthStore } from '../../store/auth.store'
 import { getApiErrorMessage } from '../../utils/apiError'
 import { showToast } from '../common/Toast'
 
@@ -32,17 +34,17 @@ export const dateTime = (iso: string | null | undefined) =>
 export const dateOnly = (iso: string | null | undefined) =>
   iso ? new Date(iso.length === 10 ? `${iso}T00:00:00` : iso).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
 
-export const errorText = (e: unknown, fallback = 'Something went wrong') => getApiErrorMessage(e, fallback)
+export const errorText = (e: unknown, fallback?: string) => getApiErrorMessage(e, fallback ?? tr('Something went wrong'))
 
-export const toastError = (e: unknown, title = 'Could not complete') =>
-  showToast({ title, message: errorText(e), type: 'error', duration: 6000 })
+export const toastError = (e: unknown, title?: string) =>
+  showToast({ title: title ?? tr('Could not complete'), message: errorText(e), type: 'error', duration: 6000 })
 
 export const Card: React.FC<{ title?: React.ReactNode; actions?: React.ReactNode; className?: string; children: React.ReactNode }> = ({
   title, actions, className, children,
 }) => {
   const premium = usePremium()
   return (
-    <section className={cx(premium ? 'rw-glass rw-rise rounded-3xl p-4 sm:p-5' : 'rounded-2xl border border-dark-border bg-dark-card p-4 sm:p-5', className)}>
+    <section className={cx(premium ? 'rw-glass rounded-3xl p-4 sm:p-5' : 'rounded-2xl border border-dark-border bg-dark-card p-4 sm:p-5', className)}>
       {(title || actions) && (
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           {title && (
@@ -96,12 +98,12 @@ export const StatusDot: React.FC<{ status: string }> = ({ status }) => {
 
 export const Spinner: React.FC<{ label?: string }> = ({ label }) => (
   <div className="flex items-center justify-center gap-2 py-10 text-sm text-slate-400">
-    <Loader2 className="h-4 w-4 animate-spin" /> {label || 'Loading…'}
+    <Loader2 className="h-4 w-4 animate-spin" /> {label || tr('Loading…')}
   </div>
 )
 
 export const Empty: React.FC<{ children?: React.ReactNode }> = ({ children }) => (
-  <div className="rounded-xl border border-dashed border-dark-border px-4 py-8 text-center text-sm text-slate-400">{children || 'Nothing here yet'}</div>
+  <div className="rounded-xl border border-dashed border-dark-border px-4 py-8 text-center text-sm text-slate-400">{children || tr('Nothing here yet')}</div>
 )
 
 export const Tabs: React.FC<{ tabs: Array<{ id: string; label: React.ReactNode }>; value: string; onChange: (id: string) => void }> = ({ tabs, value, onChange }) => {
@@ -175,21 +177,32 @@ export const CopyButton: React.FC<{ text: string; label?: string; small?: boolea
   return (
     <Btn tone="ghost" small={small} onClick={copy} aria-label={`Copy ${label || ''}`.trim()}>
       {done ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
-      {label && <span>{done ? 'Copied' : label}</span>}
+      {label && <span>{done ? tr('Copied') : label}</span>}
     </Btn>
   )
 }
 
 export const Modal: React.FC<{ open: boolean; title: string; onClose: () => void; children: React.ReactNode; wide?: boolean }> = ({ open, title, onClose, children, wide }) => {
+  // Escape closes; the page behind does not scroll while the sheet is open
+  const close = React.useRef(onClose)
+  close.current = onClose
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close.current() }
+    const overflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', onKey)
+    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = overflow }
+  }, [open])
   if (!open) return null
   return (
-    <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/70 p-0 sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label={title}
+    <div className="rw-fade fixed inset-0 z-[80] flex items-end justify-center bg-black/70 p-0 sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label={title}
       onClick={onClose}>
-      <div className={cx('max-h-[92dvh] w-full overflow-y-auto rounded-t-3xl border border-dark-border bg-dark-card p-5 shadow-2xl sm:rounded-3xl',
+      <div className={cx('rw-sheet max-h-[92dvh] w-full overflow-y-auto overscroll-contain rounded-t-3xl border border-dark-border bg-dark-card p-5 shadow-2xl sm:rounded-3xl',
         wide ? 'sm:max-w-3xl' : 'sm:max-w-md')} onClick={(e) => e.stopPropagation()}>
         <div className="mb-4 flex items-center justify-between gap-3">
           <h2 className="text-base font-black text-white">{title}</h2>
-          <button type="button" onClick={onClose} aria-label="Close" className="rounded-lg p-2 text-slate-400 hover:bg-dark-elevated hover:text-white">
+          <button type="button" onClick={onClose} aria-label={tr('Close')} className="rounded-lg p-2 text-slate-400 hover:bg-dark-elevated hover:text-white">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -201,31 +214,42 @@ export const Modal: React.FC<{ open: boolean; title: string; onClose: () => void
 
 /** Simple "are you sure?" step before an action. */
 export const ConfirmPrompt: React.FC<{ open: boolean; title?: string; message?: string; onClose: () => void; onConfirm: () => Promise<void> }> = ({
-  open, title = 'Confirm', message, onClose, onConfirm,
+  open, title, message, onClose, onConfirm,
 }) => {
   const [busy, setBusy] = useState(false)
   return (
-    <Modal open={open} title={title} onClose={onClose}>
+    <Modal open={open} title={title ?? tr('Confirm')} onClose={onClose}>
       {message && <p className="mb-4 text-sm text-slate-300">{message}</p>}
       <div className="flex gap-2">
-        <Btn tone="ghost" className="flex-1" onClick={onClose}>Cancel</Btn>
+        <Btn tone="ghost" className="flex-1" onClick={onClose}>{tr('Cancel')}</Btn>
         <Btn className="flex-1" busy={busy} onClick={async () => {
           setBusy(true)
           try { await onConfirm() } finally { setBusy(false) }
-        }}>Confirm</Btn>
+        }}>{tr('Confirm')}</Btn>
       </div>
     </Modal>
   )
 }
 
+// Last result of each partner-portal loader, so a page opened again shows its data at once
+// and refreshes it in the background (cleared on sign-out; keyed by the signed-in user).
+const asyncCache = new Map<string, unknown>()
+export const clearAsyncCache = () => asyncCache.clear()
+
 export function useAsync<T>(loader: () => Promise<T>, deps: React.DependencyList = []) {
-  const [data, setData] = useState<T | null>(null)
+  const premium = usePremium()
+  const userId = useAuthStore((s) => s.user?.id)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const key = React.useMemo(() => (premium ? `${userId}|${loader.toString()}|${JSON.stringify(deps)}` : null), [premium, userId, ...deps])
+  const [data, setData] = useState<T | null>(() => (key && asyncCache.has(key) ? (asyncCache.get(key) as T) : null))
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const reload = React.useCallback(async () => {
     setLoading(true)
     try {
-      setData(await loader())
+      const value = await loader()
+      if (key) asyncCache.set(key, value)
+      setData(value)
       setError(null)
     } catch (e) {
       setError(errorText(e))
@@ -233,7 +257,7 @@ export function useAsync<T>(loader: () => Promise<T>, deps: React.DependencyList
       setLoading(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps)
+  }, [key, ...deps])
   React.useEffect(() => { void reload() }, [reload])
   return { data, error, loading, reload, setData }
 }
@@ -241,7 +265,7 @@ export function useAsync<T>(loader: () => Promise<T>, deps: React.DependencyList
 export const ErrorBox: React.FC<{ message: string; onRetry?: () => void }> = ({ message, onRetry }) => (
   <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-200">
     <p>{message}</p>
-    {onRetry && <Btn tone="ghost" small className="mt-3" onClick={onRetry}>Retry</Btn>}
+    {onRetry && <Btn tone="ghost" small className="mt-3" onClick={onRetry}>{tr('Retry')}</Btn>}
   </div>
 )
 
@@ -255,7 +279,7 @@ export const Table: React.FC<{ head: React.ReactNode[]; children: React.ReactNod
       </thead>
       <tbody className="divide-y divide-dark-border/60 text-slate-200">{children}</tbody>
     </table>
-    {empty && <div className="px-4 py-8 text-center text-sm text-slate-500">{emptyText || 'Nothing to show'}</div>}
+    {empty && <div className="px-4 py-8 text-center text-sm text-slate-500">{emptyText || tr('Nothing to show')}</div>}
   </div>
 )
 

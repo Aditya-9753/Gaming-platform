@@ -1,4 +1,4 @@
-import { apiClient } from './api'
+import { SESSION_TIMEOUT_MS, apiClient } from './api'
 import { STAFF_ROLES, type UserRole, type UserSession } from '../types/auth.types'
 
 export interface TokenResponse {
@@ -60,7 +60,8 @@ export const authApi = {
     return data
   },
   refreshToken: async () => {
-    const { data, status } = await apiClient.post<TokenResponse | undefined>('/auth/refresh')
+    // Long timeout: right after an idle period the server may still be starting up
+    const { data, status } = await apiClient.post<TokenResponse | undefined>('/auth/refresh', undefined, { timeout: SESSION_TIMEOUT_MS })
     return status === 204 ? null : data ?? null
   },
   getCurrentUser: async (): Promise<UserSession> => {

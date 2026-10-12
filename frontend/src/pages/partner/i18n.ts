@@ -1,4 +1,7 @@
+import { useCallback } from 'react'
+import { translate } from '../../i18n'
 import { usePartnerStore } from './partner.store'
+import { HI_TEXT } from './hi'
 
 /** Partner portal strings. Add a language by adding a dictionary with the same keys. */
 const en = {
@@ -47,8 +50,18 @@ const DICTS: Record<string, Dict> = { en, hi }
 export const LANGUAGE_NAMES: Record<string, string> = { en: 'EN', hi: 'हिं', ru: 'RU' }
 export type TKey = keyof Dict
 
-export function useT() {
+export type PartnerT = (key: TKey | (string & {}), vars?: Record<string, string | number>) => string
+
+/**
+ * Portal strings: short keys from the dictionaries above, or the English text itself
+ * (looked up in ./hi, then in the site dictionary; anything missing stays English).
+ */
+export function useT(): PartnerT {
   const locale = usePartnerStore((s) => s.locale)
-  const dict = DICTS[locale] || en
-  return (key: TKey) => dict[key] ?? en[key]
+  return useCallback((key, vars) => {
+    const dict = DICTS[locale] || en
+    if (key in en) return dict[key as TKey] ?? en[key as TKey]
+    const text = locale === 'hi' && HI_TEXT[key] ? HI_TEXT[key] : translate(locale, key)
+    return vars ? text.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m)) : text
+  }, [locale])
 }

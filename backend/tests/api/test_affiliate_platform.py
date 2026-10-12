@@ -248,6 +248,9 @@ async def test_full_chain_revshare_kpis_settlement_and_withdrawal(env):
     assert k["avg_player_income"] == "260.00"  # (130 / 0.5) / 1
     series = (await env["client"].get("/api/v1/aff/dashboard/timeseries?period=7d", headers=ph)).json()["series"]
     assert len(series) == 7 and series[-1]["registrations"] == 1 and series[-1]["income"] == "130.00"
+    days = (await env["client"].get("/api/v1/aff/statistics/common?group_by=day&period=7d", headers=ph)).json()["items"]
+    assert days[-1]["ratio_registrations"] == "1.00" and days[-1]["cost_transition"] == "130.00"
+    assert days[0]["ratio_registrations"] is None and days[0]["cost_transition"] is None  # no clicks that day
 
     # finance closes the period: pending -> available
     r = await close_current_period(env)

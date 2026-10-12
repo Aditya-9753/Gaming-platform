@@ -16,7 +16,7 @@ export const PartnerFaq: React.FC = () => {
   if (data.error) return <ErrorBox message={data.error} onRetry={data.reload} />
   const all = data.data?.items || []
   const items = all.some((f) => f.language === locale) ? all.filter((f) => f.language === locale) : all.filter((f) => f.language === 'en')
-  const groups = items.reduce<Record<string, typeof items>>((acc, f) => ((acc[f.category || 'General'] ||= []).push(f), acc), {})
+  const groups = items.reduce<Record<string, typeof items>>((acc, f) => ((acc[f.category || t('General')] ||= []).push(f), acc), {})
   return (
     <div className="space-y-4">
       <h1 className="text-lg font-black">{t('faq')}</h1>
@@ -50,7 +50,7 @@ export const PartnerContacts: React.FC = () => {
   return (
     <div className="space-y-4">
       <h1 className="text-lg font-black">{t('contacts')}</h1>
-      <Card title="Your manager">
+      <Card title={t('Your manager')}>
         {manager.loading ? <Spinner /> : manager.data?.manager ? (
           <div className="flex items-center gap-3">
             <UserRound className="h-10 w-10 rounded-full bg-dark-elevated p-2 text-blue-300" />
@@ -59,29 +59,29 @@ export const PartnerContacts: React.FC = () => {
               {manager.data.manager.email && <a href={`mailto:${manager.data.manager.email}`} className="text-xs text-blue-300"><Mail className="inline h-3 w-3" /> {manager.data.manager.email}</a>}
             </div>
           </div>
-        ) : <p className="text-sm text-slate-400">A manager will be assigned to you soon. Meanwhile, write to us below.</p>}
+        ) : <p className="text-sm text-slate-400">{t('A manager will be assigned to you soon. Meanwhile, write to us below.')}</p>}
       </Card>
-      <Card title="Send a message">
+      <Card title={t('Send a message')}>
         <div className="space-y-3">
-          <Field label="Subject"><input value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} maxLength={200} className={inputCls} /></Field>
-          <Field label="Message"><textarea value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} rows={4} maxLength={5000} className={cx(inputCls, 'py-2')} /></Field>
+          <Field label={t('Subject')}><input value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} maxLength={200} className={inputCls} /></Field>
+          <Field label={t('Message')}><textarea value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} rows={4} maxLength={5000} className={cx(inputCls, 'py-2')} /></Field>
           <Btn busy={busy} disabled={!form.subject.trim() || !form.message.trim()} onClick={async () => {
             setBusy(true)
             try {
               await partnerApi.sendContact({ name: me?.name || 'Partner', email: me?.partner.email || '', ...form })
-              showToast({ title: 'Message sent', type: 'success' })
+              showToast({ title: t('Message sent'), type: 'success' })
               setForm({ subject: '', message: '' })
               void history.reload()
             } catch (e) { toastError(e) } finally { setBusy(false) }
-          }}><Send className="h-4 w-4" />Send</Btn>
+          }}><Send className="h-4 w-4" />{t('Send')}</Btn>
         </div>
       </Card>
       {(history.data?.items.length ?? 0) > 0 && (
-        <Card title="Your messages">
+        <Card title={t('Your messages')}>
           <div className="space-y-3">
             {history.data!.items.map((c) => (
               <div key={c.id} className="rounded-xl border border-dark-border p-3 text-sm">
-                <div className="mb-1 flex items-center gap-2"><span className="font-bold">{c.subject}</span><Badge status={c.status}>{c.status.replace('_', ' ')}</Badge>
+                <div className="mb-1 flex items-center gap-2"><span className="font-bold">{c.subject}</span><Badge status={c.status}>{t(c.status)}</Badge>
                   <span className="ml-auto text-[11px] text-slate-500">{dateTime(c.created_at)}</span></div>
                 <p className="whitespace-pre-wrap text-slate-400">{c.message}</p>
                 {c.reply && <p className="mt-2 whitespace-pre-wrap rounded-lg bg-blue-500/10 p-2 text-blue-100">{c.reply}</p>}
@@ -113,12 +113,13 @@ export const PartnerBlog: React.FC = () => {
           </Link>
         ))}
       </div>
-      {!data.data?.items.length && <Empty>No posts yet</Empty>}
+      {!data.data?.items.length && <Empty>{t('No posts yet')}</Empty>}
     </div>
   )
 }
 
 export const PartnerBlogPost: React.FC = () => {
+  const t = useT()
   const { slug = '' } = useParams()
   const data = useAsync(() => partnerApi.blogPost(slug), [slug])
   if (data.loading && !data.data) return <Spinner />
@@ -126,7 +127,7 @@ export const PartnerBlogPost: React.FC = () => {
   const p = data.data!
   return (
     <article className="space-y-4">
-      <Link to="/partner/blog" className="text-xs text-blue-300">← Blog</Link>
+      <Link to="/partner/blog" className="text-xs text-blue-300">{t('← Blog')}</Link>
       {p.cover_image && <img src={p.cover_image} alt="" className="max-h-72 w-full rounded-2xl object-cover" />}
       <div className="text-[11px] text-slate-500">{dateOnly(p.published_at)}</div>
       <h1 className="text-2xl font-black">{p.title}</h1>
@@ -146,7 +147,7 @@ export const PartnerNotifications: React.FC = () => {
         <h1 className="text-lg font-black">{t('notifications')}</h1>
         {items.some((n) => !n.is_read) && (
           <Btn tone="ghost" small onClick={async () => { try { await partnerApi.readNotifications(); await data.reload(); void reloadMe() } catch (e) { toastError(e) } }}>
-            Mark all read
+            {t('Mark all read')}
           </Btn>
         )}
       </div>
@@ -156,7 +157,7 @@ export const PartnerNotifications: React.FC = () => {
             <div key={n.id} className={cx('rounded-2xl border p-3', n.is_read ? 'border-dark-border bg-dark-card' : 'border-brand-blue/40 bg-brand-blue/10')}>
               <div className="flex items-center gap-2">
                 <span className="font-bold">{n.title}</span>
-                {n.type === 'SECURITY' && <Badge tone="red">Security</Badge>}
+                {n.type === 'SECURITY' && <Badge tone="red">{t('Security')}</Badge>}
                 <span className="ml-auto text-[11px] text-slate-500">{dateTime(n.created_at)}</span>
               </div>
               <p className="mt-1 text-sm text-slate-300">{n.message}</p>

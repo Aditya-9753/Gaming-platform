@@ -8,7 +8,7 @@ import { BrandLogo } from '../../components/common/BrandLogo'
 import { Loader } from '../../components/common/Loader'
 import { ToastContainer } from '../../components/common/Toast'
 import { ErrorBoundary } from '../../components/common/ErrorBoundary'
-import { Badge, Btn, Money, PremiumUI, cx, errorText, pct } from '../../components/affiliate/ui'
+import { Badge, Btn, Money, PremiumUI, clearAsyncCache, cx, errorText, pct } from '../../components/affiliate/ui'
 import '../../components/brand/brand.css'
 import { authApi } from '../../services/auth.api'
 import { partnerApi } from '../../services/affiliate.api'
@@ -39,7 +39,7 @@ const dealLabel = (type?: string | null, rate?: string | null, t?: (k: TKey) => 
 const OPEN_WHILE_PENDING = ['/partner/faq', '/partner/contacts', '/partner/profile', '/partner/notifications']
 
 export const PartnerLayout: React.FC = () => {
-  const { me, load, error, locale, setLocale } = usePartnerStore()
+  const { me, load, refresh, error, locale, setLocale } = usePartnerStore()
   const { isAuthenticated, isLoading, user, logout } = useAuthStore()
   const t = useT()
   const navigate = useNavigate()
@@ -48,15 +48,22 @@ export const PartnerLayout: React.FC = () => {
   const [dealOpen, setDealOpen] = useState(false)
   const [busy, setBusy] = useState(false)
 
+  // Balance and unread count stay fresh without a request on every page change
   useEffect(() => {
-    if (isAuthenticated && user?.role === 'partner') void load()
-  }, [isAuthenticated, user?.role, load, pathname])
+    if (isAuthenticated && user?.role === 'partner') refresh()
+  }, [isAuthenticated, user?.role, refresh, pathname])
+  useEffect(() => {
+    if (!isAuthenticated || user?.role !== 'partner') return
+    const onVisible = () => { if (document.visibilityState === 'visible') refresh(15_000) }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [isAuthenticated, user?.role, refresh])
   useEffect(() => { setMenuOpen(false) }, [pathname])
   useEffect(() => {
-    if (me?.partner.locale && me.partner.locale !== locale && !localStorage.getItem('locale')) setLocale(me.partner.locale)
+    if (me?.partner.locale && me.partner.locale !== locale && !savedLocale()) setLocale(me.partner.locale)
   }, [me?.partner.locale, locale, setLocale])
 
-  if (isLoading) return <Loader fullScreen />
+  if (isLoading) return <WakingLoader />
   if (!isAuthenticated) return <Navigate to="/partner/login" replace />
   if (user?.role !== 'partner') return <Navigate to={user?.role === 'user' ? '/dashboard' : '/admin/dashboard'} replace />
   if (!me) {
@@ -64,7 +71,7 @@ export const PartnerLayout: React.FC = () => {
       <div className="flex min-h-[100dvh] items-center justify-center bg-dark-bg p-6 text-center text-sm text-slate-300">
         <div className="space-y-3"><p>{error}</p><Btn onClick={() => void load()}>{t('retry')}</Btn></div>
       </div>
-    ) : <Loader fullScreen />
+    ) : <WakingLoader />
   }
 
   const exit = async () => {
@@ -74,6 +81,7 @@ export const PartnerLayout: React.FC = () => {
     } catch { /* already signed out */ }
     impersonation.clear()
     usePartnerStore.getState().clear()
+    clearAsyncCache()
     logout()
     setBusy(false)
     navigate(me.impersonated_by ? '/admin/affiliate/partners' : '/partner/login', { replace: true })
@@ -84,8 +92,8 @@ export const PartnerLayout: React.FC = () => {
   const gate = (() => {
     if (me.impersonated_by) return null
     if (!me.email_verified) return <VerifyGate />
-    if (p.status === 'PENDING') return <StateCard title={t('pendingApproval')} text="We review every partner application. You will get an email and a notification once your account is approved; your Default tracking link will be ready then." />
-    if (p.status === 'SUSPENDED' || p.status === 'BLOCKED') return <StateCard title={t('suspended')} text="Contact your manager through the Contacts page for details." />
+    if (p.status === 'PENDING') return <StateCard title={t('pendingApproval')} text={t('We review every partner application. You will get an email and a notification once your account is approved; your Default tracking link will be ready then.')} />
+    if (p.status === 'SUSPENDED' || p.status === 'BLOCKED') return <StateCard title={t('suspended')} text={t('Contact your manager through the Contacts page for details.')} />
     if (me.terms_required) return <TermsGate versionId={me.terms_required.id} version={me.terms_required.version} onDone={() => void load()} />
     return null
   })()
@@ -108,10 +116,10 @@ export const PartnerLayout: React.FC = () => {
       </div>
       {me.impersonated_by && (
         <div className="flex items-center justify-center gap-2 bg-amber-500 px-3 py-1.5 text-center text-xs font-bold text-black">
-          <Eye className="h-4 w-4" /> Read-only view of partner {p.partner_code} — changes are disabled
+          <Eye className="h-4 w-4" /> {t('Read-only view of partner {code} — changes are disabled', { code: p.partner_code })}
         </div>
       )}
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#071027]/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#071027]/95 lg:bg-[#071027]/80 lg:backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-5xl items-center gap-1 px-2 sm:px-4">
           <Link to="/partner/notifications" className="relative rounded-xl p-2.5 text-slate-300 hover:bg-dark-elevated" aria-label={t('notifications')}>
             <Mail className="h-5 w-5" />
@@ -131,7 +139,7 @@ export const PartnerLayout: React.FC = () => {
               <Smartphone className="h-5 w-5" />
             </a>
           )}
-          <button type="button" onClick={() => setDealOpen((v) => !v)} className="rounded-xl p-2.5 text-amber-400 hover:bg-dark-elevated" aria-label="Your deal">
+          <button type="button" onClick={() => setDealOpen((v) => !v)} className="rounded-xl p-2.5 text-amber-400 hover:bg-dark-elevated" aria-label={t('Your deal')}>
             <Star className="h-5 w-5" />
           </button>
           <Link to="/partner/dashboard" className="mx-auto min-w-0"><BrandLogo wordmark textClassName="text-base font-black" className="flex items-center" /></Link>
@@ -142,9 +150,9 @@ export const PartnerLayout: React.FC = () => {
         {dealOpen && (
           <div className="mx-auto max-w-5xl px-3 pb-3">
             <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-100">
-              <div className="font-black">Your deal: {dealLabel(me.deal?.deal_type, me.deal?.revshare_rate, t)}</div>
-              {me.deal && Number(me.deal.cpa_amount) > 0 && <div>CPA {me.deal.cpa_amount} $ per qualified first deposit (min {me.deal.min_ftd_amount} $, hold {me.deal.hold_days} days)</div>}
-              <div>Negative balance: {me.deal?.carryover ? 'carried over to the next period' : 'written off at period close'}</div>
+              <div className="font-black">{t('Your deal')}: {dealLabel(me.deal?.deal_type, me.deal?.revshare_rate, t)}</div>
+              {me.deal && Number(me.deal.cpa_amount) > 0 && <div>{t('CPA {amount} $ per qualified first deposit (min {min} $, hold {days} days)', { amount: me.deal.cpa_amount, min: me.deal.min_ftd_amount, days: me.deal.hold_days })}</div>}
+              <div>{me.deal?.carryover ? t('Negative balance: carried over to the next period') : t('Negative balance: written off at period close')}</div>
             </div>
           </div>
         )}
@@ -160,7 +168,7 @@ export const PartnerLayout: React.FC = () => {
 
       {/* Hamburger menu */}
       <div className={cx('fixed inset-0 z-50 bg-black/70 transition-opacity', menuOpen ? 'opacity-100' : 'pointer-events-none opacity-0')} onClick={() => setMenuOpen(false)} aria-hidden="true" />
-      <aside className={cx('fixed inset-y-0 right-0 z-50 flex w-[92vw] max-w-sm flex-col border-l border-white/10 bg-[#0a1430]/95 shadow-2xl backdrop-blur-xl transition-transform duration-300',
+      <aside className={cx('fixed inset-y-0 right-0 z-50 flex w-[92vw] max-w-sm flex-col border-l border-white/10 bg-[#0a1430] shadow-2xl transition-transform duration-300 will-change-transform',
         menuOpen ? 'translate-x-0' : 'translate-x-full')} aria-label="Menu">
         <div className="flex items-center gap-3 border-b border-dark-border p-4">
           <div className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 via-indigo-500 to-violet-600 text-lg font-black shadow-lg shadow-indigo-500/30">
@@ -183,9 +191,9 @@ export const PartnerLayout: React.FC = () => {
               {Number(me.wallet.reserved) > 0 && <span>{t('reserved')}: {Number(me.wallet.reserved).toFixed(2)} $</span>}
             </div>
           </Link>
-          <div className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 pb-1">
+          <div className="grid grid-cols-3 gap-2">
             {[...tiles, { to: '/partner/profile', key: 'profile' as TKey, icon: <User className="h-5 w-5" /> }].map((tile) => (
-              <NavLink key={tile.to} to={tile.to} className={({ isActive }) => cx('flex h-20 w-24 shrink-0 snap-start flex-col items-center justify-center gap-1.5 rounded-2xl border text-center text-[11px] font-bold transition-all duration-300',
+              <NavLink key={tile.to} to={tile.to} className={({ isActive }) => cx('flex h-[76px] flex-col items-center justify-center gap-1.5 rounded-2xl border text-center text-[11px] font-bold transition-colors duration-200',
                 isActive ? 'border-blue-400/60 bg-gradient-to-br from-blue-500/25 to-violet-600/25 text-white shadow-lg shadow-blue-600/20' : 'border-white/10 bg-white/[0.03] text-slate-300 hover:-translate-y-0.5 hover:border-blue-400/40')}>
                 {tile.icon}<span className="px-1 leading-tight">{t(tile.key)}</span>
               </NavLink>
@@ -230,14 +238,17 @@ export const PartnerLayout: React.FC = () => {
   )
 }
 
-const StateCard: React.FC<{ title: string; text: string; children?: React.ReactNode }> = ({ title, text, children }) => (
+const StateCard: React.FC<{ title: string; text: string; children?: React.ReactNode }> = ({ title, text, children }) => {
+  const t = useT()
+  return (
   <div className="rw-glass rw-rise mx-auto mt-6 max-w-md space-y-3 rounded-3xl p-6 text-center">
     <h2 className="text-lg font-black">{title}</h2>
     <p className="text-sm text-slate-400">{text}</p>
     {children}
-    <p className="text-xs text-slate-500">Questions? <Link to="/partner/contacts" className="text-blue-300 underline">Contact us</Link></p>
+    <p className="text-xs text-slate-500">{t('Questions?')} <Link to="/partner/contacts" className="text-blue-300 underline">{t('Contact us')}</Link></p>
   </div>
-)
+  )
+}
 
 const VerifyGate: React.FC = () => {
   const t = useT()
@@ -245,28 +256,54 @@ const VerifyGate: React.FC = () => {
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   return (
-    <StateCard title={t('verifyEmail')} text="We sent you a confirmation link. Open it on this device to activate your account.">
+    <StateCard title={t('verifyEmail')} text={t('We sent you a confirmation link. Open it on this device to activate your account.')}>
       {err && <p className="text-xs text-rose-300">{err}</p>}
       <Btn tone="ghost" busy={busy} disabled={sent} onClick={async () => {
         setBusy(true)
         try { await partnerApi.resendVerification(); setSent(true) } catch (e) { setErr(errorText(e)) } finally { setBusy(false) }
-      }}>{sent ? 'Sent — check your inbox' : 'Send the link again'}</Btn>
+      }}>{sent ? t('Sent — check your inbox') : t('Send the link again')}</Btn>
     </StateCard>
   )
 }
 
 const TermsGate: React.FC<{ versionId: number; version: string; onDone: () => void }> = ({ versionId, version, onDone }) => {
+  const t = useT()
   const [text, setText] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   useEffect(() => { partnerApi.terms().then((r) => setText(r.terms?.content || '')).catch(() => setText('')) }, [])
   return (
     <div className="mx-auto mt-4 max-w-2xl space-y-4 rounded-3xl border border-dark-border bg-dark-card p-5">
-      <div className="flex items-center justify-between"><h2 className="text-lg font-black">Partner terms</h2><Badge tone="blue">v{version}</Badge></div>
-      <div className="max-h-[50dvh] overflow-y-auto whitespace-pre-wrap rounded-xl bg-dark-bg p-4 text-xs leading-relaxed text-slate-300">{text ?? 'Loading…'}</div>
+      <div className="flex items-center justify-between"><h2 className="text-lg font-black">{t('Partner terms')}</h2><Badge tone="blue">v{version}</Badge></div>
+      <div className="max-h-[50dvh] overflow-y-auto whitespace-pre-wrap rounded-xl bg-dark-bg p-4 text-xs leading-relaxed text-slate-300">{text ?? t('loading')}</div>
       <Btn className="w-full" busy={busy} onClick={async () => {
         setBusy(true)
         try { await partnerApi.acceptTerms(versionId); onDone() } finally { setBusy(false) }
-      }}>I accept the terms</Btn>
+      }}>{t('I accept the terms')}</Btn>
+    </div>
+  )
+}
+
+const savedLocale = () => {
+  try { return localStorage.getItem('locale') } catch { return null }
+}
+
+/** Full-screen wait; after a few seconds explains that the free server is starting up. */
+const WakingLoader: React.FC = () => {
+  const t = useT()
+  const [slow, setSlow] = useState(false)
+  useEffect(() => {
+    const timer = setTimeout(() => setSlow(true), 4000)
+    return () => clearTimeout(timer)
+  }, [])
+  return (
+    <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-3 bg-[#050b1c] px-6 text-center">
+      <Loader />
+      {slow && (
+        <div className="rw-rise max-w-xs space-y-1">
+          <p className="text-sm font-bold text-white">{t('Connecting to the server…')}</p>
+          <p className="text-xs text-slate-400">{t('The server is waking up after a quiet period. This can take up to a minute.')}</p>
+        </div>
+      )}
     </div>
   )
 }
