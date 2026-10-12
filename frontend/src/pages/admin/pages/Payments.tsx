@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import { Banknote, CreditCard, Landmark, QrCode, Search, ShieldCheck, SlidersHorizontal } from 'lucide-react'
+import { Banknote, CreditCard, Landmark, QrCode, Search, ShieldCheck, SlidersHorizontal, UserCheck } from 'lucide-react'
 import { Modal } from '../components/Modal'
 import { Button } from '../../../components/common/Button'
 import { showToast } from '../../../components/common/Toast'
@@ -10,11 +10,12 @@ import { useAuthStore } from '../../../store/auth.store'
 import { formatPaiseToRupee } from '../../../utils/formatters'
 import { AccountsPanel } from './payments/AccountsPanel'
 import { CreditsPanel } from './payments/CreditsPanel'
+import { PayoutAccountsPanel } from './payments/PayoutAccountsPanel'
 import { DepositDetail, DepositsPanel } from './payments/DepositsPanel'
 import { actionFailed, ago, inputCls, StatusPill, StepUpDialog } from './payments/shared'
 import { WithdrawalDetail, WithdrawalsPanel } from './payments/WithdrawalsPanel'
 
-type Tab = 'deposits' | 'withdrawals' | 'credits' | 'accounts' | 'limits'
+type Tab = 'deposits' | 'withdrawals' | 'payouts' | 'credits' | 'accounts' | 'limits'
 
 // Payment settings editable here (stored in platform settings); *_paise shown in rupees
 const LIMITS: Array<[string, string, 'rupees' | 'number' | 'bool']> = [
@@ -169,6 +170,7 @@ export const AdminPayments: React.FC = () => {
   const tabs: Array<{ id: Tab; label: string; icon: React.ReactNode; badge?: number; show: boolean }> = [
     { id: 'deposits', label: 'Deposits', icon: <CreditCard className="h-4 w-4" />, badge: summary?.deposits.needs_review, show: true },
     { id: 'withdrawals', label: 'Withdrawals', icon: <Banknote className="h-4 w-4" />, badge: summary?.withdrawals.open_count, show: true },
+    { id: 'payouts', label: 'Payout accounts', icon: <UserCheck className="h-4 w-4" />, badge: summary?.payout_accounts_waiting, show: true },
     { id: 'credits', label: 'Bank credits', icon: <Landmark className="h-4 w-4" />, badge: summary?.deposits.unmatched_bank_credits, show: true },
     { id: 'accounts', label: 'QR accounts', icon: <QrCode className="h-4 w-4" />, badge: summary?.accounts_pending_approval, show: true },
     { id: 'limits', label: 'Limits & integrity', icon: <SlidersHorizontal className="h-4 w-4" />, show: isSuper },
@@ -211,6 +213,7 @@ export const AdminPayments: React.FC = () => {
 
       {tab === 'deposits' && <DepositsPanel isSuper={isSuper} canManage={canManage} onChanged={loadSummary} />}
       {tab === 'withdrawals' && <WithdrawalsPanel isSuper={isSuper} canManage={canManage} onChanged={loadSummary} />}
+      {tab === 'payouts' && <PayoutAccountsPanel isSuper={isSuper} onChanged={loadSummary} />}
       {tab === 'credits' && <CreditsPanel canManage={canManage} myId={myId} isSuper={isSuper} onChanged={loadSummary} />}
       {tab === 'accounts' && <AccountsPanel isSuper={isSuper} canManage={canManage} myId={myId} onChanged={loadSummary} />}
       {tab === 'limits' && isSuper && <LimitsPanel />}

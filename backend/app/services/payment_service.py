@@ -1095,6 +1095,30 @@ class PaymentService:
             action="BENEFICIARY_ADDED", target_type="BENEFICIARY", actor_id=user_id, target_id=ben_id,
             details={"method": method, "masked": masked},
         )
+        await self._notify_superadmins(
+            "New payout account",
+            f"{user.username} added {masked} ({holder}). It can be used after the {settings['beneficiary_cooling_hours']}-hour "
+            "security wait, or approve it now in Admin → Payments → Payout accounts.",
+        )
+        await self._commit()
+        return ben
+
+    async def approve_beneficiary(self, actor: Actor, beneficiary_id: str, note: Optional[str] = None) -> Beneficiary:
+        """Super admin: end the security wait of a payout account after checking it (audited, player notified)."""
+        if not actor.is_super:
+            raise ForbiddenException("Only the super admin can approve a payout account")
+        ben = await self.db.get(Beneficiary, beneficiary_id)
+        if ben is None or ben.status != "ACTIVE":
+            raise NotFoundException("Payout account not found")
+        if ben.user_id == actor.id:
+            raise ForbiddenException("You cannot approve your own payout account")
+        if _aware(ben.cooling_until) <= utcnow():
+            raise ConflictException("This payout account is already usable")
+        previous = _aware(ben.cooling_until)
+        ben.cooling_until = utcnow()
+        await self._audit(actor, "BENEFICIARY_APPROVED", "BENEFICIARY", ben.id,
+                          {"masked": ben.masked, "user_id": ben.user_id, "was_usable_from": previous.isoformat(), "note": (note or "")[:255]})
+        await self._notify(ben.user_id, "Payout account approved", f"{ben.masked} is approved and can be used for withdrawals now.", "SUCCESS")
         await self._commit()
         return ben
 

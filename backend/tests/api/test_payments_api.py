@@ -511,3 +511,36 @@ async def test_every_status_change_has_history(env):
     detail = (await env["client"].get(f"/api/v1/admin/payments/deposits/{dep['id']}", headers=env["sa"])).json()
     assert [h["to"] for h in detail["history"]] == ["PENDING", "CREDITED"]
     assert detail["history"][1]["actor_type"] == "PROVIDER"
+
+
+async def test_super_admin_approves_payout_account_early(env):
+    from app.models.notification import Notification
+
+    await make_account(env)
+    await fund(env, amount=200_000)
+    await ready_to_withdraw(env)  # PIN set; its own account is already usable
+    c = env["client"]
+    r = await c.post("/api/v1/payments/beneficiaries", headers=env["p1"],
+                     json={"method": "UPI", "holder_name": "Player One", "vpa": "player@okicici", "pin": "2580"})
+    assert r.status_code == 201, r.text
+    new = r.json()
+    assert (await withdraw(env, new, 20_000)).status_code == 403  # still in the 24 h wait
+
+    # the super admin is told, and sees it in the waiting list
+    async with env["db"]() as s:
+        notes = (await s.execute(select(Notification).where(Notification.user_id == "sa"))).scalars().all()
+    assert any(n.title == "New payout account" for n in notes)
+    waiting = (await c.get("/api/v1/admin/payments/beneficiaries", headers=env["sa"])).json()["items"]
+    assert [b["id"] for b in waiting] == [new["id"]] and waiting[0]["username"]
+
+    # only the super admin, and only with a fresh step-up code
+    assert (await c.post(f"/api/v1/admin/payments/beneficiaries/{new['id']}/approve", headers=env["p1"])).status_code == 403
+    assert (await c.post(f"/api/v1/admin/payments/beneficiaries/{new['id']}/approve", headers=env["sa"])).status_code in (401, 403)
+    r = await c.post(f"/api/v1/admin/payments/beneficiaries/{new['id']}/approve", headers=await step(env, "sa", SA_SECRET),
+                     json={"reason": "Checked with the player on a call"})
+    assert r.status_code == 200, r.text
+    assert (await withdraw(env, new, 20_000)).status_code == 201
+    assert (await c.get("/api/v1/admin/payments/beneficiaries", headers=env["sa"])).json()["items"] == []
+    async with env["db"]() as s:
+        notes = (await s.execute(select(Notification).where(Notification.user_id == "p1"))).scalars().all()
+    assert any(n.title == "Payout account approved" for n in notes)

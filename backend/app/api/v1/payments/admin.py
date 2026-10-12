@@ -21,7 +21,7 @@ from app.core.constants import PermissionCode
 from app.core.database import get_db
 from app.core.deps import CurrentUser, require_permission
 from app.core.exceptions import ForbiddenException, NotFoundException
-from app.models.payment import BankCredit, Deposit, PaymentAccount, PaymentStatusHistory, Withdrawal
+from app.models.payment import BankCredit, Beneficiary, Deposit, PaymentAccount, PaymentStatusHistory, Withdrawal
 from app.models.user import User
 from app.schemas.payment import (
     AccountCreate,
@@ -147,6 +147,9 @@ async def summary(request: Request, current_user: CurrentUser = Depends(_read), 
         accounts_pending = (await db.execute(
             select(func.count(PaymentAccount.id)).where(PaymentAccount.status == "PENDING_APPROVAL")
         )).scalar_one()
+    payout_accounts_waiting = (await db.execute(
+        select(func.count(Beneficiary.id)).where(Beneficiary.status == "ACTIVE", Beneficiary.cooling_until > utcnow())
+    )).scalar_one()
     return {
         "scope": "all" if scope is None else "own_accounts",
         "is_super": actor.is_super,
@@ -168,6 +171,7 @@ async def summary(request: Request, current_user: CurrentUser = Depends(_read), 
             "completed_per_admin_today": per_admin,
         },
         "accounts_pending_approval": int(accounts_pending),
+        "payout_accounts_waiting": int(payout_accounts_waiting),
     }
 
 
@@ -456,6 +460,39 @@ async def ignore_credit(
 
 
 # ================================================================== withdrawals
+
+
+# ================================================================== payout accounts
+
+
+@router.get("/beneficiaries")
+async def list_beneficiaries(
+    waiting: bool = Query(True, description="Only accounts still in the security wait"),
+    current_user: CurrentUser = Depends(_read), db: AsyncSession = Depends(get_db),
+) -> Dict[str, Any]:
+    """Players' payout accounts (masked). Waiting ones can be approved by the super admin."""
+    query = select(Beneficiary, User.username).join(User, User.id == Beneficiary.user_id).where(Beneficiary.status == "ACTIVE")
+    if waiting:
+        query = query.where(Beneficiary.cooling_until > utcnow())
+    rows = (await db.execute(query.order_by(Beneficiary.created_at.desc()).limit(200))).all()
+    return {"items": [{
+        "id": ben.id, "user_id": ben.user_id, "username": username, "method": ben.method, "holder_name": ben.holder_name,
+        "bank_name": ben.bank_name, "masked": ben.masked, "created_at": ben.created_at.isoformat() if ben.created_at else None,
+        "usable_from": ben.cooling_until.isoformat() if ben.cooling_until else None,
+    } for ben, username in rows]}
+
+
+@router.post("/beneficiaries/{beneficiary_id}/approve")
+async def approve_beneficiary(
+    beneficiary_id: str, request: Request, body: Optional[ReasonBody] = None,
+    x_step_up_token: Optional[str] = Header(None, alias="X-Step-Up-Token"),
+    current_user: CurrentUser = Depends(_manage), db: AsyncSession = Depends(get_db),
+) -> Dict[str, Any]:
+    if current_user.role.upper() != "SUPERADMIN":
+        raise ForbiddenException("Only the super admin can approve a payout account")
+    actor = _stepped(current_user, request, x_step_up_token)
+    ben = await PaymentService(db).approve_beneficiary(actor, beneficiary_id, body.reason if body else None)
+    return {"id": ben.id, "usable_from": ben.cooling_until.isoformat()}
 
 
 @router.get("/withdrawals")

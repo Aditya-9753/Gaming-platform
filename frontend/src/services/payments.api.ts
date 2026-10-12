@@ -206,6 +206,7 @@ export interface PaymentSummary {
     completed_per_admin_today: Array<{ admin: string; completed_today: number }>
   }
   accounts_pending_approval: number
+  payout_accounts_waiting?: number
 }
 
 // Step-up verification: money-moving admin calls need a fresh 2FA code.
@@ -250,7 +251,22 @@ export async function withStepUp<T>(call: (headers: Record<string, string>) => P
   throw new StepUpCancelled('Too many wrong codes')
 }
 
+export interface WaitingPayoutAccount {
+  id: string
+  user_id: string
+  username: string
+  method: string
+  holder_name: string
+  bank_name: string | null
+  masked: string
+  created_at: string | null
+  usable_from: string | null
+}
+
 export const adminPaymentsApi = {
+  payoutAccounts: async () => (await apiClient.get<{ items: WaitingPayoutAccount[] }>('/admin/payments/beneficiaries')).data.items,
+  approvePayoutAccount: (id: string, reason?: string) =>
+    withStepUp(async (headers) => (await apiClient.post<{ id: string; usable_from: string }>(`/admin/payments/beneficiaries/${id}/approve`, reason ? { reason } : undefined, { headers })).data),
   sendStepUpEmail: async () => (await apiClient.post<{ sent_to: string; resend_in: number }>('/admin/payments/step-up/send')).data,
   summary: async () => (await apiClient.get<PaymentSummary>('/admin/payments/summary')).data,
   lookup: async (q: string) =>
