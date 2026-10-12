@@ -241,6 +241,16 @@ async def list_users(
     }
 
 
+@router.get("/users/lookup")
+async def lookup_user_for_adjustment(
+    q: str = Query(..., min_length=1, max_length=255, description="Username, email, player ID or full user id"),
+    current_user: CurrentUser = Depends(require_permission(PermissionCode.WALLET_ADJUST)),
+    db: AsyncSession = Depends(get_db),
+) -> Dict[str, Any]:
+    """Who a wallet adjustment would go to, with the current balance (shown before confirming)."""
+    return await AdminService(db).user_wallet_preview(q)
+
+
 @router.get("/users/{user_id}")
 async def get_user_details(
     user_id: str,
@@ -346,9 +356,10 @@ async def adjust_user_balance(
     """Manually credit or debit user virtual credits with mandatory reason and ledger entry."""
     ip_addr = client_ip_of(request)
     svc = AdminService(db)
+    target = await svc.resolve_user(user_id)  # also accepts a username, email or the short player ID
     res = await svc.adjust_user_balance(
         actor_id=current_user.id,
-        target_user_id=user_id,
+        target_user_id=target.id,
         amount=payload.amount,
         reason=payload.reason,
         idempotency_key=idempotency_key,

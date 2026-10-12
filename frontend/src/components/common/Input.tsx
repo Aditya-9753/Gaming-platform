@@ -1,4 +1,4 @@
-import React, { forwardRef, useState } from 'react'
+import React, { forwardRef, useId, useState } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -15,6 +15,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ label, error, success, helperText, leftElement, rightElement, className = '', type, ...props }, ref) => {
     // Password fields get a show/hide button unless the caller supplies its own right element
     const [reveal, setReveal] = useState(false)
+    const autoId = useId()
+    const inputId = props.id ?? autoId
     const isPassword = type === 'password'
     const toggle = isPassword && !rightElement ? (
       <button
@@ -31,7 +33,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="w-full space-y-1.5 text-left">
         {label && (
-          <label className="block text-xs font-semibold text-slate-300">
+          <label htmlFor={inputId} className="block text-xs font-semibold text-slate-300">
             {label}
           </label>
         )}
@@ -54,6 +56,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
                 : 'border-dark-border focus:border-emerald-500 focus:ring-emerald-500/20'
             } ${className}`}
             {...props}
+            id={inputId}
           />
           {right && (
             <div className="absolute right-2.5 flex items-center text-slate-400">

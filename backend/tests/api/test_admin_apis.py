@@ -344,6 +344,21 @@ async def test_admin_users_operations_and_audit(admin_env):
         assert "ADJUST_USER_BALANCE" in actions
 
 
+    # 8. Staff type what they know: the username (any case) or the short player ID shown in the app
+    preview = await client.get("/api/v1/admin/users/lookup?q=TARGET_PLAYER", headers=admin_headers)
+    assert preview.status_code == 200, preview.text
+    assert preview.json()["id"] == "target_player_id" and preview.json()["balance_paise"] == 51000
+    res = await client.post(
+        "/api/v1/admin/users/target_player/adjust-balance",
+        headers={**admin_headers, "Idempotency-Key": "admin-adjust-by-username"},
+        json={"amount": 500, "reason": "Goodwill courtesy credit"},
+    )
+    assert res.status_code == 200, res.text
+    assert res.json()["new_balance"] == 51500
+    missing = await client.get("/api/v1/admin/users/lookup?q=nobody_here", headers=admin_headers)
+    assert missing.status_code == 404 and "No player found" in missing.text
+
+
 @pytest.mark.asyncio
 async def test_admin_games_management_and_audit(admin_env):
     """Test game enable/disable and game settings update with before/after audit log."""

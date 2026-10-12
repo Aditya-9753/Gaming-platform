@@ -349,6 +349,39 @@ class AdminService:
         ]
         return items, total
 
+    async def resolve_user(self, identifier: str) -> User:
+        """Find a user by what staff actually have: full id, the 8-character player ID shown in the app,
+        username or email (case-insensitive). An ambiguous short ID is refused rather than guessed."""
+        term = (identifier or "").strip()
+        if not term:
+            raise BadRequestException("Enter a username, email or player ID")
+        user = await self.session.get(User, term)
+        if user is not None:
+            return user
+        lowered = term.lower()
+        user = (await self.session.execute(
+            select(User).where(or_(func.lower(User.username) == lowered, func.lower(User.email) == lowered))
+        )).scalar_one_or_none()
+        if user is not None:
+            return user
+        if len(term) >= 6 and all(ch in "0123456789abcdef-" for ch in lowered):
+            matches = (await self.session.execute(select(User).where(User.id.like(f"{lowered}%")).limit(2))).scalars().all()
+            if len(matches) == 1:
+                return matches[0]
+            if len(matches) > 1:
+                raise ConflictException("More than one player has this ID prefix; use the username or the full ID")
+        raise NotFoundException(f"No player found for '{term}'. Use the username, email or the player ID shown in their app.")
+
+    async def user_wallet_preview(self, identifier: str) -> Dict[str, Any]:
+        user = await self.resolve_user(identifier)
+        wallet = (await self.session.execute(select(Wallet).where(Wallet.user_id == user.id))).scalar_one_or_none()
+        role = (await self.session.get(Role, user.role_id)) if user.role_id else None
+        return {
+            "id": user.id, "player_id": user.id[:8], "username": user.username, "email": user.email,
+            "role": role.name if role else None, "is_active": user.is_active,
+            "balance_paise": wallet.balance if wallet else None, "has_wallet": wallet is not None,
+        }
+
     async def adjust_user_balance(
         self,
         actor_id: str,
