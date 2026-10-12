@@ -51,6 +51,7 @@ export const affAdminApi = {
   partner: (id: number) => get<PartnerDetail>(`/partners/${id}`),
   updatePartner: (id: number, body: Record<string, unknown>) => patch<Partner>(`/partners/${id}`, body),
   setStatus: (id: number, status: string, reason?: string) => post<Partner>(`/partners/${id}/status`, { status, reason }),
+  setPassword: (id: number, password: string) => post<{ ok: boolean; sessions_revoked: number }>(`/partners/${id}/password`, { password }),
   impersonate: (id: number) => post<{ access_token: string; expires_in: number; partner_code: string }>(`/partners/${id}/impersonate`),
   changeDeal: (id: number, body: Record<string, unknown>) => post<Deal>(`/partners/${id}/deal`, body),
   ledger: (id: number, cursor?: number) => get<{ wallet: Wallet; items: LedgerEntry[]; next_cursor: number | null }>(`/partners/${id}/ledger`, { cursor }),

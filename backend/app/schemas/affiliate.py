@@ -221,6 +221,10 @@ class PartnerUpdateIn(BaseModel):
     profile: Optional[ProfileIn] = None
 
 
+class PartnerPasswordIn(BaseModel):
+    password: str = Field(min_length=10, max_length=128)
+
+
 class StatusIn(BaseModel):
     status: str
     reason: Optional[str] = Field(None, max_length=255)

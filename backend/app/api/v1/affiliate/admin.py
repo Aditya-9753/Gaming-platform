@@ -70,6 +70,8 @@ from app.models.affiliate import (
 from app.models.audit_log import AuditLog
 from app.models.role import Role
 from app.models.user import User
+from app.core.security import hash_password
+from app.repositories.token_repo import TokenRepository
 from app.schemas.affiliate import (
     AdjustmentIn,
     BlogIn,
@@ -89,6 +91,7 @@ from app.schemas.affiliate import (
     ManualAttributionIn,
     MaterialIn,
     PartnerCreateIn,
+    PartnerPasswordIn,
     PartnerUpdateIn,
     PeriodReopenIn,
     PlanIn,
@@ -265,6 +268,28 @@ async def partner_status(partner_id: int, body: StatusIn, request: Request,
     p = await partner_service.set_status(db, _actor(user, request), partner_id, PartnerStatus(body.status), body.reason)
     await db.commit()
     return serialize.partner(p)
+
+
+@router.post("/partners/{partner_id}/password")
+async def set_partner_password(partner_id: int, body: PartnerPasswordIn, request: Request,
+                               user: CurrentUser = Depends(require_permission(P.AFF_PARTNER_MANAGE)),
+                               db: AsyncSession = Depends(get_db)) -> dict:
+    """Set a partner's sign-in password (e.g. created without one and the set-password email never arrived).
+
+    Every existing session of the partner is signed out. The password itself is never logged or returned.
+    """
+    partner = await db.get(AffPartner, partner_id)
+    if partner is None:
+        raise NotFoundException("Partner not found")
+    account = await db.get(User, partner.user_id)
+    if account is None:
+        raise NotFoundException("Partner account not found")
+    await sec.check_password(body.password, account.email)
+    account.password_hash = hash_password(body.password)
+    revoked = await TokenRepository(db).revoke_all_for_user(account.id)
+    await audit(db, _actor(user, request), "AFF_PARTNER_PASSWORD_SET", "aff_partner", partner.id, sessions_revoked=revoked)
+    await db.commit()
+    return {"ok": True, "sessions_revoked": revoked}
 
 
 @router.post("/partners/{partner_id}/impersonate")

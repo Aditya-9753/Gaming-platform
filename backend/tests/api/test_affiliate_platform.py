@@ -553,3 +553,25 @@ async def test_login_captcha_after_five_failures_then_lock(env, monkeypatch):
     for n in range(1, 11):
         await rate_limit.record_failed_login("x@example.com", "1.2.3.4", lock_after=captcha_service.LOCK_AFTER)
         assert (await rate_limit.is_locked_out("x@example.com", "1.2.3.4"))[0] is (n >= 10)
+
+
+async def test_admin_sets_partner_password_and_partner_signs_in(env):
+    # created without a password (the set-password email may never arrive): cannot sign in yet
+    r = await env["client"].post("/api/v1/aff/admin/partners", headers=env["a1"], json={"email": "nopass@example.com", "send_set_password_email": False})
+    assert r.status_code == 201, r.text
+    pid = r.json()["partner"]["id"]
+
+    async def login(password):
+        return await env["client"].post("/api/v1/auth/login", json={"username": "nopass@example.com", "password": password})
+
+    assert (await login("Blue#Harbor2026x")).status_code == 401
+    # weak / email-name passwords are refused; partners cannot call the admin endpoint
+    assert (await env["client"].post(f"/api/v1/aff/admin/partners/{pid}/password", headers=env["a1"], json={"password": "nopass12345"})).status_code == 400
+    partner = await create_partner(env, email="other@example.com")
+    assert (await env["client"].post(f"/api/v1/aff/admin/partners/{pid}/password", headers=partner["headers"], json={"password": "Blue#Harbor2026x"})).status_code == 403
+
+    r = await env["client"].post(f"/api/v1/aff/admin/partners/{pid}/password", headers=env["a1"], json={"password": "Blue#Harbor2026x"})
+    assert r.status_code == 200, r.text
+    assert (await login("Blue#Harbor2026x")).status_code == 200
+    logs = (await env["client"].get(f"/api/v1/aff/admin/audit-logs?target_type=aff_partner&target_id={pid}", headers=env["sa"])).text
+    assert "AFF_PARTNER_PASSWORD_SET" in logs and "Blue#Harbor2026x" not in logs

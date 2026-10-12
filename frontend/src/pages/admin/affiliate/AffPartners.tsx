@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { Eye, Plus, Search, Snowflake } from 'lucide-react'
+import { Eye, KeyRound, Plus, Search, Snowflake } from 'lucide-react'
 import {
   Badge, Btn, Card, CopyButton, Empty, ErrorBox, Field, Modal, Money, Spinner, Table, Tabs, Td, cx, dateOnly, dateTime, inputCls, pct,
   toastError, useAsync,
@@ -139,6 +139,7 @@ export const AffPartnerDetail: React.FC = () => {
   const [tab, setTab] = useState('overview')
   const [dealOpen, setDealOpen] = useState(false)
   const [action, setAction] = useState<null | { title: string; needReason: boolean; run: (reason: string) => Promise<void> }>(null)
+  const [pwdOpen, setPwdOpen] = useState(false)
   if (data.loading && !data.data) return <Spinner />
   if (data.error) return <ErrorBox message={data.error} onRetry={data.reload} />
   const d = data.data!
@@ -166,6 +167,7 @@ export const AffPartnerDetail: React.FC = () => {
               } catch (e) { toastError(e) }
             }}><Eye className="h-4 w-4" />View as partner</Btn>
           )}
+          {can('aff:partner:manage') && <Btn small tone="ghost" onClick={() => setPwdOpen(true)}><KeyRound className="h-4 w-4" />Set password</Btn>}
           {can('aff:partner:manage') && p.status === 'PENDING' && <Btn small tone="success" onClick={() => status('ACTIVE', 'Approve partner')}>Approve</Btn>}
           {can('aff:partner:manage') && p.status === 'ACTIVE' && <Btn small tone="danger" onClick={() => status('SUSPENDED', 'Suspend partner')}>Suspend</Btn>}
           {can('aff:partner:manage') && (p.status === 'SUSPENDED' || p.status === 'BLOCKED') && <Btn small onClick={() => status('ACTIVE', 'Reactivate partner')}>Reactivate</Btn>}
@@ -251,7 +253,38 @@ export const AffPartnerDetail: React.FC = () => {
 
       <DealModal open={dealOpen} partnerId={p.id} onClose={() => setDealOpen(false)} onSaved={() => { setDealOpen(false); void data.reload() }} />
       <ReasonModal action={action} onClose={() => setAction(null)} />
+      <SetPasswordModal open={pwdOpen} partnerId={p.id} email={p.email || ''} onClose={() => setPwdOpen(false)} />
     </div>
+  )
+}
+
+/** Gives a partner a working password, e.g. when the set-password email never arrived. */
+const SetPasswordModal: React.FC<{ open: boolean; partnerId: number; email: string; onClose: () => void }> = ({ open, partnerId, email, onClose }) => {
+  const [password, setPassword] = useState('')
+  const [show, setShow] = useState(false)
+  const [busy, setBusy] = useState(false)
+  useEffect(() => { if (open) { setPassword(''); setShow(false) } }, [open])
+  return (
+    <Modal open={open} title="Set partner password" onClose={onClose}>
+      <div className="space-y-3">
+        <p className="text-xs text-slate-400">The partner signs in at /partner/login with <b className="text-slate-200">{email}</b> and this password.
+          All their current sessions are signed out. Share it privately; they can change it under Profile.</p>
+        <Field label="New password" hint="At least 10 characters; must not contain the email name">
+          <input type={show ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} className={inputCls} autoComplete="new-password" />
+        </Field>
+        <label className="flex items-center gap-2 text-xs text-slate-400">
+          <input type="checkbox" checked={show} onChange={(e) => setShow(e.target.checked)} /> Show password
+        </label>
+        <Btn className="w-full" busy={busy} disabled={password.length < 10} onClick={async () => {
+          setBusy(true)
+          try {
+            await affAdminApi.setPassword(partnerId, password)
+            showToast({ title: 'Password set', message: `${email} can sign in now.`, type: 'success' })
+            onClose()
+          } catch (e) { toastError(e, 'Password not set') } finally { setBusy(false) }
+        }}>Save password</Btn>
+      </div>
+    </Modal>
   )
 }
 
