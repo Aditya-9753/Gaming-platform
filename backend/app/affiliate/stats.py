@@ -118,6 +118,20 @@ def _row_dict(row: Any) -> Dict[str, Any]:
     return out
 
 
+def partner_view(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Rows as a partner may see them: the house's own share stays in the back office."""
+    return [{k: v for k, v in row.items() if k != "house_share"} for row in rows]
+
+
+def house_share(ngr: Decimal, income: Decimal, sub_commission: Decimal) -> str:
+    """What the house keeps from referred players: their NGR minus everything paid to partners.
+
+    With a 50 % revshare a player who wins (negative NGR) costs the partner half (negative
+    income) and the house the other half (negative house share).
+    """
+    return money_out(money(ngr) - money(income) - money(sub_commission))
+
+
 def _div(a: Decimal, b: Decimal, places: str = "0.01") -> Optional[str]:
     if not b:
         return None
@@ -219,6 +233,7 @@ async def timeseries(db: AsyncSession, partner_ids: Sequence[int], tz_name: str,
         series.append({
             "date": day.isoformat(), "referrals": b["clicks"], "registrations": b["registrations"],
             "income": money_out(b["income"]), "first_deposits": b["first_deposits"], "deposit_amount": money_out(b["deposit_amount"]),
+            "ngr": money_out(b["ngr"]), "sub_commission": money_out(b["sub_commission"]),
         })
         day += timedelta(days=1)
     return series
@@ -251,6 +266,8 @@ async def grouped(db: AsyncSession, partner_ids: Sequence[int], tz_name: str, pr
         series = await timeseries(db, partner_ids, tz_name, preset, date_from, date_to, source_ids, link_ids, countries)
         return [{"key": s["date"], "label": s["date"], "clicks": s["referrals"], "registrations": s["registrations"],
                  "first_deposits": s["first_deposits"], "deposit_amount": s["deposit_amount"], "income": s["income"],
+                 "ngr": s["ngr"], "sub_commission": s["sub_commission"],
+                 "house_share": house_share(money(s["ngr"]), money(s["income"]), money(s["sub_commission"])),
                  "ratio_registrations": _div(Decimal(s["referrals"]), Decimal(s["registrations"])),
                  "cost_transition": _div(money(s["income"]), Decimal(s["referrals"]))} for s in series]
     start, end, _f, _l = period_range(preset, tz_name, date_from, date_to)
@@ -275,6 +292,8 @@ async def grouped(db: AsyncSession, partner_ids: Sequence[int], tz_name: str, pr
             "clicks": totals["clicks"], "registrations": totals["registrations"], "first_deposits": totals["first_deposits"],
             "deposit_count": totals["deposit_count"], "deposit_amount": money_out(totals["deposit_amount"]),
             "ngr": money_out(totals["ngr"]), "income": money_out(totals["income"]),
+            "sub_commission": money_out(totals["sub_commission"]),
+            "house_share": house_share(totals["ngr"], totals["income"], totals["sub_commission"]),
             "ratio_registrations": _div(Decimal(totals["clicks"]), Decimal(totals["registrations"])),
             "cost_transition": _div(totals["income"], Decimal(totals["clicks"])),
         })

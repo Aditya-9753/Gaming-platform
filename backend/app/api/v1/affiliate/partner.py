@@ -212,7 +212,7 @@ async def dashboard_filters(ctx: PartnerCtx = Depends(active_partner), db: Async
 
 @router.get("/dashboard/top-sources")
 async def top_sources(period: str = "30d", ctx: PartnerCtx = Depends(active_partner), db: AsyncSession = Depends(get_db)) -> dict:
-    rows = await stats.grouped(db, [ctx.partner.id], ctx.partner.timezone, period, "source")
+    rows = stats.partner_view(await stats.grouped(db, [ctx.partner.id], ctx.partner.timezone, period, "source"))
     return {"items": rows[:5]}
 
 
@@ -227,8 +227,8 @@ async def statistics_common(
 ) -> dict:
     if group_by == "partner":
         raise BadRequestException("group_by=partner is for admins")
-    rows = await stats.grouped(db, [ctx.partner.id], ctx.partner.timezone, period, group_by, date_from, date_to,
-                               _ids(source_ids), _ids(link_ids), _countries(countries))
+    rows = stats.partner_view(await stats.grouped(db, [ctx.partner.id], ctx.partner.timezone, period, group_by, date_from, date_to,
+                                                  _ids(source_ids), _ids(link_ids), _countries(countries)))
     return {"group_by": group_by, "items": rows}
 
 
@@ -261,7 +261,7 @@ async def run_export(db: AsyncSession, job_id: int) -> None:
         if params["kind"] == "subpartners":
             rows = await stats.subpartner_stats(db, partner, params["period"], start, end)
         else:
-            rows = await stats.grouped(db, [partner.id], partner.timezone, params["period"], params["group_by"], start, end)
+            rows = stats.partner_view(await stats.grouped(db, [partner.id], partner.timezone, params["period"], params["group_by"], start, end))
         job.file_content = stats.to_csv(rows)
         job.row_count = len(rows)
         job.status = ExportStatus.DONE

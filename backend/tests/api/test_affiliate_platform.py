@@ -575,3 +575,26 @@ async def test_admin_sets_partner_password_and_partner_signs_in(env):
     assert (await login("Blue#Harbor2026x")).status_code == 200
     logs = (await env["client"].get(f"/api/v1/aff/admin/audit-logs?target_type=aff_partner&target_id={pid}", headers=env["sa"])).text
     assert "AFF_PARTNER_PASSWORD_SET" in logs and "Blue#Harbor2026x" not in logs
+
+
+async def test_player_win_is_split_between_partner_and_house(env):
+    """A referred player who wins: 50 % revshare -> the partner shows -50 % and the super admin's house share -50 %."""
+    data = await create_partner(env, email="split@example.com")  # default plan: 50 % revshare
+    pid = data["partner"]["id"]
+    cid = click_id_from(await click(env, data["partner"]["partner_code"]))
+    await ingest(env, "registration", {"external_customer_id": "lucky-1", "click_id": cid})
+    await ingest(env, "revenue", {"rows": [{"external_customer_id": "lucky-1", "date": date.today().isoformat(), "bets": "100", "wins": "1100"}]})
+    assert (await wallet(env, pid))[1] == Decimal("-500")  # partner: 50 % of the -1000 NGR
+    await rebuild(env)
+
+    rows = (await env["client"].get("/api/v1/aff/admin/statistics?group_by=partner&period=today", headers=env["sa"])).json()["items"]
+    row = next(r for r in rows if r["key"] == pid)
+    assert row["ngr"] == "-1000.00" and row["income"] == "-500.00" and row["house_share"] == "-500.00"
+    overview = (await env["client"].get("/api/v1/aff/admin/overview", headers=env["sa"])).json()["this_month_totals"]
+    assert overview["ngr"] == "-1000.00" and overview["partner_share"] == "-500.00" and overview["house_share"] == "-500.00"
+
+    # the partner sees their own -50 % and the players' NGR, never the house's share
+    mine = (await env["client"].get("/api/v1/aff/statistics/common?group_by=source&period=today", headers=data["headers"])).json()["items"]
+    assert mine and all("house_share" not in r for r in mine) and sum(Decimal(r["income"]) for r in mine) == Decimal("-500")
+    kpis = (await env["client"].get("/api/v1/aff/dashboard/summary?period=today", headers=data["headers"])).json()
+    assert kpis["income"] == "-500.00" and kpis["ngr"] == "-1000.00"

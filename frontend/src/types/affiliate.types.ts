@@ -176,6 +176,9 @@ export interface StatRow {
   deposit_amount: string
   ngr?: string
   income: string
+  sub_commission?: string
+  /** Back office only: NGR minus everything paid to partners (negative when referred players win). */
+  house_share?: string
   ratio_registrations?: string | null
   cost_transition?: string | null
 }

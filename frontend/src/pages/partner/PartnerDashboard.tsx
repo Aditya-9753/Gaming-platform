@@ -99,7 +99,13 @@ export const PartnerDashboard: React.FC = () => {
               <Metric i={7} label={t('amountDeposit')} value={<Money value={kpis.amount_deposit} />} />
               <Metric i={8} label={t('costTransition')} value={kpis.cost_transition === null ? '—' : <Money value={kpis.cost_transition} />} />
               <Metric i={9} label={t('avgPlayerIncome')} value={kpis.avg_player_income === null ? '—' : <Money value={kpis.avg_player_income} />} />
+              <Metric i={10} label={t("Players' net result (NGR)")} value={<Money value={kpis.ngr} className={Number(kpis.ngr) < 0 ? 'text-rose-200' : ''} />} />
             </div>
+            {Number(kpis.income) < 0 && (
+              <p className="px-4 pb-3 text-[11px] text-rose-100/90">
+                {t('Your players won more than they lost in this period, so your revshare is negative. It is carried over and covered by future earnings first.')}
+              </p>
+            )}
             <div className="flex items-center justify-between bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-700 px-4 py-3.5">
               <span className="text-sm font-black">{t('income')}</span>
               <Money value={kpis.income} className={cx('text-xl font-black', Number(kpis.income) < 0 ? 'text-rose-100' : 'rw-shimmer-text')} />

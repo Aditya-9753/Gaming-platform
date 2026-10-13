@@ -41,6 +41,7 @@ export interface Overview {
   balances: { available: string; pending: string; reserved: string }
   current_period: SettlementPeriod
   this_month: StatRow[]
+  this_month_totals?: { ngr: string; partner_share: string; house_share: string }
 }
 
 export const affAdminApi = {

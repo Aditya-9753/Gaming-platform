@@ -194,10 +194,16 @@ export const AffPartnerDetail: React.FC = () => {
           <Card title="Statistics (all time)">
             <dl className="grid grid-cols-2 gap-2 text-sm">
               {[['Clicks', d.stats.transitions], ['Registrations', d.stats.registrations], ['FTD', d.stats.first_deposits], ['Deposits', d.stats.deposit_count],
-                ['Clicks / reg', d.stats.ratio_registrations ?? '—'], ['EPC', d.stats.cost_transition ?? '—'], ['NGR', d.stats.ngr], ['Avg player income', d.stats.avg_player_income ?? '—']].map(([k, v]) => (
+                ['Clicks / reg', d.stats.ratio_registrations ?? '—'], ['EPC', d.stats.cost_transition ?? '—'], ['Avg player income', d.stats.avg_player_income ?? '—']].map(([k, v]) => (
                 <div key={String(k)}><dt className="text-[11px] text-slate-500">{k}</dt><dd className="font-bold">{String(v)}</dd></div>
               ))}
             </dl>
+            <div className="mt-3 grid grid-cols-3 gap-2 rounded-xl bg-dark-bg p-3 text-xs">
+              <div><div className="text-[11px] text-slate-500">Players' NGR</div><Money value={d.stats.ngr} className="font-black" /></div>
+              <div><div className="text-[11px] text-slate-500">Partner share</div><Money value={Number(d.stats.income) + Number(d.stats.sub_commission || 0)} className="font-black" /></div>
+              <div><div className="text-[11px] text-blue-200">House share (yours)</div>
+                <Money value={Number(d.stats.ngr) - Number(d.stats.income) - Number(d.stats.sub_commission || 0)} className="font-black" /></div>
+            </div>
           </Card>
           <PartnerSettingsCard d={d} onSaved={() => void data.reload()} canEdit={can('aff:partner:manage')} />
           <Card title="Profile">

@@ -46,7 +46,36 @@ export const AffOverview: React.FC = () => {
           <div><div className="text-[11px] text-slate-500">Partner income</div><Money value={month.income} className="font-black" /></div>
         </div>
       </Card>
+      {d.this_month_totals && <SplitCard totals={d.this_month_totals} />}
     </div>
+  )
+}
+
+/** Referred players' result this month and how it is split between partners and the house. */
+const SplitCard: React.FC<{ totals: { ngr: string; partner_share: string; house_share: string } }> = ({ totals }) => {
+  const losing = Number(totals.ngr) < 0
+  return (
+    <Card title="Referred players this month: who gets what">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div className="rounded-xl bg-dark-bg p-3">
+          <div className="text-[11px] text-slate-500">Players' NGR (their losses − wins)</div>
+          <Money value={totals.ngr} className="text-lg font-black" />
+        </div>
+        <div className="rounded-xl bg-dark-bg p-3">
+          <div className="text-[11px] text-slate-500">Partners' share (shown in the partner panel)</div>
+          <Money value={totals.partner_share} className="text-lg font-black" />
+        </div>
+        <div className="rounded-xl border border-blue-500/30 bg-blue-500/10 p-3">
+          <div className="text-[11px] text-blue-200">House share (super admin)</div>
+          <Money value={totals.house_share} className="text-lg font-black" />
+        </div>
+      </div>
+      <p className="mt-3 text-[11px] text-slate-400">
+        {losing
+          ? 'Referred players won more than they lost: the loss is shared — the partner\'s revshare goes negative (carried over to their next period) and the house takes the rest.'
+          : 'Referred players lost more than they won: the partner earns their revshare and the house keeps the rest.'}
+      </p>
+    </Card>
   )
 }
 
@@ -126,15 +155,35 @@ export const AffStatistics: React.FC = () => {
       </div>
       <Card>
         {data.loading && !data.data ? <Spinner /> : (
-          <Table head={['', 'Clicks', 'Reg.', 'Clicks/reg', 'FTD', 'Deposits', 'NGR', 'Partner income', 'EPC']} empty={!data.data?.items.length}>
-            {(data.data?.items || []).map((r) => (
-              <tr key={String(r.key)}>
-                <Td className="font-bold">{groupBy === 'partner' ? <Link to={`/admin/affiliate/partners/${r.key}`} className="text-blue-300">{r.label}</Link> : r.label}</Td>
-                <Td>{r.clicks}</Td><Td>{r.registrations}</Td><Td>{r.ratio_registrations ?? '—'}</Td><Td>{r.first_deposits}</Td>
-                <Td><Money value={r.deposit_amount} /></Td><Td><Money value={r.ngr} /></Td><Td><Money value={r.income} className="font-bold" /></Td><Td>{r.cost_transition ?? '—'}</Td>
-              </tr>
-            ))}
-          </Table>
+          <>
+            <p className="mb-3 text-[11px] text-slate-400">
+              <b className="text-slate-200">Players' NGR</b> is what referred players lost (positive) or won (negative, shown in red).
+              It is split between the partner (their revshare, e.g. 50 %) and the house: when a referred player wins, both shares are negative.
+            </p>
+            <Table head={['', 'Clicks', 'Reg.', 'Clicks/reg', 'FTD', 'Deposits', "Players' NGR", 'Partner share', 'House share (yours)', 'EPC']} empty={!data.data?.items.length}>
+              {(data.data?.items || []).map((r) => (
+                <tr key={String(r.key)}>
+                  <Td className="font-bold">{groupBy === 'partner' ? <Link to={`/admin/affiliate/partners/${r.key}`} className="text-blue-300">{r.label}</Link> : r.label}</Td>
+                  <Td>{r.clicks}</Td><Td>{r.registrations}</Td><Td>{r.ratio_registrations ?? '—'}</Td><Td>{r.first_deposits}</Td>
+                  <Td><Money value={r.deposit_amount} /></Td><Td><Money value={r.ngr} /></Td>
+                  <Td><Money value={Number(r.income) + Number(r.sub_commission || 0)} className="font-bold" /></Td>
+                  <Td><Money value={r.house_share} className="font-black" /></Td><Td>{r.cost_transition ?? '—'}</Td>
+                </tr>
+              ))}
+              {(data.data?.items.length ?? 0) > 1 && (() => {
+                const items = data.data!.items
+                const sum = (f: (r: typeof items[number]) => number) => items.reduce((a, r) => a + f(r), 0)
+                return (
+                  <tr className="bg-dark-elevated/50 font-black">
+                    <Td>Total</Td><Td>{sum((r) => r.clicks)}</Td><Td>{sum((r) => r.registrations)}</Td><Td>—</Td><Td>{sum((r) => r.first_deposits)}</Td>
+                    <Td><Money value={sum((r) => Number(r.deposit_amount))} /></Td><Td><Money value={sum((r) => Number(r.ngr || 0))} /></Td>
+                    <Td><Money value={sum((r) => Number(r.income) + Number(r.sub_commission || 0))} /></Td>
+                    <Td><Money value={sum((r) => Number(r.house_share || 0))} /></Td><Td>—</Td>
+                  </tr>
+                )
+              })()}
+            </Table>
+          </>
         )}
       </Card>
     </div>

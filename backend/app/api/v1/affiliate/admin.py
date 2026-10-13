@@ -141,6 +141,11 @@ async def overview(user: CurrentUser = Depends(require_permission(P.AFF_PARTNER_
         "balances": {"available": money_out(balances[0]), "pending": money_out(balances[1]), "reserved": money_out(balances[2])},
         "current_period": serialize.period(period),
         "this_month": month,
+        "this_month_totals": {
+            "ngr": money_out(sum((money(r["ngr"]) for r in month), money(0))),
+            "partner_share": money_out(sum((money(r["income"]) + money(r["sub_commission"]) for r in month), money(0))),
+            "house_share": money_out(sum((money(r["house_share"]) for r in month), money(0))),
+        },
     }
 
 

@@ -72,6 +72,9 @@ export const HI_TEXT: Record<string, string> = {
   'The server is waking up after a quiet period. This can take up to a minute.': 'कुछ देर से इस्तेमाल न होने के कारण सर्वर जाग रहा है। इसमें एक मिनट तक लग सकता है।',
 
   // dashboard & statistics
+  "Players' net result (NGR)": 'खिलाड़ियों का शुद्ध नतीजा (NGR)',
+  'Your players won more than they lost in this period, so your revshare is negative. It is carried over and covered by future earnings first.':
+    'इस अवधि में आपके खिलाड़ी हारे से ज़्यादा जीते, इसलिए आपका रेवशेयर नेगेटिव है। यह आगे जाता है और पहले आने वाली कमाई से पूरा होता है।',
   'Filters': 'फ़िल्टर',
   'Period': 'अवधि',
   'Links': 'लिंक',
