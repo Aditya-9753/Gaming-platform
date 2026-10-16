@@ -31,6 +31,7 @@ class CurrentUser:
         self.id = user.id
         self.username = user.username
         self.email = user.email
+        self.phone = user.phone
         self.role = user.role.name if user.role else UserRole.USER.value
         self.is_active = user.is_active
         self.is_verified = user.is_verified

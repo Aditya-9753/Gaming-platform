@@ -26,6 +26,7 @@ class UpdateProfileRequest(BaseModel):
     # Same rule as sign-up: unique (case-insensitive), letters/numbers/_ only
     username: Optional[str] = Field(None, min_length=3, max_length=50, pattern=r"^[A-Za-z0-9_]+$")
     email: Optional[str] = Field(None, min_length=5, max_length=255)
+    phone: Optional[str] = Field(None, max_length=20)
 
 
 class SelfExclusionRequest(BaseModel):
@@ -46,6 +47,7 @@ async def get_my_profile(
         "id": current_user.id,
         "username": current_user.username,
         "email": current_user.email,
+        "phone": current_user.phone,
         "role_id": current_user.role_id,
         "role": current_user.role,
         "is_active": current_user.is_active,
@@ -68,6 +70,7 @@ async def update_my_profile(
         user_id=current_user.id,
         username=payload.username,
         email=payload.email,
+        phone=payload.phone,
     )
     await db.commit()
     resp_svc = ResponsiblePlayService(db)
@@ -76,6 +79,7 @@ async def update_my_profile(
         "id": user.id,
         "username": user.username,
         "email": user.email,
+        "phone": user.phone,
         "role_id": user.role_id,
         "role": user.role.name if user.role else "USER",
         "is_active": user.is_active,

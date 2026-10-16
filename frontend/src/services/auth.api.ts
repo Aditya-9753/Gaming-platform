@@ -10,6 +10,7 @@ interface ApiUser {
   id: string
   username: string
   email: string | null
+  phone?: string | null
   role: string
   is_active: boolean
   is_verified: boolean
@@ -26,6 +27,7 @@ const mapUser = (user: ApiUser): UserSession => {
     id: user.id,
     username: user.username,
     email: user.email ?? undefined,
+    phone: user.phone ?? undefined,
     role: role === 'partner' ? 'partner' : (STAFF_ROLES as string[]).includes(role) ? (role as UserRole) : user.is_staff ? 'staff' : 'user',
     roleName: user.role,
     fullName: user.full_name ?? undefined,
@@ -48,9 +50,11 @@ export const authApi = {
     })
     return data
   },
-  register: async (username: string, password: string, ageConfirmed: boolean, email?: string, referral?: { click_id?: string; promo_code?: string }) => {
+  /** `username` may be left empty when signing up with a mobile number (the server picks one). */
+  register: async (username: string, password: string, ageConfirmed: boolean, email?: string, referral?: { click_id?: string; promo_code?: string }, phone?: string) => {
     const { data } = await apiClient.post<TokenResponse>('/auth/register', {
-      username: username.trim(),
+      username: username.trim() || undefined,
+      phone: phone?.trim() || undefined,
       email: email?.trim() || undefined,
       password,
       age_confirmed: ageConfirmed,

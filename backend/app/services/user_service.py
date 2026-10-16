@@ -47,9 +47,11 @@ class UserService:
         user_id: str,
         username: Optional[str] = None,
         email: Optional[str] = None,
+        phone: Optional[str] = None,
     ) -> User:
         """Update user profile attributes with uniqueness validation."""
-        from app.core.exceptions import ConflictException
+        from app.core.exceptions import BadRequestException, ConflictException
+        from app.core.phone import normalize_phone
 
         user = await self.get_by_id(user_id)
         if username and username != user.username:
@@ -62,5 +64,13 @@ class UserService:
             if await self.user_repo.email_exists(email_lower):
                 raise ConflictException("Email is already registered")
             user.email = email_lower
+        if phone is not None and phone.strip():
+            normalized = normalize_phone(phone)
+            if normalized is None:
+                raise BadRequestException("Enter a valid 10-digit Indian mobile number")
+            if normalized != user.phone:
+                if await self.user_repo.phone_exists(normalized):
+                    raise ConflictException("This mobile number is already used by another account")
+                user.phone = normalized
         await self.session.flush()
         return user

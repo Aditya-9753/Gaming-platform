@@ -8,7 +8,7 @@ import { showToast } from '../common/Toast'
 /** Small building blocks shared by the partner portal and the affiliate back office. */
 
 /**
- * True inside the partner portal: cards, buttons and tabs switch to the RudraWin
+ * True inside the partner portal: cards, buttons and tabs switch to the RunWin
  * premium look (glass, gradients, entrance motion; see components/brand/brand.css).
  * The affiliate back office leaves it off and keeps the plain admin style.
  */

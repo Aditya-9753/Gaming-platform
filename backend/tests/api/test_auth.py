@@ -483,3 +483,38 @@ async def test_username_available_suggests_free_names(client: AsyncClient):
         assert (await client.get("/api/v1/auth/username-available", params={"username": name})).json()["available"] is True
     bad = (await client.get("/api/v1/auth/username-available", params={"username": "sanu khan"})).json()
     assert bad["available"] is False and "letters" in bad["reason"]
+
+
+@pytest.mark.asyncio
+async def test_register_and_sign_in_with_mobile_number(client: AsyncClient):
+    """Players sign up with a mobile number (no username needed) and sign in with it in any common format."""
+    resp = await client.post("/api/v1/auth/register", json={"phone": "98765 43210", "password": "Mobile1234", "age_confirmed": True})
+    assert resp.status_code == 201, resp.text
+    me = (await client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {resp.json()['access_token']}"})).json()
+    assert me["phone"] == "+919876543210" and me["username"].startswith("player")
+
+    for typed in ("9876543210", "+91 98765-43210", "09876543210"):
+        login = await client.post("/api/v1/auth/login", json={"username": typed, "password": "Mobile1234"})
+        assert login.status_code == 200, (typed, login.text)
+    assert (await client.post("/api/v1/auth/login", json={"username": "9876543210", "password": "Wrong12345"})).status_code == 401
+
+    # one account per number; invalid numbers and missing number are refused with a clear message
+    dup = await client.post("/api/v1/auth/register", json={"phone": "+919876543210", "password": "Mobile1234", "age_confirmed": True})
+    assert dup.status_code == 409 and "already registered" in dup.text
+    bad = await client.post("/api/v1/auth/register", json={"phone": "12345", "password": "Mobile1234", "age_confirmed": True})
+    assert bad.status_code == 422 and "mobile number" in bad.text.lower()
+    none = await client.post("/api/v1/auth/register", json={"password": "Mobile1234", "age_confirmed": True})
+    assert none.status_code == 422 and "Mobile number is required" in none.text
+
+
+@pytest.mark.asyncio
+async def test_existing_player_adds_mobile_number_then_signs_in_with_it(client: AsyncClient):
+    token, _ = await _register(client)
+    headers = {"Authorization": f"Bearer {token}"}
+    r = await client.put("/api/v1/users/me", headers=headers, json={"phone": "8123456789"})
+    assert r.status_code == 200, r.text
+    assert r.json()["phone"] == "+918123456789"
+    login = await client.post("/api/v1/auth/login", json={"username": "8123456789", "password": VALID_USER["password"]})
+    assert login.status_code == 200, login.text
+    # the old username still works
+    assert (await client.post("/api/v1/auth/login", json={"username": VALID_USER["username"], "password": VALID_USER["password"]})).status_code == 200

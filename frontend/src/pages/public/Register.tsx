@@ -1,20 +1,20 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import axios from 'axios'
-import { Lock, User, ShieldAlert, ArrowRight, Eye, EyeOff, Check, X, Loader2 } from 'lucide-react'
+import { Lock, Phone, ShieldAlert, ArrowRight, Eye, EyeOff, Check, X } from 'lucide-react'
 import { Input } from '../../components/common/Input'
 import { Button } from '../../components/common/Button'
 import { useAuthStore } from '../../store/auth.store'
 import { authApi } from '../../services/auth.api'
 import { showToast } from '../../components/common/Toast'
-import { apiClient } from '../../services/api'
 import { clearReferral, getReferral } from '../../utils/referral'
 import { t as tr } from '../../i18n'
 import { useLogoSplash } from '../../components/brand/LogoSplash'
 import { BrandHero } from '../../components/brand/BrandHero'
 
+// Indian mobile number (10 digits, starts 6-9); the server stores it as +91XXXXXXXXXX
+const PHONE_PATTERN = /^[6-9]\d{9}$/
 // Must match PLAYER_PASSWORD_PATTERN on the server
-const USERNAME_PATTERN = /^[a-zA-Z0-9_]{3,50}$/
 const passwordChecks = (password: string) => [
   { label: 'At least 8 characters', ok: password.length >= 8 && password.length <= 128 },
   { label: 'At least one letter (a–z or A–Z)', ok: /[A-Za-z]/.test(password) },
@@ -33,25 +33,23 @@ const getRegistrationError = (error: unknown): string => {
       const field = item.loc?.at(-1)
       const message = item.msg?.replace(/^Value error,\s*/i, '')
       if (field === 'password') return 'Password must be at least 8 characters with a letter and a number.'
-      if (field === 'username') return 'Username must be 3–50 characters using only letters, numbers, and underscores.'
+      if (field === 'phone') return tr('Enter a valid 10-digit Indian mobile number.')
       if (field === 'age_confirmed') return 'Confirm that you meet the legal age requirement.'
       return message || body?.error?.message || tr('Please check your details and try again.')
     }).join(' ')
   }
 
-  if (error.response?.status === 409) return body?.error?.message || 'That username is already taken. Try another one.'
+  if (error.response?.status === 409) return body?.error?.message || tr('This mobile number is already registered. Sign in instead.')
   if (error.response?.status === 429) return 'Too many registration attempts. Please wait a few minutes and try again.'
   if (error.response && error.response.status >= 500) return 'The server could not save your account right now. Please try again in a minute.'
   if (!error.response) return 'Cannot reach the server. Check your internet connection and try again.'
   return body?.error?.message || tr('Registration could not be completed. Please try again.')
 }
 
-type NameStatus = { checking: boolean; available?: boolean; reason?: string | null; suggestions?: string[] }
-
 export const Register: React.FC = () => {
   const navigate = useNavigate()
   const { setAuth, setAccessToken } = useAuthStore()
-  const [username, setUsername] = useState('')
+  const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -59,32 +57,14 @@ export const Register: React.FC = () => {
   // Partner promo code (prefilled from a ?promo= link); the partner click id is sent automatically
   const [promoCode, setPromoCode] = useState(() => getReferral().promo || '')
   const [isLoading, setIsLoading] = useState(false)
-  const [nameStatus, setNameStatus] = useState<NameStatus>({ checking: false })
-
-  // Live uniqueness check (case-insensitive on the server)
-  useEffect(() => {
-    const candidate = username.trim()
-    if (candidate.length === 0) { setNameStatus({ checking: false }); return }
-    setNameStatus({ checking: true })
-    const timer = window.setTimeout(() => {
-      apiClient.get<{ available: boolean; reason: string | null; suggestions?: string[] }>('/auth/username-available', { params: { username: candidate } })
-        .then(({ data }) => setNameStatus({ checking: false, available: data.available, reason: data.reason, suggestions: data.suggestions ?? [] }))
-        .catch(() => setNameStatus({ checking: false }))
-    }, 400)
-    return () => window.clearTimeout(timer)
-  }, [username])
 
   const checks = passwordChecks(password)
   const passwordOk = checks.every((c) => c.ok)
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
-    if (!USERNAME_PATTERN.test(username.trim())) {
-      showToast({ title: tr('Invalid username'), message: tr('Use 3–50 letters, numbers or _ (for example Rahul_007).'), type: 'error' })
-      return
-    }
-    if (nameStatus.available === false) {
-      showToast({ title: tr('Username taken'), message: tr('Try another username, or pick one of the suggestions.'), type: 'error' })
+    if (!PHONE_PATTERN.test(phone)) {
+      showToast({ title: tr('Invalid mobile number'), message: tr('Enter your 10-digit mobile number (for example 9876543210).'), type: 'error' })
       return
     }
     if (!passwordOk) {
@@ -101,14 +81,14 @@ export const Register: React.FC = () => {
     }
     setIsLoading(true)
     try {
-      const { access_token } = await authApi.register(username.trim(), password, is18, undefined, { click_id: getReferral().click_id, promo_code: promoCode })
+      const { access_token } = await authApi.register('', password, is18, undefined, { click_id: getReferral().click_id, promo_code: promoCode }, `+91${phone}`)
       clearReferral()
       setAccessToken(access_token)
       const user = await authApi.getCurrentUser()
       setAuth(user, access_token)
       useLogoSplash.getState().show()
       showToast({ title: tr('Account created'), message: tr('Your account is ready.'), type: 'success' })
-      navigate('/dashboard')
+      navigate('/')
     } catch (error) {
       showToast({ title: tr('Registration failed'), message: getRegistrationError(error), type: 'error', duration: 9000 })
     } finally {
@@ -116,43 +96,24 @@ export const Register: React.FC = () => {
     }
   }
 
-  const nameIcon = nameStatus.checking
-    ? <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
-    : nameStatus.available === true ? <Check className="w-4 h-4 text-emerald-400" />
-    : nameStatus.available === false ? <X className="w-4 h-4 text-rose-400" /> : undefined
-  const nameError = !nameStatus.checking && nameStatus.available === false
-    ? (nameStatus.suggestions?.length ? `✗ ${nameStatus.reason}. Try another username.` : `✗ ${nameStatus.reason || 'Username not available'}`)
-    : undefined
-
   return (
     <div className="max-w-md mx-auto py-8">
       <div className="bg-dark-card border border-dark-border rounded-3xl p-8 shadow-2xl space-y-6">
         <div className="text-center space-y-2">
           <BrandHero className="w-36 sm:w-44" />
           <h2 className="text-2xl font-black text-white">{tr('Create Account')}</h2>
-          <p className="text-xs text-slate-400">{tr("Pick a username and password, that's all you need")}</p>
+          <p className="text-xs text-slate-400">{tr("Your mobile number and a password, that's all you need")}</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Input
-              label={tr('Username')} autoComplete="username" maxLength={50} placeholder={tr('e.g. Rahul_007')}
-              value={username} onChange={(e) => setUsername(e.target.value.replace(/\s/g, ''))}
-              leftElement={<User className="w-4 h-4 text-slate-400" />} rightElement={nameIcon}
-              error={nameError}
-              success={!nameStatus.checking && nameStatus.available ? '✓ Great! This username is available' : undefined}
-              helperText={nameStatus.checking ? tr('Checking availability…') : tr('Examples: Rahul_007, sanu27, King_Khan · 3–50 letters, numbers or _ (no spaces)')}
-              required
-            />
-            {!nameStatus.checking && nameStatus.available === false && (nameStatus.suggestions?.length ?? 0) > 0 && (
-              <div className="flex flex-wrap items-center gap-2 text-xs">
-                <span className="text-slate-400">{tr('Available:')}</span>
-                {nameStatus.suggestions!.map((s) => (
-                  <button key={s} type="button" onClick={() => setUsername(s)}
-                    className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 font-semibold text-emerald-300 hover:bg-emerald-500/20">{s}</button>
-                ))}
-              </div>
-            )}
-          </div>
+          <Input
+            label={tr('Mobile number')} type="tel" inputMode="numeric" autoComplete="tel-national" maxLength={10} placeholder="9876543210"
+            value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(-10))}
+            leftElement={<span className="flex items-center gap-1.5 text-sm font-semibold text-slate-300"><Phone className="w-4 h-4 text-slate-400" />+91</span>}
+            className="pl-[4.5rem]"
+            error={phone.length === 10 && !PHONE_PATTERN.test(phone) ? tr('Indian mobile numbers start with 6, 7, 8 or 9') : undefined}
+            helperText={tr('You will sign in with this number')}
+            required
+          />
           <div className="space-y-2">
             <Input
               label={tr('Password')} type={showPassword ? 'text' : 'password'} autoComplete="new-password" maxLength={128} placeholder={tr('e.g. sanu1234')}

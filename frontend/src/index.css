@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  /* RudraWin site theme: dark navy + white, blue accent */
+  /* RunWin site theme: dark navy + white, blue accent */
   --dark-bg: 8 18 38;
   --dark-card: 14 29 59;
   --dark-elevated: 21 42 82;
@@ -122,4 +122,10 @@ textarea {
   .admin-main th {
     white-space: nowrap;
   }
+}
+
+/* Edge/IE add their own "reveal password" eye; our inputs already have one */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
 }

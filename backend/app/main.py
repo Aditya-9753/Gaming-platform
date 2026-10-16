@@ -56,6 +56,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     bridge = None
     games_task: Optional[asyncio.Task] = None
     affiliate_task: Optional[asyncio.Task] = None
+    awake_task: Optional[asyncio.Task] = None
     try:
         redis_client = await init_redis()
         if redis_client is None:
@@ -83,10 +84,19 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         affiliate_task = asyncio.create_task(dev_loop(_factory()))
         logger.info("Affiliate jobs started in API process")
 
+    # 7. Free hosting: call our own public /health every 10 minutes so the service never idles out
+    from app.core.keep_awake import keep_awake_loop, target_url
+
+    awake_url = target_url()
+    if awake_url:
+        awake_task = asyncio.create_task(keep_awake_loop(awake_url))
+
     yield
 
     # Shutdown sequence
     logger.info("Shutting down Gaming Platform Application")
+    if awake_task:
+        awake_task.cancel()
     if affiliate_task:
         affiliate_task.cancel()
     if games_task:

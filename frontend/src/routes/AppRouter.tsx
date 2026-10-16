@@ -24,7 +24,6 @@ import { isStaffRole } from '../types/auth.types'
 import { captureReferral } from '../utils/referral'
 
 // Lazy-loaded routes
-const Home = lazy(() => import('../pages/public/Home').then((m) => ({ default: m.Home })))
 const Login = lazy(() => import('../pages/public/Login').then((m) => ({ default: m.Login })))
 const Register = lazy(() => import('../pages/public/Register').then((m) => ({ default: m.Register })))
 const ForgotPassword = lazy(() => import('../pages/public/ForgotPassword').then((m) => ({ default: m.ForgotPassword })))
@@ -169,7 +168,7 @@ const RequireSuperAdmin: React.FC<{ children: React.ReactNode }> = ({ children }
 const RedirectIfAuthed: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, user } = useAuthStore()
   // Admins that still must enrol 2FA go straight to the setup page
-  if (isAuthenticated) return <Navigate to={user?.role === 'partner' ? '/partner/dashboard' : user?.requires2FASetup ? '/admin/2fa' : '/dashboard'} replace />
+  if (isAuthenticated) return <Navigate to={user?.role === 'partner' ? '/partner/dashboard' : user?.requires2FASetup ? '/admin/2fa' : '/'} replace />
   return <>{children}</>
 }
 
@@ -249,7 +248,8 @@ export const router = createBrowserRouter([
     element: <AppShell />,
     children: [
       // Public Routes
-      { path: '/', element: <Home /> },
+      // The casino lobby is the home page for everyone
+      { path: '/', element: <Games /> },
       {
         path: '/login',
         element: (

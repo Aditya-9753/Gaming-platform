@@ -36,8 +36,8 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
+  { name: 'Casino', to: '/', icon: <Gamepad2 className="w-5 h-5" /> },
   { name: 'Dashboard', to: '/dashboard', icon: <LayoutDashboard className="w-5 h-5" />, authRequired: true },
-  { name: 'Casino', to: '/games', icon: <Gamepad2 className="w-5 h-5" /> },
   { name: 'Aviator', to: '/games/aviator', icon: <Plane className="w-5 h-5" />, badge: 'LIVE' },
   { name: 'Teen Patti', to: '/games/teen-patti', icon: <Spade className="w-5 h-5" />, badge: 'NEW' },
   { name: 'Color Prediction', to: '/games/color', icon: <Palette className="w-5 h-5" />, badge: 'LIVE' },
@@ -122,7 +122,7 @@ export const Sidebar: React.FC = () => {
             <NavLink
               key={item.to}
               to={item.to}
-              end={item.to === '/games'}
+              end={item.to === '/'}
               onClick={close}
               className={({ isActive }) =>
                 `flex items-center justify-between px-3 py-3 rounded-xl text-sm font-semibold transition-all ${

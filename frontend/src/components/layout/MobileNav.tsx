@@ -10,8 +10,9 @@ export const MobileNav: React.FC = () => {
   const { toggleSidebar, sidebarOpen } = useUIStore()
 
   const links = [
-    { to: isAuthenticated ? '/dashboard' : '/', label: 'Home', icon: <Home className="w-5 h-5" /> },
-    { to: '/games', label: 'Casino', icon: <Spade className="w-5 h-5" /> },
+    // The casino lobby is the home page
+    { to: '/', label: 'Casino', icon: <Spade className="w-5 h-5" /> },
+    { to: isAuthenticated ? '/dashboard' : '/login', label: isAuthenticated ? 'Dashboard' : 'Sign In', icon: <Home className="w-5 h-5" /> },
     { to: isAuthenticated ? '/wallet' : '/register', label: 'Free bonus', icon: <Gift className="w-5 h-5" /> },
     { to: '/games/cricket', label: 'Sports', icon: <Trophy className="w-5 h-5" /> },
   ]
@@ -27,7 +28,7 @@ export const MobileNav: React.FC = () => {
         <NavLink
           key={link.label}
           to={link.to}
-          end={link.to === '/games'}
+          end={link.to === '/'}
           className={({ isActive }) => `${item} ${isActive ? 'text-brand-blue' : 'text-slate-400 hover:text-slate-200'}`}
         >
           {link.icon}

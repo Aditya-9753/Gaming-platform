@@ -224,7 +224,7 @@ async def test_full_chain_revshare_kpis_settlement_and_withdrawal(env):
     dup = await ingest(env, "registration", {"external_customer_id": "cust-1", "click_id": cid, "country": "IN"})
     assert dup.status_code == 200 and dup.json()["duplicate"] and dup.json()["id"] == r.json()["id"]
 
-    today = date.today()
+    today = datetime.now(timezone.utc).date()
     r = await ingest(env, "deposit", {"external_customer_id": "cust-1", "external_transaction_id": "tx-1", "amount": "100",
                                       "currency": "USD", "status": "COMPLETED", "completed_at": datetime.now(timezone.utc).isoformat()})
     assert r.status_code == 201 and r.json()["status"] == "PROCESSED", r.text
@@ -313,8 +313,8 @@ async def test_negative_revshare_carryover_and_writeoff(env):
         cid = click_id_from(await click(env, partner["partner"]["partner_code"]))
         await ingest(env, "registration", {"external_customer_id": cust, "click_id": cid})
     await ingest(env, "revenue", {"rows": [
-        {"external_customer_id": "neg-1", "date": date.today().isoformat(), "bets": "100", "wins": "537"},
-        {"external_customer_id": "neg-2", "date": date.today().isoformat(), "bets": "100", "wins": "536.62"},
+        {"external_customer_id": "neg-1", "date": datetime.now(timezone.utc).date().isoformat(), "bets": "100", "wins": "537"},
+        {"external_customer_id": "neg-2", "date": datetime.now(timezone.utc).date().isoformat(), "bets": "100", "wins": "536.62"},
     ]})
     assert (await wallet(env, data["partner"]["id"]))[1] == Decimal("-218.5")
     assert (await close_current_period(env)).status_code == 200
@@ -360,7 +360,7 @@ async def test_held_cpa_settles_after_hold(env):
     async with env["db"]() as db:
         await db.execute(update(AffCommission).values(hold_until=datetime.now(timezone.utc) - timedelta(hours=1)))
         await db.commit()
-    await ingest(env, "revenue", {"rows": [{"external_customer_id": "h1", "date": date.today().isoformat(), "ngr": "100"}]})
+    await ingest(env, "revenue", {"rows": [{"external_customer_id": "h1", "date": datetime.now(timezone.utc).date().isoformat(), "ngr": "100"}]})
     assert (await wallet(env, pid))[1] == Decimal("50")  # 25 CPA + 25% of 100
     assert (await close_current_period(env)).status_code == 200
     assert await wallet(env, pid) == (Decimal("50"), Decimal("0"), Decimal("0"))
@@ -387,7 +387,7 @@ async def test_ingest_security_and_fx(env):
     failed = (await env["client"].get("/api/v1/aff/admin/ingest-events?status=FAILED", headers=env["a1"])).json()
     assert [e["id"] for e in failed["items"]] == [event_id]
     r = await env["client"].post("/api/v1/aff/admin/fx-rates", headers=env["f1"],
-                                 json={"rate_date": date.today().isoformat(), "currency": "JPY", "rate_to_usd": "0.0068"})
+                                 json={"rate_date": datetime.now(timezone.utc).date().isoformat(), "currency": "JPY", "rate_to_usd": "0.0068"})
     assert r.status_code == 201
     r = await env["client"].post(f"/api/v1/aff/admin/ingest-events/{event_id}/retry", headers=env["a1"])
     assert r.json()["status"] == "PROCESSED", r.text
@@ -458,7 +458,7 @@ async def test_self_signup_subpartner_and_sub_commission(env):
 
     cid = click_id_from(await click(env, sub.partner_code))
     await ingest(env, "registration", {"external_customer_id": "sp-1", "click_id": cid})
-    await ingest(env, "revenue", {"rows": [{"external_customer_id": "sp-1", "date": date.today().isoformat(), "ngr": "400"}]})
+    await ingest(env, "revenue", {"rows": [{"external_customer_id": "sp-1", "date": datetime.now(timezone.utc).date().isoformat(), "ngr": "400"}]})
     assert (await close_current_period(env)).status_code == 200
     assert (await wallet(env, sub.id))[0] == Decimal("200")
     assert (await wallet(env, master["partner"]["id"]))[0] == Decimal("10")  # 5% of the subpartner's 200
@@ -499,7 +499,7 @@ async def test_tiered_deal_adjusts_at_close(env):
     pid = data["partner"]["id"]
     cid = click_id_from(await click(env, data["partner"]["partner_code"]))
     await ingest(env, "registration", {"external_customer_id": "t1", "click_id": cid})
-    await ingest(env, "revenue", {"rows": [{"external_customer_id": "t1", "date": date.today().isoformat(), "ngr": "1500"}]})
+    await ingest(env, "revenue", {"rows": [{"external_customer_id": "t1", "date": datetime.now(timezone.utc).date().isoformat(), "ngr": "1500"}]})
     assert (await wallet(env, pid))[1] == Decimal("375")  # provisional 25%
     assert (await close_current_period(env)).status_code == 200
     assert (await wallet(env, pid))[0] == Decimal("600")  # tier 40% for period NGR 1500
@@ -583,7 +583,7 @@ async def test_player_win_is_split_between_partner_and_house(env):
     pid = data["partner"]["id"]
     cid = click_id_from(await click(env, data["partner"]["partner_code"]))
     await ingest(env, "registration", {"external_customer_id": "lucky-1", "click_id": cid})
-    await ingest(env, "revenue", {"rows": [{"external_customer_id": "lucky-1", "date": date.today().isoformat(), "bets": "100", "wins": "1100"}]})
+    await ingest(env, "revenue", {"rows": [{"external_customer_id": "lucky-1", "date": datetime.now(timezone.utc).date().isoformat(), "bets": "100", "wins": "1100"}]})
     assert (await wallet(env, pid))[1] == Decimal("-500")  # partner: 50 % of the -1000 NGR
     await rebuild(env)
 

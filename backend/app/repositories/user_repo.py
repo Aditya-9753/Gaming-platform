@@ -48,6 +48,19 @@ class UserRepository:
         )
         return result.scalars().first()
 
+    async def get_by_phone(self, phone: str) -> Optional[User]:
+        """Return user by normalized mobile number ("+91..." )."""
+        result = await self._db.execute(
+            select(User)
+            .options(selectinload(User.role).selectinload(Role.permissions))
+            .where(User.phone == phone)
+        )
+        return result.scalar_one_or_none()
+
+    async def phone_exists(self, phone: str) -> bool:
+        result = await self._db.execute(select(User.id).where(User.phone == phone))
+        return result.scalar_one_or_none() is not None
+
     async def email_exists(self, email: str) -> bool:
         result = await self._db.execute(
             select(User.id).where(User.email == email.lower())

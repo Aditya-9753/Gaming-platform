@@ -21,8 +21,10 @@ export const userApi = {
     const { data } = await apiClient.put<Record<string, unknown>>('/users/me', {
       username: payload.username,
       email: payload.email,
+      phone: payload.phone || undefined,
     })
-    return { ...payload, id: String(data.id), username: String(data.username), email: String(data.email) } as UserProfile
+    return { ...payload, id: String(data.id), username: String(data.username), email: data.email ? String(data.email) : undefined,
+      phone: data.phone ? String(data.phone) : undefined } as UserProfile
   },
 
   uploadAvatar: async (file: File): Promise<{ avatarUrl: string }> => {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { User, Mail, Shield } from 'lucide-react'
+import { User, Mail, Shield, Phone } from 'lucide-react'
 import { Input } from '../../components/common/Input'
 import { Button } from '../../components/common/Button'
 import { showToast } from '../../components/common/Toast'
@@ -17,6 +17,7 @@ export const Profile: React.FC = () => {
 
   const [username, setUsername] = useState(user?.username || '')
   const [email, setEmail] = useState(user?.email || '')
+  const [phone, setPhone] = useState((user?.phone || '').replace(/^\+91/, ''))
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [isChangingPassword, setIsChangingPassword] = useState(false)
@@ -46,6 +47,7 @@ export const Profile: React.FC = () => {
     if (user) {
       setUsername(user.username)
       setEmail(user.email || '')
+      setPhone((user.phone || '').replace(/^\+91/, ''))
     }
   }, [user])
 
@@ -53,14 +55,18 @@ export const Profile: React.FC = () => {
     e.preventDefault()
     setIsSaving(true)
     try {
-      const profile = await userApi.updateProfile({ username: trimmedName, email })
-      if (user && accessToken) setAuth({ ...user, username: profile.username, email: profile.email }, accessToken)
+      if (phone && !/^[6-9]\d{9}$/.test(phone)) {
+        showToast({ title: tr('Invalid mobile number'), message: tr('Enter your 10-digit mobile number (for example 9876543210).'), type: 'error' })
+        return
+      }
+      const profile = await userApi.updateProfile({ username: trimmedName, email: email || undefined, phone: phone ? `+91${phone}` : undefined })
+      if (user && accessToken) setAuth({ ...user, username: profile.username, email: profile.email, phone: profile.phone }, accessToken)
       showToast({ title: tr('Profile Updated'), message: tr('Your information has been saved.'), type: 'success' })
     } catch (err) {
       const status = (err as { response?: { status?: number } }).response?.status
       showToast({
         title: tr('Profile update failed'),
-        message: status === 409 ? 'That username or email is already taken. Try another one.' : 'The server did not save your profile changes.',
+        message: status === 409 ? tr('That username, email or mobile number is already used by another account.') : 'The server did not save your profile changes.',
         type: 'error',
       })
     } finally {
@@ -159,6 +165,17 @@ export const Profile: React.FC = () => {
               maxLength={50}
               error={nameChanged && !nameStatus.checking && nameStatus.available === false ? `✗ ${nameStatus.reason || 'Username not available'}` : undefined}
               success={nameChanged && !nameStatus.checking && nameStatus.available ? '✓ This username is available' : undefined}
+            />
+            <Input
+              label={tr('Mobile number')}
+              type="tel"
+              inputMode="numeric"
+              maxLength={10}
+              value={phone}
+              onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(-10))}
+              leftElement={<Phone className="w-4 h-4" />}
+              placeholder="9876543210"
+              helperText={user?.phone ? tr('You sign in with this number') : tr('Add your number to sign in with it')}
             />
             <Input
               label={tr('Email Address')}

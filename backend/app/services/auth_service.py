@@ -70,15 +70,26 @@ class AuthService:
     # Registration
     # ------------------------------------------------------------------
 
+    async def _new_username(self) -> str:
+        """A unique public name for a player who signed up with only a mobile number."""
+        import secrets
+
+        for _ in range(20):
+            candidate = f"player{secrets.randbelow(900000) + 100000}"
+            if not await self._users.username_exists(candidate):
+                return candidate
+        return f"player{uuid.uuid4().hex[:10]}"
+
     async def register(
         self,
-        username: str,
+        username: Optional[str],
         email: Optional[str],
         password: str,
         age_confirmed: bool,
         click_id: Optional[str] = None,
         promo_code: Optional[str] = None,
         country: Optional[str] = None,
+        phone: Optional[str] = None,
     ) -> Tuple[User, str, str]:
         """Create user + wallet + signup bonus in a single DB transaction.
 
@@ -90,8 +101,13 @@ class AuthService:
         email = email.strip().lower() if email else None
         if email and await self._users.email_exists(email):
             raise ConflictException("Email address is already registered")
-        if await self._users.username_exists(username):
-            raise ConflictException("Username is already taken")
+        if phone and await self._users.phone_exists(phone):
+            raise ConflictException("This mobile number is already registered. Sign in instead.")
+        if username:
+            if await self._users.username_exists(username):
+                raise ConflictException("Username is already taken")
+        else:
+            username = await self._new_username()
 
         # Resolve USER role
         role_result = await self._db.execute(
@@ -105,6 +121,7 @@ class AuthService:
             id=str(uuid.uuid4()),
             username=username,
             email=email,
+            phone=phone,
             password_hash=hash_password(password),
             role_id=user_role.id,
             is_active=True,
@@ -170,9 +187,13 @@ class AuthService:
 
         ``identifier`` is a username or an email address.
         """
+        from app.core.phone import looks_like_phone, normalize_phone
+
         identifier = identifier.strip()
         if "@" in identifier:
             user = await self._users.get_by_email(identifier.lower())
+        elif looks_like_phone(identifier):
+            user = await self._users.get_by_phone(normalize_phone(identifier) or "")
         else:
             user = await self._users.get_by_username(identifier)
 

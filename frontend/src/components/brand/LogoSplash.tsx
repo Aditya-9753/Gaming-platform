@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo } from 'react'
 import { create } from 'zustand'
-import markUrl from '../../assets/brand/rudrawin-mark.webp'
+import markUrl from '../../assets/brand/runwin-mark.webp'
 // Solid-shape mask (no soft glow) so the shine never lights up the glow's box
-import maskUrl from '../../assets/brand/rudrawin-mark-mask.webp'
-import wordUrl from '../../assets/brand/rudrawin-wordmark.webp'
+import maskUrl from '../../assets/brand/runwin-mark-mask.webp'
+import wordUrl from '../../assets/brand/runwin-wordmark.webp'
 import './logo-splash.css'
 
 const DURATION_MS = 2500
@@ -16,7 +16,7 @@ export const useLogoSplash = create<{ visible: boolean; show: () => void; hide: 
   hide: () => set({ visible: false }),
 }))
 
-/** Full-screen RudraWin logo intro. Mount once near the router root. */
+/** Full-screen RunWin logo intro. Mount once near the router root. */
 export const LogoSplash: React.FC = () => {
   const { visible, hide } = useLogoSplash()
 
@@ -49,7 +49,7 @@ export const LogoSplash: React.FC = () => {
           <img src={markUrl} alt="" className="rw-splash__mark" draggable={false} />
           <div className="rw-splash__shine" style={maskStyle} />
         </div>
-        <img src={wordUrl} alt="RudraWin" className="rw-splash__word" draggable={false} />
+        <img src={wordUrl} alt="RunWin" className="rw-splash__word" draggable={false} />
         <div className="rw-splash__beam" />
       </div>
     </div>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import axios from 'axios'
-import { Lock, User, ArrowRight, ShieldCheck, KeyRound } from 'lucide-react'
+import { Lock, Phone, ArrowRight, ShieldCheck, KeyRound } from 'lucide-react'
 import { BrandHero } from '../../components/brand/BrandHero'
 import { useLogoSplash } from '../../components/brand/LogoSplash'
 import { Turnstile, captchaSiteKey } from '../../components/common/Turnstile'
@@ -18,7 +18,7 @@ const getLoginError = (error: unknown): string => {
   if (!error.response) return 'Cannot reach the server. Check that the backend is running on port 8000.'
   const body = error.response?.data as { error?: { message?: string } } | undefined
   const message = body?.error?.message
-  if (error.response?.status === 401) return message || 'Username or password is incorrect.'
+  if (error.response?.status === 401) return tr('Mobile number or password is incorrect.')
   if (error.response?.status === 403) return message || 'This account is inactive or access is restricted.'
   if (error.response?.status === 429) return 'Too many sign-in attempts. Wait a few minutes before trying again.'
   return message || tr('Could not sign in. Please try again.')
@@ -49,7 +49,7 @@ export const Login: React.FC = () => {
       showToast({ title: tr('Welcome back!'), message: tr('Signed in successfully.'), type: 'success' })
       navigate(user.role === 'partner' ? '/partner/dashboard' : isStaffRole(user.role)
         ? user.requires2FASetup ? '/admin/2fa' : '/admin/dashboard'
-        : '/dashboard')
+        : '/')
     } catch (error) {
       const message = getLoginError(error)
       const key = captchaSiteKey(error)
@@ -81,10 +81,12 @@ export const Login: React.FC = () => {
         <div className="text-center space-y-2">
           <BrandHero className="w-44 sm:w-52" />
           <h2 className="text-2xl font-black text-white">{tr('Welcome Back')}</h2>
-          <p className="text-xs text-slate-400">{tr('Sign in with your username and password')}</p>
+          <p className="text-xs text-slate-400">{tr('Sign in with your mobile number and password')}</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <Input label={tr('Username')} autoComplete="username" autoCapitalize="none" spellCheck={false} value={username} onChange={(e) => setUsername(e.target.value)} leftElement={<User className="w-4 h-4 text-slate-400" />} required />
+          <Input label={tr('Mobile number')} placeholder="9876543210" inputMode="tel" autoComplete="username" autoCapitalize="none" spellCheck={false} value={username}
+            onChange={(e) => setUsername(e.target.value)} leftElement={<Phone className="w-4 h-4 text-slate-400" />}
+            helperText={tr('Older accounts can also use their username or email')} required />
           <Input label={tr('Password')} type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} leftElement={<Lock className="w-4 h-4 text-slate-400" />} required />
           {needsTotp ? (
             <div className="space-y-2">

@@ -1,8 +1,8 @@
 import React from 'react'
 import { Flame } from 'lucide-react'
 import { usePlatformConfig } from '../../hooks/usePlatformConfig'
-import markUrl from '../../assets/brand/rudrawin-mark.webp'
-import wordUrl from '../../assets/brand/rudrawin-wordmark.webp'
+import markUrl from '../../assets/brand/runwin-mark.webp'
+import wordUrl from '../../assets/brand/runwin-wordmark.webp'
 import '../brand/brand.css'
 
 /** Splits "Rudra247" into the word and a trailing number so the number can sit in a blue chip. */
@@ -11,14 +11,14 @@ const splitName = (name: string): [string, string] => {
   return match && match[1] ? [match[1], match[2]] : [name, '']
 }
 
-/** The built-in artwork spells RUDRAWIN, so it is only used while the brand name matches. */
-const isRudraWin = (name: string) => /^rudra\s*win$/i.test(name.trim())
+/** The built-in artwork spells RUN WIN, so it is only used while the brand name matches. */
+export const isBuiltInBrand = (name: string) => /^run\s*win$/i.test(name.trim())
 
 /**
  * Platform logo + name, both configurable by the super admin.
  * `wordmark` (site header) shows the brand mark + name; without it the icon + name layout
- * is kept (used inside game pages). With no custom logo URL and the RudraWin name, the
- * built-in RudraWin artwork is used.
+ * is kept (used inside game pages). With no custom logo URL and the RunWin name, the
+ * built-in RunWin artwork is used.
  */
 export const BrandLogo: React.FC<{ className?: string; iconClassName?: string; textClassName?: string; showName?: boolean; wordmark?: boolean }> = ({
   className = 'flex items-center gap-2',
@@ -28,7 +28,7 @@ export const BrandLogo: React.FC<{ className?: string; iconClassName?: string; t
   wordmark = false,
 }) => {
   const { platform_name: name, platform_logo_url: logo } = usePlatformConfig()
-  const builtIn = !logo && isRudraWin(name)
+  const builtIn = !logo && isBuiltInBrand(name)
 
   if (wordmark && builtIn) {
     return (

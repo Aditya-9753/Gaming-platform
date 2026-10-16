@@ -29,6 +29,8 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
     full_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     email: Mapped[Optional[str]] = mapped_column(String(255), unique=True, nullable=True, index=True)
+    # Mobile number used to sign in ("+91" + 10 digits); None for older accounts until they add one
+    phone: Mapped[Optional[str]] = mapped_column(String(16), unique=True, nullable=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     role_id: Mapped[int] = mapped_column(ForeignKey("roles.id"), nullable=False, index=True)
 

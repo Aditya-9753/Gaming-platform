@@ -18,7 +18,9 @@ PLAYER_PASSWORD_PATTERN = re.compile(r"^(?=.*[A-Za-z])(?=.*\d).{8,128}$")
 
 
 class RegisterRequest(BaseModel):
-    username: str = Field(min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_]+$")
+    # Players sign up with a mobile number; a username is made for them when they do not pick one
+    phone: Optional[str] = Field(None, max_length=20)
+    username: Optional[str] = Field(None, min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_]+$")
     email: Optional[EmailStr] = None
     password: str = Field(min_length=8, max_length=128)
     age_confirmed: bool
@@ -40,12 +42,30 @@ class RegisterRequest(BaseModel):
             raise ValueError("You must confirm you are of legal age to use this platform")
         return v
 
+    @field_validator("phone")
+    @classmethod
+    def valid_phone(cls, v: Optional[str]) -> Optional[str]:
+        if v is None or not v.strip():
+            return None
+        from app.core.phone import normalize_phone
+
+        phone = normalize_phone(v)
+        if phone is None:
+            raise ValueError("Enter a valid 10-digit Indian mobile number")
+        return phone
+
+    @model_validator(mode="after")
+    def phone_or_username(self) -> "RegisterRequest":
+        if not self.phone and not self.username:
+            raise ValueError("Mobile number is required")
+        return self
+
 
 class LoginRequest(BaseModel):
-    """Sign in with a username (or email) and password.
+    """Sign in with a mobile number, username or email, and password.
 
-    ``username`` accepts either the username or the email address; the legacy
-    ``email`` field is still accepted for older clients.
+    ``username`` accepts any of the three; the legacy ``email`` field is still accepted
+    for older clients.
     """
 
     username: Optional[str] = Field(None, min_length=1, max_length=255)
@@ -63,7 +83,7 @@ class LoginRequest(BaseModel):
     @model_validator(mode="after")
     def require_identifier(self) -> "LoginRequest":
         if not (self.username or self.email or "").strip():
-            raise ValueError("Username is required")
+            raise ValueError("Mobile number or username is required")
         return self
 
     @property
@@ -108,6 +128,7 @@ class MeResponse(BaseModel):
     id: str
     username: str
     email: Optional[str] = None
+    phone: Optional[str] = None
     role: str
     is_active: bool
     is_verified: bool

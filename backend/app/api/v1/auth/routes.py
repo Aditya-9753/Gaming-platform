@@ -95,6 +95,7 @@ async def register(
     _user, access_token, refresh_raw = await svc.register(
         username=body.username,
         email=body.email,
+        phone=body.phone,
         password=body.password,
         age_confirmed=body.age_confirmed,
         click_id=body.click_id or request.cookies.get("aff_click"),
@@ -323,6 +324,7 @@ async def me(
         id=current_user.id,
         username=current_user.username,
         email=current_user.email,
+        phone=current_user._user.phone,
         role=current_user.role,
         is_active=current_user.is_active,
         is_verified=current_user.is_verified,

@@ -554,5 +554,19 @@
   "Amount (min ₹{min})": "राशि (न्यूनतम ₹{min})",
   "from {time}": "{time} से",
   "The amount is held from your balance immediately and sent to your account after review. If it cannot be paid it is returned to your wallet.": "राशि तुरंत आपके बैलेंस से रोक ली जाती है और जांच के बाद आपके खाते में भेजी जाती है। अगर भुगतान नहीं हो सका तो राशि आपके वॉलेट में लौट आती है।",
-  "Turnover: {played} of {required} played.": "टर्नओवर: {required} में से {played} खेला गया।"
+  "Turnover: {played} of {required} played.": "टर्नओवर: {required} में से {played} खेला गया।",
+  "Mobile number": "मोबाइल नंबर",
+  "Sign in with your mobile number and password": "अपने मोबाइल नंबर और पासवर्ड से साइन इन करें",
+  "Older accounts can also use their username or email": "पुराने खाते यूज़रनेम या ईमेल से भी साइन इन कर सकते हैं",
+  "Your mobile number and a password, that's all you need": "बस आपका मोबाइल नंबर और एक पासवर्ड चाहिए",
+  "You will sign in with this number": "आप इसी नंबर से साइन इन करेंगे",
+  "Indian mobile numbers start with 6, 7, 8 or 9": "भारतीय मोबाइल नंबर 6, 7, 8 या 9 से शुरू होते हैं",
+  "Invalid mobile number": "गलत मोबाइल नंबर",
+  "Enter your 10-digit mobile number (for example 9876543210).": "अपना 10 अंकों का मोबाइल नंबर डालें (जैसे 9876543210)।",
+  "Enter a valid 10-digit Indian mobile number.": "सही 10 अंकों का भारतीय मोबाइल नंबर डालें।",
+  "This mobile number is already registered. Sign in instead.": "यह मोबाइल नंबर पहले से रजिस्टर है। साइन इन करें।",
+  "Mobile number or password is incorrect.": "मोबाइल नंबर या पासवर्ड गलत है।",
+  "You sign in with this number": "आप इसी नंबर से साइन इन करते हैं",
+  "Add your number to sign in with it": "इससे साइन इन करने के लिए अपना नंबर जोड़ें",
+  "That username, email or mobile number is already used by another account.": "यह यूज़रनेम, ईमेल या मोबाइल नंबर किसी दूसरे खाते में इस्तेमाल हो रहा है।"
 }
