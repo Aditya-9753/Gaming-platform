@@ -1,8 +1,8 @@
 import React from 'react'
 import { Flame } from 'lucide-react'
 import { usePlatformConfig } from '../../hooks/usePlatformConfig'
-import markUrl from '../../assets/brand/runwin-mark.webp'
-import wordUrl from '../../assets/brand/runwin-wordmark.webp'
+import markUrl from '../../assets/brand/runwin-mark-sm.webp'
+import wordUrl from '../../assets/brand/runwin-wordmark-sm.webp'
 import '../brand/brand.css'
 
 /** Splits "Rudra247" into the word and a trailing number so the number can sit in a blue chip. */

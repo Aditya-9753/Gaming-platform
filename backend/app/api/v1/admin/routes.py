@@ -224,6 +224,7 @@ async def list_users(
             "id": u.id,
             "username": u.username,
             "email": u.email,
+            "phone": u.phone,
             "role_id": u.role_id,
             "role": u.role.name if u.role else None,
             "is_active": u.is_active,

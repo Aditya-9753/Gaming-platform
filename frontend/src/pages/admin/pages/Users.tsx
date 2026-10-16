@@ -11,6 +11,7 @@ interface ApiUser {
   id: string
   username: string
   email: string | null
+  phone?: string | null
   role: string | null
   is_active: boolean
   balance: number
@@ -37,7 +38,8 @@ export const Users: React.FC = () => {
         .then((data) => setUsers(data.items.map((user) => ({
           id: user.id,
           username: user.username,
-          phone: user.email || '—',
+          // Mobile number players sign in with; older accounts without one show their email
+          phone: user.phone ? `+91 ${user.phone.slice(3)}` : user.email || '—',
           email: user.email || '',
           role: (STAFF_ROLES as string[]).includes(user.role?.toLowerCase() ?? '')
             ? (user.role!.toLowerCase() as UserRole)
@@ -60,7 +62,7 @@ export const Users: React.FC = () => {
           <p className="text-xs text-slate-400">{total} accounts on the platform • search and manage</p>
         </div>
         <div className="w-full sm:w-72">
-          <Input placeholder="Search username, email, or ID..." value={search} onChange={(e) => setSearch(e.target.value)} leftElement={<Search className="h-4 w-4 text-slate-400" />} />
+          <Input placeholder="Search mobile number, username, email or ID..." value={search} onChange={(e) => setSearch(e.target.value)} leftElement={<Search className="h-4 w-4 text-slate-400" />} />
         </div>
       </div>
       {loading ? <p className="text-sm text-slate-400">Loading users…</p> : users.length ? <UserTable users={users} /> : <p className="rounded-xl border border-dark-border bg-dark-card p-5 text-sm text-slate-400">No users found.</p>}

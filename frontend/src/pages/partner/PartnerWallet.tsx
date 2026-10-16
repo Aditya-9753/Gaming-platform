@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Plus } from 'lucide-react'
 import {
+  DisplayCurrencyContext, formatMoney,
   Badge, Btn, Card, ConfirmPrompt, Empty, ErrorBox, Field, Modal, Money, Spinner, StatusDot, Table, Tabs, Td, cx, dateOnly, dateTime,
   inputCls, toastError, useAsync,
 } from '../../components/affiliate/ui'
@@ -31,6 +32,9 @@ export const PartnerWithdrawal: React.FC = () => {
   const [addOpen, setAddOpen] = useState(false)
   const [idemKey, setIdemKey] = useState(() => crypto.randomUUID())
 
+  const currency = React.useContext(DisplayCurrencyContext)
+  // "20.00 $ (≈ ₹1,700.00)" while the portal shows rupees; just "20.00 $" otherwise
+  const usdAnd = (value: string | number) => `${Number(value).toFixed(2)} $${currency.code === 'INR' ? ` (≈ ${formatMoney(value, currency)})` : ''}`
   const activeMethods = methods.data?.items || []
   const method = activeMethods.find((m) => m.id === methodId) || activeMethods.find((m) => m.is_default) || activeMethods[0]
   const refresh = () => { void wallet.reload(); void history.reload(); void auto.reload(); void reloadMe() }
@@ -41,7 +45,7 @@ export const PartnerWithdrawal: React.FC = () => {
   const coolingDown = method && new Date(method.usable_after) > new Date()
 
   const withdraw = () => setPrompt({
-    title: t('Withdraw {amount} $', { amount: Number(amount).toFixed(2) }),
+    title: t('Withdraw {amount}', { amount: usdAnd(amount) }),
     message: method ? t('To {destination}', { destination: method.destination }) : undefined,
     run: async () => {
       try {
@@ -86,7 +90,7 @@ export const PartnerWithdrawal: React.FC = () => {
                 {activeMethods.map((m) => <option key={m.id} value={m.id}>{m.label} · {m.destination}</option>)}
               </select>
             )}
-            <Field label={t('amount')} hint={w.withdraw_blocked_reason ? undefined : t('Minimum {amount} $', { amount: w.min_payout })}>
+            <Field label={`${t('amount')} (USD)`} hint={w.withdraw_blocked_reason ? undefined : t('Minimum {amount}', { amount: usdAnd(w.min_payout) })}>
               <div className="flex gap-2">
                 <input inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))} className={inputCls} placeholder="0.00" />
                 <Btn tone="ghost" onClick={() => setAmount(Math.max(0, Math.floor(Number(w.available) * 100) / 100).toFixed(2))}>{t('Max')}</Btn>
@@ -94,7 +98,7 @@ export const PartnerWithdrawal: React.FC = () => {
             </Field>
             {w.withdraw_blocked_reason && (
               <p className="mt-2 text-xs text-amber-300">
-                {w.withdraw_blocked_reason.startsWith('Minimum payout') ? t('Minimum payout is {amount} $', { amount: w.min_payout }) : t(w.withdraw_blocked_reason)}
+                {w.withdraw_blocked_reason.startsWith('Minimum payout') ? t('Minimum payout is {amount}', { amount: usdAnd(w.min_payout) }) : t(w.withdraw_blocked_reason)}
               </p>
             )}
             <Btn className="mt-3 w-full" disabled={!w.can_withdraw || !method || !Number(amount) || Boolean(coolingDown)} onClick={withdraw}>{t('withdraw')}</Btn>
@@ -166,7 +170,7 @@ const AutoToggle: React.FC<{
       <div className="flex items-center justify-between gap-3">
         <div>
           <div className="text-sm font-bold">{t('autoWithdrawal')}</div>
-          <div className="text-[11px] text-slate-400">{t('After each settlement, the full available balance is paid out when it is at least {amount} $.', { amount: state.data?.min_amount || minPayout })}</div>
+          <div className="text-[11px] text-slate-400">{t('After each settlement, the full available balance is paid out when it is at least {amount}.', { amount: `${state.data?.min_amount || minPayout} $` })}</div>
         </div>
         <button type="button" role="switch" aria-checked={enabled} onClick={toggle} disabled={!methods.length}
           className={cx('relative h-7 w-12 shrink-0 rounded-full transition disabled:opacity-40', enabled ? 'bg-emerald-500' : 'bg-slate-600')}>

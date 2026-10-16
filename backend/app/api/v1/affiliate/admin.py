@@ -146,7 +146,14 @@ async def overview(user: CurrentUser = Depends(require_permission(P.AFF_PARTNER_
             "partner_share": money_out(sum((money(r["income"]) + money(r["sub_commission"]) for r in month), money(0))),
             "house_share": money_out(sum((money(r["house_share"]) for r in month), money(0))),
         },
+        "inr_per_usd": await _inr_per_usd(db),
     }
+
+
+async def _inr_per_usd(db: AsyncSession) -> Optional[str]:
+    from app.api.v1.affiliate.partner import _inr_per_usd as rate
+
+    return await rate(db)
 
 
 # ===================================================================== partners

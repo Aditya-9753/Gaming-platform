@@ -134,6 +134,10 @@ def create_app() -> FastAPI:
     from app.middleware.csrf import CSRFOriginMiddleware
     from app.middleware.global_rate_limit import GlobalRateLimitMiddleware
 
+    # Compress larger JSON (lists, history, admin tables); small replies such as tokens stay as they are
+    from starlette.middleware.gzip import GZipMiddleware
+
+    app.add_middleware(GZipMiddleware, minimum_size=1024, compresslevel=6)
     app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(GlobalRateLimitMiddleware, per_minute=settings.GLOBAL_RATE_LIMIT_PER_MINUTE,
                        writes_per_minute=settings.GLOBAL_WRITE_LIMIT_PER_MINUTE)

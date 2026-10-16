@@ -31,6 +31,7 @@ from app.schemas.auth import (
     ResetPasswordRequest,
     TOTPSetupResponse,
     TOTPVerifyRequest,
+    RefreshResponse,
     TokenResponse,
 )
 from app.services.auth_service import AuthService
@@ -211,7 +212,7 @@ async def login(
 # POST /auth/refresh
 # ---------------------------------------------------------------------------
 
-@router.post("/refresh", response_model=TokenResponse)
+@router.post("/refresh", response_model=RefreshResponse)
 async def refresh_token(
     request: Request,
     response: Response,
@@ -231,10 +232,27 @@ async def refresh_token(
     svc = AuthService(db)
     new_access, new_refresh_raw = await svc.refresh(raw_token)
     _set_refresh_cookie(response, new_refresh_raw)
-    return TokenResponse(
+    return RefreshResponse(
         access_token=new_access,
         expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        user=await _profile_for_token(db, new_access),
     )
+
+
+async def _profile_for_token(db: AsyncSession, access_token: str) -> Optional[MeResponse]:
+    """The /auth/me payload for a freshly issued token (None if it cannot be built; the app then calls /auth/me)."""
+    from app.core.deps import CurrentUser
+    from app.core.security import decode_access_token
+    from app.repositories.user_repo import UserRepository
+
+    try:
+        user = await UserRepository(db).get_by_id(decode_access_token(access_token)["sub"])
+        if user is None or not user.is_active:
+            return None
+        granted = {perm.code for perm in user.role.permissions} if user.role else set()
+        return _me_response(CurrentUser(user, granted))
+    except Exception:  # never fail a refresh because of the convenience payload
+        return None
 
 
 # ---------------------------------------------------------------------------
@@ -320,6 +338,10 @@ async def me(
     current_user: CurrentUser = Depends(get_current_user),
 ) -> MeResponse:
     """Return the authenticated user's profile."""
+    return _me_response(current_user)
+
+
+def _me_response(current_user: CurrentUser) -> MeResponse:
     return MeResponse(
         id=current_user.id,
         username=current_user.username,

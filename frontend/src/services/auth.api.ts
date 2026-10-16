@@ -65,8 +65,10 @@ export const authApi = {
   },
   refreshToken: async () => {
     // Long timeout: right after an idle period the server may still be starting up
-    const { data, status } = await apiClient.post<TokenResponse | undefined>('/auth/refresh', undefined, { timeout: SESSION_TIMEOUT_MS })
-    return status === 204 ? null : data ?? null
+    const { data, status } = await apiClient.post<(TokenResponse & { user?: ApiUser | null }) | undefined>('/auth/refresh', undefined, { timeout: SESSION_TIMEOUT_MS })
+    if (status === 204 || !data) return null
+    // The refresh reply carries the profile too, so restoring a session is one request, not two
+    return { ...data, session: data.user ? mapUser(data.user) : null }
   },
   getCurrentUser: async (): Promise<UserSession> => {
     const { data } = await apiClient.get<ApiUser>('/auth/me')

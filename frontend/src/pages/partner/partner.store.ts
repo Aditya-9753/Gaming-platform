@@ -5,12 +5,18 @@ import type { PartnerMe } from '../../types/affiliate.types'
 
 // One language setting for the whole site: the partner portal follows the main switch
 const readLocale = () => useUIStore.getState().locale
+const readCurrency = (): 'INR' | 'USD' => {
+  try { return localStorage.getItem('partner.currency') === 'USD' ? 'USD' : 'INR' } catch { return 'INR' }
+}
 
 interface PartnerState {
   me: PartnerMe | null
   error: string | null
   locale: string
   loadedAt: number
+  /** Amounts in rupees (default) or dollars */
+  currency: 'INR' | 'USD'
+  setCurrency: (currency: 'INR' | 'USD') => void
   load: () => Promise<PartnerMe | null>
   /** Re-fetch only when the data is older than `maxAgeMs` (page changes, tab focus). */
   refresh: (maxAgeMs?: number) => void
@@ -23,6 +29,11 @@ export const usePartnerStore = create<PartnerState>((set, get) => ({
   error: null,
   locale: readLocale(),
   loadedAt: 0,
+  currency: readCurrency(),
+  setCurrency: (currency) => {
+    try { localStorage.setItem('partner.currency', currency) } catch { /* private mode */ }
+    set({ currency })
+  },
   load: async () => {
     try {
       const me = await partnerApi.me()

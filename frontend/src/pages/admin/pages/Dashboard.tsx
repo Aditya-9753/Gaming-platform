@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Activity, Bot, ChevronRight, Gamepad2, IndianRupee, Landmark, RefreshCw, Ticket, TrendingUp, UserPlus, Users } from 'lucide-react'
 import { apiClient } from '../../../services/api'
 import { HourlyFlowChart, type HourPoint } from '../components/HourlyFlowChart'
+import { PartnerSplitCard } from '../components/PartnerSplitCard'
 import {
   BetsTable, GAME_LABEL, LiveDrawer, LiveStatus, PlayerLink, ago, money, signed,
   type BetRow, type PanelTarget,
@@ -105,6 +106,8 @@ export const Dashboard: React.FC = () => {
           <button type="button" aria-label="Refresh now" onClick={() => void load()} className="rounded-xl border border-dark-border bg-dark-card p-2 text-slate-300 hover:text-white"><RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /></button>
         </div>
       </div>
+
+      <PartnerSplitCard />
 
       {!data || !k ? <p className="rounded-xl border border-dark-border bg-dark-card p-5 text-sm text-slate-400">{error ? 'Metrics could not be loaded.' : 'Loading live metrics…'}</p> : (
         <>

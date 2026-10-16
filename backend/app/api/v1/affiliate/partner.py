@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date, timedelta
+from decimal import Decimal
 from typing import List, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Header, Query, Response
@@ -107,8 +108,19 @@ async def me(ctx: PartnerCtx = Depends(partner_ctx), db: AsyncSession = Depends(
         "impersonated_by": ctx.impersonated_by,
         "is_subpartner": p.parent_partner_id is not None,
         "subpartners_enabled": int(config["subpartner_depth"]) >= 1 and p.parent_partner_id is None,
-        "config": {k: config[k] for k in aff_settings.PUBLIC_KEYS},
+        "config": {**{k: config[k] for k in aff_settings.PUBLIC_KEYS}, "inr_per_usd": await _inr_per_usd(db)},
     }
+
+
+async def _inr_per_usd(db: AsyncSession) -> Optional[str]:
+    """Rupees per dollar (latest ECB rate) so the portal can show amounts in ₹; None when no INR rate exists yet."""
+    from app.affiliate.ingest import fx_rate
+
+    try:
+        rate = await fx_rate(db, "INR", utcnow().date())
+    except Exception:
+        return None
+    return str((Decimal(1) / rate).quantize(Decimal("0.0001"))) if rate else None
 
 
 @router.patch("/me")

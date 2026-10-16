@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { PremiumUI, cx } from './ui'
+import { DisplayCurrencyContext, PremiumUI, cx, formatMoney } from './ui'
 
 export interface ChartSeries {
   key: string
@@ -25,8 +25,17 @@ const niceMax = (value: number) => {
 }
 
 /** Daily line chart with counts on the left axis and dollars (incl. negatives) on the right; legend chips toggle series. */
-export const DualAxisChart: React.FC<Props> = ({ points, xKey, series, height = 240, formatX }) => {
+export const DualAxisChart: React.FC<Props> = ({ points: rawPoints, xKey, series, height = 240, formatX }) => {
   const premium = React.useContext(PremiumUI)
+  const currency = React.useContext(DisplayCurrencyContext)
+  // Money series are USD; scale them when the viewer shows rupees
+  const points = useMemo(() => {
+    const factor = currency.code === 'INR' ? currency.perUsd : 1
+    if (factor === 1) return rawPoints
+    const keys = series.filter((s) => s.axis === 'usd').map((s) => s.key)
+    return rawPoints.map((p) => ({ ...p, ...Object.fromEntries(keys.map((k) => [k, (Number(p[k]) || 0) * factor])) }))
+  }, [rawPoints, series, currency])
+  const moneyLabel = (v: number) => (currency.code === 'INR' ? `₹${Math.round(v).toLocaleString('en-IN')}` : `${Math.round(v)}$`)
   const [hidden, setHidden] = useState<Record<string, boolean>>({})
   const [hover, setHover] = useState<number | null>(null)
   const width = 720
@@ -84,7 +93,7 @@ export const DualAxisChart: React.FC<Props> = ({ points, xKey, series, height = 
                 <line x1={pad.l} x2={width - pad.r} y1={yy} y2={yy} stroke="currentColor" className="text-slate-700/50" strokeDasharray="3 4" />
                 <text x={pad.l - 6} y={yy + 3} textAnchor="end" className="fill-slate-500 text-[10px]">{Math.round(scales.cMax * t)}</text>
                 <text x={width - pad.r + 6} y={yy + 3} className="fill-slate-500 text-[10px]">
-                  {Math.round(scales.uMin + (scales.uMax - scales.uMin) * t)}$
+                  {moneyLabel(scales.uMin + (scales.uMax - scales.uMin) * t)}
                 </text>
               </g>
             )
@@ -117,7 +126,7 @@ export const DualAxisChart: React.FC<Props> = ({ points, xKey, series, height = 
               <div key={s.key} className="flex items-center justify-between gap-4 text-slate-300">
                 <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: s.color }} />{s.label}</span>
                 <span className="font-bold tabular-nums text-white">
-                  {s.axis === 'usd' ? `${Number(points[hover][s.key]).toFixed(2)} $` : points[hover][s.key]}
+                  {s.axis === 'usd' ? formatMoney(rawPoints[hover][s.key], currency) : points[hover][s.key]}
                 </span>
               </div>
             ))}

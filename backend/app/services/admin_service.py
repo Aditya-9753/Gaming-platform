@@ -171,7 +171,7 @@ class AdminService:
         filters = []
         if q:
             term = f"%{q}%"
-            filters.append(or_(User.username.ilike(term), User.email.ilike(term), User.id.ilike(term)))
+            filters.append(or_(User.username.ilike(term), User.email.ilike(term), User.id.ilike(term), User.phone.ilike(term)))
         if role_id is not None:
             filters.append(User.role_id == role_id)
         if is_active is not None:
@@ -214,6 +214,7 @@ class AdminService:
             "id": user.id,
             "username": user.username,
             "email": user.email,
+            "phone": user.phone,
             "role_id": user.role_id,
             "role": user.role.name if user.role else "USER",
             "permissions": perms,
@@ -235,7 +236,31 @@ class AdminService:
                 "ends_at": user.self_exclusion.ends_at.isoformat(),
                 "reason": user.self_exclusion.reason,
             } if user.self_exclusion and user.self_exclusion.is_active else None,
+            "play": await self._play_totals(user.id),
+            "referred_by": await self._referred_by(user.id),
         }
+
+    async def _play_totals(self, user_id: str) -> Dict[str, Any]:
+        """Lifetime bets for one player: how much was staked and won (player profit = won - staked)."""
+        bets, staked, won = (await self.session.execute(
+            select(func.count(GameEntry.id), func.coalesce(func.sum(GameEntry.bet_amount), 0), func.coalesce(func.sum(GameEntry.payout_amount), 0))
+            .where(GameEntry.user_id == user_id)
+        )).one()
+        return {"bets": int(bets), "staked_paise": int(staked), "won_paise": int(won), "player_profit_paise": int(won) - int(staked)}
+
+    async def _referred_by(self, user_id: str) -> Optional[Dict[str, Any]]:
+        """The partner whose link or promo code brought this player, if any."""
+        from app.models.affiliate import AffCustomer, AffPartner, AffRegistration
+
+        row = (await self.session.execute(
+            select(AffPartner.id, AffPartner.partner_code, AffRegistration.registered_at)
+            .join(AffRegistration, AffRegistration.partner_id == AffPartner.id)
+            .join(AffCustomer, AffCustomer.id == AffRegistration.customer_id)
+            .where(AffCustomer.external_customer_id == user_id).limit(1)
+        )).first()
+        if row is None:
+            return None
+        return {"partner_id": row[0], "partner_code": row[1], "registered_at": row[2].isoformat() if row[2] else None}
 
     async def set_user_status(
         self,

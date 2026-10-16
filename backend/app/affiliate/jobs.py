@@ -114,7 +114,7 @@ async def dev_loop(factory: async_sessionmaker) -> None:
     """Development: run every job on a schedule inside the API process (production uses Celery beat)."""
     # fx_rates first so conversions work from the first processed event
     schedule = {"fx_rates": 6 * 3600, "process_events": 15, "commissions": 30, "analytics": 60, "postbacks": 30, "drain_clicks": 60,
-                "internal_revenue": 900, "periods": 3600, "reconcile": 6 * 3600, "partitions": 24 * 3600}
+                "internal_revenue": 60, "periods": 3600, "reconcile": 6 * 3600, "partitions": 24 * 3600}
     elapsed = 0
     await asyncio.sleep(5)
     while True:

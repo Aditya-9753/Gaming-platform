@@ -598,3 +598,32 @@ async def test_player_win_is_split_between_partner_and_house(env):
     assert mine and all("house_share" not in r for r in mine) and sum(Decimal(r["income"]) for r in mine) == Decimal("-500")
     kpis = (await env["client"].get("/api/v1/aff/dashboard/summary?period=today", headers=data["headers"])).json()
     assert kpis["income"] == "-500.00" and kpis["ngr"] == "-1000.00"
+
+
+async def test_referred_player_who_loses_earns_the_partner_money_despite_signup_bonus(env):
+    """Our own players: NGR = what they lost minus what they won. The sign-up bonus is not a player
+    win, so a player who loses ₹37.90 of ₹50 gives the partner a positive revshare."""
+    import uuid as _uuid
+
+    from app.models.game import GameEntry
+    from app.models.user import User
+
+    data = await create_partner(env, email="bonus-rule@example.com")
+    pid = data["partner"]["id"]
+    cid = click_id_from(await click(env, data["partner"]["partner_code"]))
+    r = await env["client"].post("/api/v1/auth/register", json={"phone": "9812345678", "password": "Player123", "age_confirmed": True, "click_id": cid})
+    assert r.status_code == 201, r.text
+    today = datetime.now(timezone.utc).date()
+    async with env["db"]() as db:
+        await operator_bridge.process_outbox(db)
+        player = (await db.execute(select(User).where(User.phone == "+919812345678"))).scalar_one()
+        for bet, payout in ((2000, 0), (2000, 1210), (1000, 0)):  # ₹50 staked, ₹12.10 back
+            db.add(GameEntry(id=str(_uuid.uuid4()), round_id=str(_uuid.uuid4()), user_id=player.id, idempotency_key=_uuid.uuid4().hex,
+                             bet_amount=bet, payout_amount=payout, status="SETTLED" if payout else "LOST"))
+        await db.commit()
+        await operator_bridge.report_revenue(db, today)
+        await operator_bridge.process_outbox(db)
+        await db.commit()
+    pending = (await wallet(env, pid))[1]
+    assert pending > 0, pending  # 50 % of ₹37.90 at the stored INR rate (0.012) = 0.2274 USD
+    assert pending == Decimal("0.2274")

@@ -68,7 +68,7 @@ export interface PartnerMe {
   impersonated_by: string | null
   is_subpartner: boolean
   subpartners_enabled: boolean
-  config: { app_android_url: string; app_ios_url: string; languages: string[]; min_payout: string; cookie_days: number }
+  config: { app_android_url: string; app_ios_url: string; languages: string[]; min_payout: string; cookie_days: number; inr_per_usd?: string | null }
 }
 
 export interface Kpis {

@@ -25,6 +25,28 @@ export const usd = (value: string | number | null | undefined, sign = false): st
   return `${n < 0 ? '-' : sign && n > 0 ? '+' : ''}${text} $`
 }
 
+/**
+ * Affiliate amounts are kept in USD. The partner portal can show them in rupees: `perUsd` is
+ * the latest ECB rate (₹ per $). The back office keeps USD (the default).
+ */
+export interface DisplayCurrency { code: 'USD' | 'INR'; perUsd: number }
+export const DisplayCurrencyContext = React.createContext<DisplayCurrency>({ code: 'USD', perUsd: 1 })
+
+export const formatMoney = (value: string | number | null | undefined, currency: DisplayCurrency, sign = false): string => {
+  if (currency.code === 'USD') return usd(value, sign)
+  if (value === null || value === undefined || value === '') return '—'
+  const n = Number(value) * currency.perUsd
+  if (!Number.isFinite(n)) return '—'
+  const text = Math.abs(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return `${n < 0 ? '-' : sign && n > 0 ? '+' : ''}₹${text}`
+}
+
+/** Formats an affiliate (USD) amount in the currency the viewer chose. */
+export const useMoney = () => {
+  const currency = React.useContext(DisplayCurrencyContext)
+  return React.useCallback((value: string | number | null | undefined, sign = false) => formatMoney(value, currency, sign), [currency])
+}
+
 export const pct = (rate: string | number | null | undefined) =>
   rate === null || rate === undefined ? '—' : `${(Number(rate) * 100).toFixed(Number(rate) * 100 % 1 ? 2 : 0)}%`
 
@@ -63,7 +85,8 @@ export const Card: React.FC<{ title?: React.ReactNode; actions?: React.ReactNode
 
 export const Money: React.FC<{ value: string | number | null | undefined; className?: string; sign?: boolean }> = ({ value, className, sign }) => {
   const n = Number(value)
-  return <span className={cx('tabular-nums', n < 0 ? 'text-rose-400' : '', className)}>{usd(value, sign)}</span>
+  const fmt = useMoney()
+  return <span className={cx('tabular-nums', n < 0 ? 'text-rose-400' : '', className)}>{fmt(value, sign)}</span>
 }
 
 const TONES: Record<string, string> = {

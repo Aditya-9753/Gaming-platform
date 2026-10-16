@@ -69,7 +69,7 @@ const CommonStats: React.FC = () => {
       </Card>
       <Card>
         {data.loading && !data.data ? <Spinner /> : data.error ? <ErrorBox message={data.error} onRetry={data.reload} /> : (
-          <Table head={['', t('Clicks'), t('Registrations'), t('Ratio'), t('FTD'), t('Deposits $'), t('Income $'), 'EPC']} empty={!rows.length}>
+          <Table head={['', t('Clicks'), t('Registrations'), t('Ratio'), t('FTD'), t('Deposits'), t('Income'), 'EPC']} empty={!rows.length}>
             {rows.map((r) => (
               <tr key={String(r.key)}>
                 <Td className="font-bold">{applied.groupBy === 'day' ? dateOnly(String(r.label)) : r.label}</Td>

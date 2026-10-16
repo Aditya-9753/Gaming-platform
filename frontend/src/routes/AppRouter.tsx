@@ -192,7 +192,7 @@ function useSessionBootstrap() {
         }
         const { access_token } = tokens
         useAuthStore.getState().setAccessToken(access_token)
-        const user = await authApi.getCurrentUser()
+        const user = tokens.session ?? await authApi.getCurrentUser()
         if (active) setAuth(user, access_token)
       })
       .catch(() => {

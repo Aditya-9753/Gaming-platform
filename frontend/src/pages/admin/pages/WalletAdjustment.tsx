@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Search, UserRound } from 'lucide-react'
 import { Input } from '../../../components/common/Input'
 import { Button } from '../../../components/common/Button'
@@ -14,6 +15,7 @@ interface Target {
   player_id: string
   username: string
   email: string | null
+  phone?: string | null
   role: string | null
   is_active: boolean
   balance_paise: number | null
@@ -21,7 +23,9 @@ interface Target {
 }
 
 export const WalletAdjustment: React.FC = () => {
-  const [query, setQuery] = useState('')
+  // Opened from a player's page: /admin/wallet-adjustment?user=<number or username>
+  const [params] = useSearchParams()
+  const [query, setQuery] = useState(() => params.get('user') || '')
   const [target, setTarget] = useState<Target | null>(null)
   const [finding, setFinding] = useState(false)
   const [findError, setFindError] = useState<string | null>(null)
@@ -50,6 +54,9 @@ export const WalletAdjustment: React.FC = () => {
       setFinding(false)
     }
   }
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (query.trim()) void find() }, [])
 
   const amountPaise = Number(amountRupees) > 0 ? rupeeToPaise(Number(amountRupees)) : 0
   const problemFor = (t: Target | null) => !t ? null
@@ -106,8 +113,8 @@ export const WalletAdjustment: React.FC = () => {
           <div className="flex items-end gap-2">
             <div className="flex-1">
               <Input
-                label="Player (username, email or player ID)"
-                placeholder="e.g. Devendra26 or 47058592"
+                label="Player (mobile number, username, email or player ID)"
+                placeholder="e.g. 9876543210 or Devendra26"
                 value={query}
                 onChange={(e) => { setQuery(e.target.value); setTarget(null); setFindError(null) }}
                 onBlur={() => { if (query.trim() && !target) void find() }}
@@ -124,7 +131,7 @@ export const WalletAdjustment: React.FC = () => {
               <div className="min-w-0 flex-1 text-xs">
                 <p className="font-bold text-white">{target.username} <span className="font-mono text-slate-400">ID {target.player_id}</span>
                   {!target.is_active && <span className="ml-2 rounded bg-rose-500/20 px-1.5 text-rose-300">suspended</span>}</p>
-                <p className="truncate text-slate-400">{target.email || '—'} · {target.role || 'USER'}</p>
+                <p className="truncate text-slate-400">{target.phone ? `+91 ${target.phone.slice(3)} · ` : ''}{target.email || '—'} · {target.role || 'USER'}</p>
               </div>
               <div className="text-right">
                 <p className="text-[10px] uppercase text-slate-500">Balance</p>

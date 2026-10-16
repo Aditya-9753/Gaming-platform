@@ -491,7 +491,7 @@ async def test_register_and_sign_in_with_mobile_number(client: AsyncClient):
     resp = await client.post("/api/v1/auth/register", json={"phone": "98765 43210", "password": "Mobile1234", "age_confirmed": True})
     assert resp.status_code == 201, resp.text
     me = (await client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {resp.json()['access_token']}"})).json()
-    assert me["phone"] == "+919876543210" and me["username"].startswith("player")
+    assert me["phone"] == "+919876543210" and me["username"] == "9876543210"  # staff see the number; public feeds mask it
 
     for typed in ("9876543210", "+91 98765-43210", "09876543210"):
         login = await client.post("/api/v1/auth/login", json={"username": typed, "password": "Mobile1234"})
@@ -518,3 +518,15 @@ async def test_existing_player_adds_mobile_number_then_signs_in_with_it(client: 
     assert login.status_code == 200, login.text
     # the old username still works
     assert (await client.post("/api/v1/auth/login", json={"username": VALID_USER["username"], "password": VALID_USER["password"]})).status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_refresh_returns_the_profile_so_the_app_needs_one_round_trip(client: AsyncClient):
+    _token, cookie = await _register(client)
+    client.cookies.set("refresh_token", cookie, path="/api/v1/auth")
+    resp = await client.post("/api/v1/auth/refresh")
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["access_token"] and body["user"]["username"] == VALID_USER["username"] and body["user"]["role"] == "USER"
+    me = (await client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {body['access_token']}"})).json()
+    assert body["user"] == me

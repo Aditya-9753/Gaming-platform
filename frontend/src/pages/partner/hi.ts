@@ -72,6 +72,14 @@ export const HI_TEXT: Record<string, string> = {
   'The server is waking up after a quiet period. This can take up to a minute.': 'कुछ देर से इस्तेमाल न होने के कारण सर्वर जाग रहा है। इसमें एक मिनट तक लग सकता है।',
 
   // dashboard & statistics
+  'Currency': 'मुद्रा',
+  'Deposits': 'जमा',
+  'Income': 'आय',
+  'CPA {amount} per qualified first deposit (min {min}, hold {days} days)': 'हर योग्य पहली जमा पर CPA {amount} (न्यूनतम {min}, होल्ड {days} दिन)',
+  'Minimum {amount}': 'न्यूनतम {amount}',
+  'Minimum payout is {amount}': 'न्यूनतम निकासी {amount} है',
+  'Withdraw {amount}': '{amount} निकालें',
+  'After each settlement, the full available balance is paid out when it is at least {amount}.': 'हर सेटलमेंट के बाद, उपलब्ध पूरा बैलेंस भेज दिया जाता है जब वह कम से कम {amount} हो।',
   "Players' net result (NGR)": 'खिलाड़ियों का शुद्ध नतीजा (NGR)',
   'Your players won more than they lost in this period, so your revshare is negative. It is carried over and covered by future earnings first.':
     'इस अवधि में आपके खिलाड़ी हारे से ज़्यादा जीते, इसलिए आपका रेवशेयर नेगेटिव है। यह आगे जाता है और पहले आने वाली कमाई से पूरा होता है।',

@@ -90,7 +90,7 @@ const AviatorScene: React.FC = () => (
     <g stroke="#ffffff" strokeOpacity={0.07}>{[150, 200, 250, 300, 350].map((y) => <line key={y} x1={20} x2={W} y1={y} y2={y} />)}</g>
     <path d="M20,385 Q170,380 232,215 L232,385 Z" fill="url(#av-fill)" />
     <path d="M20,385 Q170,380 232,215" fill="none" stroke="#e50539" strokeWidth={5} strokeLinecap="round" />
-    <image href="/games/aviator/plane.png" x={196} y={160} width={98} height={43} preserveAspectRatio="xMidYMid meet" />
+    <image href="/games/aviator/plane.webp" x={196} y={160} width={98} height={43} preserveAspectRatio="xMidYMid meet" />
     <text x={130} y={300} fontSize={50} fontWeight={900} textAnchor="middle" fill="#fff" fontFamily="Arial, sans-serif">2.47x</text>
     <g>{['1.21x', '3.86x', '1.04x', '12.4x'].map((m, i) => <Pill key={m} x={46 + i * 70} y={392} text={m} size={11} fill={i === 3 ? '#7c3aed' : i === 1 ? '#2563eb' : '#334155'} />)}</g>
   </>

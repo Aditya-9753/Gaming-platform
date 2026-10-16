@@ -62,7 +62,7 @@ celery_app.conf.update(
         "aff-analytics": {"task": "app.workers.tasks_affiliate.analytics", "schedule": 120.0},
         "aff-postbacks": {"task": "app.workers.tasks_affiliate.postbacks", "schedule": 30.0},
         "aff-drain-clicks": {"task": "app.workers.tasks_affiliate.drain_clicks", "schedule": 60.0},
-        "aff-internal-revenue": {"task": "app.workers.tasks_affiliate.internal_revenue", "schedule": crontab(minute="5")},
+        "aff-internal-revenue": {"task": "app.workers.tasks_affiliate.internal_revenue", "schedule": crontab(minute="*")},
         "aff-periods": {"task": "app.workers.tasks_affiliate.periods", "schedule": crontab(minute="10")},
         "aff-reconcile-nightly": {"task": "app.workers.tasks_affiliate.reconcile", "schedule": crontab(minute="15", hour="2")},
         # ECB publishes around 16:00 CET on working days

@@ -8,7 +8,7 @@ import { BrandLogo } from '../../components/common/BrandLogo'
 import { Loader } from '../../components/common/Loader'
 import { ToastContainer } from '../../components/common/Toast'
 import { ErrorBoundary } from '../../components/common/ErrorBoundary'
-import { Badge, Btn, Money, PremiumUI, clearAsyncCache, cx, errorText, pct } from '../../components/affiliate/ui'
+import { Badge, Btn, DisplayCurrencyContext, Money, PremiumUI, clearAsyncCache, cx, errorText, formatMoney, pct, type DisplayCurrency } from '../../components/affiliate/ui'
 import '../../components/brand/brand.css'
 import { authApi } from '../../services/auth.api'
 import { partnerApi } from '../../services/affiliate.api'
@@ -39,7 +39,7 @@ const dealLabel = (type?: string | null, rate?: string | null, t?: (k: TKey) => 
 const OPEN_WHILE_PENDING = ['/partner/faq', '/partner/contacts', '/partner/profile', '/partner/notifications']
 
 export const PartnerLayout: React.FC = () => {
-  const { me, load, refresh, error, locale, setLocale } = usePartnerStore()
+  const { me, load, refresh, error, locale, setLocale, currency: currencyCode, setCurrency } = usePartnerStore()
   const { isAuthenticated, isLoading, user, logout } = useAuthStore()
   const t = useT()
   const navigate = useNavigate()
@@ -88,6 +88,9 @@ export const PartnerLayout: React.FC = () => {
   }
 
   const p = me.partner
+  const perUsd = Number(me.config.inr_per_usd) || 0
+  const currency: DisplayCurrency = currencyCode === 'INR' && perUsd > 0 ? { code: 'INR', perUsd } : { code: 'USD', perUsd: 1 }
+  const fmt = (value: string | number | null | undefined) => formatMoney(value, currency)
   const gated = !OPEN_WHILE_PENDING.some((path) => pathname.startsWith(path))
   const gate = (() => {
     if (me.impersonated_by) return null
@@ -101,6 +104,7 @@ export const PartnerLayout: React.FC = () => {
 
   return (
     <PremiumUI.Provider value>
+    <DisplayCurrencyContext.Provider value={currency}>
     <div className="dark relative flex min-h-[100dvh] flex-col overflow-x-hidden bg-[#050b1c] text-white">
       {/* Ambient background: drifting glow orbs over a faint grid */}
       <div aria-hidden className="pointer-events-none fixed inset-0 overflow-hidden">
@@ -151,7 +155,7 @@ export const PartnerLayout: React.FC = () => {
           <div className="mx-auto max-w-5xl px-3 pb-3">
             <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-100">
               <div className="font-black">{t('Your deal')}: {dealLabel(me.deal?.deal_type, me.deal?.revshare_rate, t)}</div>
-              {me.deal && Number(me.deal.cpa_amount) > 0 && <div>{t('CPA {amount} $ per qualified first deposit (min {min} $, hold {days} days)', { amount: me.deal.cpa_amount, min: me.deal.min_ftd_amount, days: me.deal.hold_days })}</div>}
+              {me.deal && Number(me.deal.cpa_amount) > 0 && <div>{t('CPA {amount} per qualified first deposit (min {min}, hold {days} days)', { amount: fmt(me.deal.cpa_amount), min: fmt(me.deal.min_ftd_amount), days: me.deal.hold_days })}</div>}
               <div>{me.deal?.carryover ? t('Negative balance: carried over to the next period') : t('Negative balance: written off at period close')}</div>
             </div>
           </div>
@@ -187,8 +191,8 @@ export const PartnerLayout: React.FC = () => {
             <Money value={me.wallet.available} className={cx('text-2xl font-black', Number(me.wallet.available) < 0 ? 'text-rose-200' : 'rw-shimmer-text')} />
             <div className="mt-1 text-xs font-bold text-blue-100">{dealLabel(me.deal?.deal_type, me.deal?.revshare_rate, t)}</div>
             <div className="mt-2 flex gap-3 text-[11px] text-blue-100/80">
-              <span>{t('pending')}: {Number(me.wallet.pending).toFixed(2)} $</span>
-              {Number(me.wallet.reserved) > 0 && <span>{t('reserved')}: {Number(me.wallet.reserved).toFixed(2)} $</span>}
+              <span>{t('pending')}: {fmt(me.wallet.pending)}</span>
+              {Number(me.wallet.reserved) > 0 && <span>{t('reserved')}: {fmt(me.wallet.reserved)}</span>}
             </div>
           </Link>
           <div className="grid grid-cols-3 gap-2">
@@ -207,6 +211,19 @@ export const PartnerLayout: React.FC = () => {
           )}
         </div>
         <div className="space-y-3 border-t border-dark-border p-4">
+          {perUsd > 0 && (
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-slate-400">{t('Currency')}</span>
+              <div className="flex gap-1">
+                {(['INR', 'USD'] as const).map((code) => (
+                  <button key={code} type="button" onClick={() => setCurrency(code)} aria-pressed={currencyCode === code}
+                    className={cx('min-h-[36px] rounded-lg px-3 text-xs font-black', currencyCode === code ? 'bg-brand-blue text-white' : 'bg-dark-elevated text-slate-300')}>
+                    {code === 'INR' ? '₹ INR' : '$ USD'}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="flex items-center justify-between">
             <span className="text-xs text-slate-400">{t('language')}</span>
             <div className="flex gap-1">
@@ -234,6 +251,7 @@ export const PartnerLayout: React.FC = () => {
       </main>
       <ToastContainer />
     </div>
+    </DisplayCurrencyContext.Provider>
     </PremiumUI.Provider>
   )
 }

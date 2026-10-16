@@ -140,3 +140,9 @@ class MeResponse(BaseModel):
     permissions: list[str] = []
 
     model_config = {"from_attributes": True}
+
+
+class RefreshResponse(TokenResponse):
+    """A refreshed session also carries the profile, so the app needs one round trip on load, not two."""
+
+    user: Optional[MeResponse] = None

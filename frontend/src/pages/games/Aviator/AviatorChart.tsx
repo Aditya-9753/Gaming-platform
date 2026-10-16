@@ -3,7 +3,7 @@ import { formatMultiplier } from '../../../utils/formatters'
 import { t as tr } from '../../../i18n'
 
 export const AVIATOR_COVER_SRC = '/games/aviator/cover.jpg'
-export const AVIATOR_PLANE_SRC = '/games/aviator/plane.png'
+export const AVIATOR_PLANE_SRC = '/games/aviator/plane.webp'
 
 export interface AviatorChartProps {
   multiplier: number

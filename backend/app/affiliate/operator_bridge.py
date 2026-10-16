@@ -24,7 +24,7 @@ from app.affiliate.ingest import idempotency_key, process, receive
 from app.affiliate.util import utcnow
 from app.core.config import get_settings
 from app.core.logging import get_logger
-from app.models.affiliate import AffCustomer, AffIngestEvent, AffRegistration
+from app.models.affiliate import AffCustomer, AffIngestEvent, AffPlayerRevenueDaily, AffRegistration
 
 logger = get_logger("aff_operator_bridge")
 
@@ -89,18 +89,27 @@ async def deposit_reversed(db: AsyncSession, user_id: str, deposit_id: str, amou
 
 
 async def report_revenue(db: AsyncSession, day: date) -> Optional[int]:
-    """Daily NGR per referred player: bets - wins - bonuses (rupees). Returns the ingest event id."""
+    """Daily NGR per referred player: bets - wins (rupees), minus free credits only when the
+    `internal_ngr_deducts_bonuses` setting is on. Returns the ingest event id."""
     from app.models.game import GameEntry
     from app.models.wallet import Wallet, WalletTransaction
 
     if not enabled():
         return None
+    from app.affiliate import settings as aff_settings
+
+    deduct_bonuses = bool(await aff_settings.get(db, "internal_ngr_deducts_bonuses"))
     start = datetime.combine(day, dtime.min, tzinfo=timezone.utc)
     end = start + timedelta(days=1)
     players = [row[0] for row in (await db.execute(
         select(AffCustomer.external_customer_id).join(AffRegistration, AffRegistration.customer_id == AffCustomer.id))).all()]
     if not players:
         return None
+    # Players who already have a row for the day are re-reported even without new activity, so a
+    # figure stored under an older rule (e.g. with bonuses subtracted) is corrected
+    reported = set((await db.execute(
+        select(AffCustomer.external_customer_id).join(AffPlayerRevenueDaily, AffPlayerRevenueDaily.customer_id == AffCustomer.id)
+        .where(AffPlayerRevenueDaily.revenue_date == day))).scalars().all())
     rows: List[Dict[str, Any]] = []
     for chunk_start in range(0, len(players), 500):
         chunk = players[chunk_start:chunk_start + 500]
@@ -109,7 +118,7 @@ async def report_revenue(db: AsyncSession, day: date) -> Optional[int]:
             .where(GameEntry.user_id.in_(chunk), GameEntry.created_at >= start, GameEntry.created_at < end,
                    GameEntry.status.not_in(_VOID_ENTRY_STATUSES))
             .group_by(GameEntry.user_id))).all()}
-        bonuses = {uid: total or 0 for uid, total in (await db.execute(
+        bonuses = {} if not deduct_bonuses else {uid: total or 0 for uid, total in (await db.execute(
             select(Wallet.user_id, func.sum(WalletTransaction.amount))
             .join(Wallet, Wallet.id == WalletTransaction.wallet_id)
             .where(Wallet.user_id.in_(chunk), WalletTransaction.type.in_(_BONUS_TYPES),
@@ -118,7 +127,7 @@ async def report_revenue(db: AsyncSession, day: date) -> Optional[int]:
         for uid in chunk:
             bet, won = bets.get(uid, (0, 0))
             bonus = bonuses.get(uid, 0)
-            if not (bet or won or bonus):
+            if not (bet or won or bonus) and uid not in reported:
                 continue
             rows.append({"external_customer_id": uid, "date": day.isoformat(), "currency": CURRENCY,
                          "bets": _rupees(bet), "wins": _rupees(won), "bonuses": _rupees(bonus), "fees": "0", "chargebacks": "0"})
@@ -142,7 +151,7 @@ async def process_outbox(db: AsyncSession, limit: int = 500) -> int:
 
 
 async def sync_today(db: AsyncSession) -> None:
-    """Hourly: keep today's and yesterday's revenue fresh (upserts until the period closes)."""
+    """Every minute: keep today's and yesterday's revenue fresh (upserts until the period closes)."""
     today = utcnow().date()
     for day in (today - timedelta(days=1), today):
         try:

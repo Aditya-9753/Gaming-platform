@@ -106,6 +106,9 @@ class AuthService:
         if username:
             if await self._users.username_exists(username):
                 raise ConflictException("Username is already taken")
+        elif phone and not await self._users.username_exists(phone[3:]):
+            # Staff see who is playing by number; public feeds only ever show a masked name
+            username = phone[3:]
         else:
             username = await self._new_username()
 

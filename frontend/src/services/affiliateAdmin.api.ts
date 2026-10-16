@@ -42,6 +42,7 @@ export interface Overview {
   current_period: SettlementPeriod
   this_month: StatRow[]
   this_month_totals?: { ngr: string; partner_share: string; house_share: string }
+  inr_per_usd?: string | null
 }
 
 export const affAdminApi = {

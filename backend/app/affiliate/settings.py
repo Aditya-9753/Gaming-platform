@@ -114,6 +114,7 @@ SCHEMA: Dict[str, Tuple[Any, Callable[[Any], Any], str]] = {
     "fallback_fx_rates": ({}, _fx_map, "Manual rate to USD for currencies the ECB does not publish (daily ECB rates are fetched automatically)"),
     "terms_required": (True, _bool, "Partners must accept the latest terms before using the portal"),
     "auto_close_periods": (False, _bool, "Close ended settlement periods automatically (off = finance closes them)"),
+    "internal_ngr_deducts_bonuses": (False, _bool, "Our own players: subtract free credits (sign-up / daily bonus) from NGR. Off = NGR is simply what players lost minus what they won"),
 }
 
 PUBLIC_KEYS = ("app_android_url", "app_ios_url", "languages", "min_payout", "cookie_days")
