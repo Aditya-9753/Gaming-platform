@@ -627,3 +627,34 @@ async def test_referred_player_who_loses_earns_the_partner_money_despite_signup_
     pending = (await wallet(env, pid))[1]
     assert pending > 0, pending  # 50 % of ₹37.90 at the stored INR rate (0.012) = 0.2274 USD
     assert pending == Decimal("0.2274")
+
+
+async def test_backfill_recomputes_older_days_of_open_periods(env):
+    """A day older than yesterday, still in an open period, is re-reported by the hourly back-fill."""
+    import uuid as _uuid
+
+    from app.models.game import GameEntry
+    from app.models.user import User
+
+    data = await create_partner(env, email="backfill@example.com")
+    cid = click_id_from(await click(env, data["partner"]["partner_code"]))
+    assert (await env["client"].post("/api/v1/auth/register", json={"phone": "9811112222", "password": "Player123", "age_confirmed": True, "click_id": cid})).status_code == 201
+    three_days_ago = datetime.now(timezone.utc) - timedelta(days=3)
+    async with env["db"]() as db:
+        await operator_bridge.process_outbox(db)
+        from app.affiliate import commission as commission_engine
+
+        await commission_engine.ensure_current_period(db)
+        player = (await db.execute(select(User).where(User.phone == "+919811112222"))).scalar_one()
+        db.add(GameEntry(id=str(_uuid.uuid4()), round_id=str(_uuid.uuid4()), user_id=player.id, idempotency_key=_uuid.uuid4().hex,
+                         bet_amount=10000, payout_amount=0, status="LOST", created_at=three_days_ago))
+        await db.commit()
+        await operator_bridge.sync_today(db)  # today + yesterday only: nothing for three days ago
+        await operator_bridge.process_outbox(db)
+        await db.commit()
+        assert (await wallet(env, data["partner"]["id"]))[1] == 0
+        done = await operator_bridge.sync_open_periods(db)
+        await operator_bridge.process_outbox(db)
+        await db.commit()
+    assert done >= 1
+    assert (await wallet(env, data["partner"]["id"]))[1] == Decimal("0.6")  # 50 % of ₹100 at 0.012

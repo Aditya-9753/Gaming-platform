@@ -51,6 +51,11 @@ def internal_revenue_task() -> int:
     return _run("internal_revenue")
 
 
+@celery_app.task(name="app.workers.tasks_affiliate.internal_revenue_backfill")
+def internal_revenue_backfill_task() -> int:
+    return _run("internal_revenue_backfill")
+
+
 @celery_app.task(name="app.workers.tasks_affiliate.periods")
 def periods_task() -> int:
     return _run("periods")

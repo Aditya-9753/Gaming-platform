@@ -150,6 +150,31 @@ async def process_outbox(db: AsyncSession, limit: int = 500) -> int:
     return len(events)
 
 
+async def sync_open_periods(db: AsyncSession, max_days: int = 31) -> int:
+    """Hourly: re-report every older day that still belongs to an open settlement period, so a
+    rule change (or a late-settled bet) is reflected before finance closes the period."""
+    from app.models.affiliate import AffSettlementPeriod
+    from app.affiliate.constants import PeriodStatus
+
+    today = utcnow().date()
+    oldest = (await db.execute(
+        select(func.min(AffSettlementPeriod.start_date)).where(AffSettlementPeriod.status == PeriodStatus.OPEN)
+    )).scalar_one_or_none()
+    if oldest is None:
+        return 0
+    day = max(oldest, today - timedelta(days=max_days))
+    done = 0
+    while day < today - timedelta(days=1):  # today and yesterday are kept fresh every minute
+        try:
+            await report_revenue(db, day)
+            done += 1
+        except Exception as exc:
+            await db.rollback()
+            logger.error("Internal revenue back-fill failed", day=str(day), error=str(exc))
+        day += timedelta(days=1)
+    return done
+
+
 async def sync_today(db: AsyncSession) -> None:
     """Every minute: keep today's and yesterday's revenue fresh (upserts until the period closes)."""
     today = utcnow().date()
