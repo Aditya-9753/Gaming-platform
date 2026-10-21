@@ -2,13 +2,14 @@ import React, { useEffect, useState } from 'react'
 import { User, Mail, Shield, Phone } from 'lucide-react'
 import { Input } from '../../components/common/Input'
 import { Button } from '../../components/common/Button'
-import { showToast } from '../../components/common/Toast'
+import { showToast } from '../../components/common/toastBus'
 import { useAuthStore } from '../../store/auth.store'
 import { useWalletStore } from '../../store/wallet.store'
 import { formatPaiseToRupee } from '../../utils/formatters'
 import { userApi } from '../../services/user.api'
 import { apiClient } from '../../services/api'
 import { t as tr } from '../../i18n'
+import { useOnChange } from '../../hooks/useOnChange'
 
 export const Profile: React.FC = () => {
   const { user } = useAuthStore()
@@ -25,31 +26,31 @@ export const Profile: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'profile' | 'security'>('profile')
 
   // Live uniqueness check (same endpoint the sign-up form uses)
-  const [nameStatus, setNameStatus] = useState<{ checking: boolean; available: boolean | null; reason: string | null }>({ checking: false, available: null, reason: null })
+  const [nameResult, setNameResult] = useState<{ name: string; available: boolean | null; reason: string | null } | null>(null)
   const trimmedName = username.trim()
   const nameChanged = !!user && trimmedName.toLowerCase() !== user.username.toLowerCase()
+  const nameValid = /^[A-Za-z0-9_]{3,50}$/.test(trimmedName)
+  const nameStatus = !nameChanged ? { checking: false, available: null, reason: null }
+    : !nameValid ? { checking: false, available: false, reason: 'Use 3–50 letters, numbers or _' }
+    : nameResult?.name === trimmedName ? { checking: false, available: nameResult.available, reason: nameResult.reason }
+    : { checking: true, available: null, reason: null }
   useEffect(() => {
-    if (!nameChanged) { setNameStatus({ checking: false, available: null, reason: null }); return }
-    if (!/^[A-Za-z0-9_]{3,50}$/.test(trimmedName)) {
-      setNameStatus({ checking: false, available: false, reason: 'Use 3–50 letters, numbers or _' })
-      return
-    }
-    setNameStatus((s) => ({ ...s, checking: true }))
+    if (!nameChanged || !nameValid) return
     const timer = setTimeout(() => {
       apiClient.get<{ available: boolean; reason: string | null }>('/auth/username-available', { params: { username: trimmedName } })
-        .then(({ data }) => setNameStatus({ checking: false, available: data.available, reason: data.reason }))
-        .catch(() => setNameStatus({ checking: false, available: null, reason: null }))
+        .then(({ data }) => setNameResult({ name: trimmedName, available: data.available, reason: data.reason }))
+        .catch(() => setNameResult({ name: trimmedName, available: null, reason: null }))
     }, 400)
     return () => clearTimeout(timer)
-  }, [trimmedName, nameChanged])
+  }, [trimmedName, nameChanged, nameValid])
 
-  useEffect(() => {
-    if (user) {
-      setUsername(user.username)
-      setEmail(user.email || '')
-      setPhone((user.phone || '').replace(/^\+91/, ''))
+  useOnChange(user, (next) => {
+    if (next) {
+      setUsername(next.username)
+      setEmail(next.email || '')
+      setPhone((next.phone || '').replace(/^\+91/, ''))
     }
-  }, [user])
+  })
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()

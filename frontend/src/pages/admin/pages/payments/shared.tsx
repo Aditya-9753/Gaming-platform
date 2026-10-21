@@ -2,8 +2,8 @@ import React, { useEffect, useRef, useState } from 'react'
 import { ShieldCheck } from 'lucide-react'
 import { Modal } from '../../components/Modal'
 import { Button } from '../../../../components/common/Button'
-import { showToast } from '../../../../components/common/Toast'
-import { adminPaymentsApi, registerStepUpPrompt, StepUpCancelled, type HistoryRow } from '../../../../services/payments.api'
+import { showToast } from '../../../../components/common/toastBus'
+import { adminPaymentsApi, registerStepUpPrompt, type HistoryRow } from '../../../../services/payments.api'
 import { useAuthStore } from '../../../../store/auth.store'
 import { getApiErrorMessage } from '../../../../utils/apiError'
 import { formatDateTime } from '../../../../utils/formatters'
@@ -11,21 +11,6 @@ import { formatDateTime } from '../../../../utils/formatters'
 export { StatusPill } from '../../../../components/payments/StatusPill'
 
 export const inputCls = 'w-full rounded-xl border border-dark-border bg-dark-elevated px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-purple-500 focus:outline-none'
-
-/** Toast for a failed admin action (silent when the admin closed the verification dialog). */
-export function actionFailed(title: string, error: unknown) {
-  if (error instanceof StepUpCancelled) return
-  showToast({ title, message: getApiErrorMessage(error, 'Please try again.'), type: 'error' })
-}
-
-export const ago = (iso: string | null | undefined) => {
-  if (!iso) return '-'
-  const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
-  if (mins < 1) return 'just now'
-  if (mins < 60) return `${mins}m ago`
-  if (mins < 1440) return `${Math.floor(mins / 60)}h ${mins % 60}m ago`
-  return `${Math.floor(mins / 1440)}d ago`
-}
 
 export const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
   <div>

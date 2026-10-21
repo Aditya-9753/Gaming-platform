@@ -4,6 +4,8 @@ import { ShieldCheck, HeartHandshake } from 'lucide-react'
 import { usePlatformConfig } from '../../hooks/usePlatformConfig'
 import { t as tr } from '../../i18n'
 
+const YEAR = new Date().getFullYear()
+
 export const Footer: React.FC = () => {
   const { platform_name: platformName } = usePlatformConfig()
   return (
@@ -33,7 +35,7 @@ export const Footer: React.FC = () => {
         </div>
 
         <p className="text-slate-500 text-[11px]">
-          © {new Date().getFullYear()} {platformName}. All rights reserved.
+          © {YEAR} {platformName}. All rights reserved.
         </p>
       </div>
     </footer>

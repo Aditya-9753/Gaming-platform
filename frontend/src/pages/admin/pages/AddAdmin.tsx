@@ -2,10 +2,11 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, AtSign, Lock, ShieldCheck, User, UserPlus } from 'lucide-react'
 import { apiClient } from '../../../services/api'
-import { showToast } from '../../../components/common/Toast'
+import { showToast } from '../../../components/common/toastBus'
 import { Input } from '../../../components/common/Input'
 import { Button } from '../../../components/common/Button'
-import { PasswordStrength, checkPassword } from '../../../components/common/PasswordStrength'
+import { PasswordStrength } from '../../../components/common/PasswordStrength'
+import { checkPassword } from '../../../components/common/passwordRules'
 import { getApiErrorMessage } from '../../../utils/apiError'
 
 interface RoleRow { id: number; name: string; description: string | null; permissions: string[] }
@@ -20,7 +21,7 @@ export const AddAdmin: React.FC = () => {
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [role, setRole] = useState('')
-  const [idStatus, setIdStatus] = useState<{ checking: boolean; available?: boolean; reason?: string | null }>({ checking: false })
+  const [idResult, setIdResult] = useState<{ id: string; available?: boolean; reason?: string | null } | null>(null)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -34,17 +35,18 @@ export const AddAdmin: React.FC = () => {
   }, [])
 
   // Live login-ID uniqueness check (same rule as the API: case-insensitive)
+  const candidateId = loginId.trim()
+  const idStatus: { checking: boolean; available?: boolean; reason?: string | null } = candidateId.length < 3 ? { checking: false }
+    : idResult?.id === candidateId ? { checking: false, available: idResult.available, reason: idResult.reason } : { checking: true }
   useEffect(() => {
-    const candidate = loginId.trim()
-    if (candidate.length < 3) { setIdStatus({ checking: false }); return }
-    setIdStatus({ checking: true })
+    if (candidateId.length < 3) return
     const timer = window.setTimeout(() => {
-      apiClient.get<{ available: boolean; reason: string | null }>('/auth/username-available', { params: { username: candidate } })
-        .then(({ data }) => setIdStatus({ checking: false, available: data.available, reason: data.reason }))
-        .catch(() => setIdStatus({ checking: false }))
+      apiClient.get<{ available: boolean; reason: string | null }>('/auth/username-available', { params: { username: candidateId } })
+        .then(({ data }) => setIdResult({ id: candidateId, available: data.available, reason: data.reason }))
+        .catch(() => setIdResult({ id: candidateId }))
     }, 400)
     return () => window.clearTimeout(timer)
-  }, [loginId])
+  }, [candidateId])
 
   const passwordOk = checkPassword(password).valid
   const matches = password.length > 0 && password === confirm

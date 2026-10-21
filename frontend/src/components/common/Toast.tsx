@@ -1,22 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { CheckCircle2, AlertCircle, Info, X, AlertTriangle } from 'lucide-react'
-
-export interface ToastMessage {
-  id?: string
-  title?: string
-  message?: string
-  type?: 'success' | 'error' | 'warning' | 'info'
-  duration?: number
-}
-
-const TOAST_EVENT = 'app_toast_trigger'
-
-export const showToast = (toast: ToastMessage) => {
-  const event = new CustomEvent(TOAST_EVENT, {
-    detail: { ...toast, id: crypto.randomUUID() },
-  })
-  window.dispatchEvent(event)
-}
+import { TOAST_EVENT, type ToastMessage } from './toastBus'
 
 export const ToastContainer: React.FC = () => {
   const [toasts, setToasts] = useState<ToastMessage[]>([])

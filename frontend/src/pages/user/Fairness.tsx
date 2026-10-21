@@ -3,7 +3,7 @@ import { CheckCircle2, Cpu, Server, ShieldCheck, XCircle } from 'lucide-react'
 import { Input } from '../../components/common/Input'
 import { Button } from '../../components/common/Button'
 import { apiClient } from '../../services/api'
-import { showToast } from '../../components/common/Toast'
+import { showToast } from '../../components/common/toastBus'
 import { verifyManually, type ManualVerification } from '../../utils/provablyFair'
 import { t as tr } from '../../i18n'
 

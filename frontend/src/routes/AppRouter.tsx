@@ -243,7 +243,7 @@ const AppShell: React.FC = () => {
 // Router Configuration
 // -------------------------------------------------------------------
 
-export const router = createBrowserRouter([
+const router = createBrowserRouter([
   {
     element: <AppShell />,
     children: [

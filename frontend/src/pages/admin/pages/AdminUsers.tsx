@@ -4,7 +4,7 @@ import { Activity, Ban, CheckCircle2, Coins, Pencil, Trash2, UserPlus } from 'lu
 import { DataTable, type Column } from '../components/DataTable'
 import { Modal } from '../components/Modal'
 import { apiClient } from '../../../services/api'
-import { showToast } from '../../../components/common/Toast'
+import { showToast } from '../../../components/common/toastBus'
 import { Input } from '../../../components/common/Input'
 import { Button } from '../../../components/common/Button'
 import { useAuthStore } from '../../../store/auth.store'
@@ -51,6 +51,7 @@ export const AdminUsers: React.FC = () => {
   const [activity, setActivity] = useState<ActivityItem[]>([])
 
   const loadStaff = useCallback(() => {
+    // oxlint-disable-next-line react/set-state-in-effect -- loads data from the server
     setLoading(true)
     apiClient.get<StaffAdmin[]>('/admin/admins')
       .then(({ data }) => setStaff(data))

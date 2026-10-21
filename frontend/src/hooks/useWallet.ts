@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { useWalletStore } from '../store/wallet.store'
 import { walletApi } from '../services/wallet.api'
-import { showToast } from '../components/common/Toast'
+import { showToast } from '../components/common/toastBus'
 
 export function useWallet() {
   const {

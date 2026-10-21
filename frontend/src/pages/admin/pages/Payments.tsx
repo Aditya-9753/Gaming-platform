@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react'
 import { Banknote, CreditCard, Landmark, QrCode, Search, ShieldCheck, SlidersHorizontal, UserCheck } from 'lucide-react'
 import { Modal } from '../components/Modal'
 import { Button } from '../../../components/common/Button'
-import { showToast } from '../../../components/common/Toast'
+import { showToast } from '../../../components/common/toastBus'
 import { usePermission } from '../../../hooks/usePermission'
 import { apiClient } from '../../../services/api'
 import { adminPaymentsApi, type AdminDeposit, type AdminWithdrawal, type BankCredit, type PaymentSummary } from '../../../services/payments.api'
@@ -12,7 +12,8 @@ import { AccountsPanel } from './payments/AccountsPanel'
 import { CreditsPanel } from './payments/CreditsPanel'
 import { PayoutAccountsPanel } from './payments/PayoutAccountsPanel'
 import { DepositDetail, DepositsPanel } from './payments/DepositsPanel'
-import { actionFailed, ago, inputCls, StatusPill, StepUpDialog } from './payments/shared'
+import { inputCls, StatusPill, StepUpDialog } from './payments/shared'
+import { actionFailed, ago } from './payments/helpers'
 import { WithdrawalDetail, WithdrawalsPanel } from './payments/WithdrawalsPanel'
 
 type Tab = 'deposits' | 'withdrawals' | 'payouts' | 'credits' | 'accounts' | 'limits'
@@ -48,6 +49,7 @@ const LimitsPanel: React.FC = () => {
       setDraft(Object.fromEntries(LIMITS.map(([k, , kind]) => [k, kind === 'bool' ? Boolean(data.values[k]) : kind === 'rupees' ? String(Number(data.values[k]) / 100) : String(data.values[k])])))
     } catch (error) { actionFailed('Could not load settings', error) }
   }, [])
+  // oxlint-disable-next-line react/set-state-in-effect -- loads data from the server
   useEffect(() => { void load() }, [load])
 
   const save = async () => {
@@ -162,6 +164,7 @@ export const AdminPayments: React.FC = () => {
     try { setSummary(await adminPaymentsApi.summary()) } catch { /* cards stay empty */ }
   }, [])
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect -- loads data from the server
     void loadSummary()
     const t = window.setInterval(() => { void loadSummary() }, 15000)
     return () => window.clearInterval(t)

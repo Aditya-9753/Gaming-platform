@@ -3,9 +3,11 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import axios from 'axios'
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react'
 import { BrandHero } from '../../components/brand/BrandHero'
-import { useLogoSplash } from '../../components/brand/LogoSplash'
-import { Turnstile, captchaSiteKey } from '../../components/common/Turnstile'
-import { Btn, Field, cx, errorText, inputCls } from '../../components/affiliate/ui'
+import { useLogoSplash } from '../../components/brand/logoSplashStore'
+import { Turnstile } from '../../components/common/Turnstile'
+import { captchaSiteKey } from '../../components/common/captcha'
+import { Btn, Field, inputCls } from '../../components/affiliate/ui'
+import { cx, errorText } from '../../components/affiliate/helpers'
 import { authApi } from '../../services/auth.api'
 import { partnerApi } from '../../services/affiliate.api'
 import { useAuthStore } from '../../store/auth.store'
@@ -220,14 +222,15 @@ export const PartnerSignup: React.FC = () => {
 export const PartnerVerifyEmail: React.FC = () => {
   const t = useT()
   const [params] = useSearchParams()
-  const [state, setState] = useState<{ ok: boolean; text: string } | null>(null)
+  const token = params.get('token')
+  const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null)
+  const state = token ? result : { ok: false, text: 'The link is incomplete.' }
   useEffect(() => {
-    const token = params.get('token')
-    if (!token) { setState({ ok: false, text: 'The link is incomplete.' }); return }
+    if (!token) return
     partnerApi.verifyEmail(token)
-      .then((r) => setState({ ok: true, text: r.status === 'PENDING' ? 'Email confirmed. Our team will review your application shortly.' : 'Email confirmed. You can sign in now.' }))
-      .catch((e) => setState({ ok: false, text: errorText(e, 'This link is invalid or has expired') }))
-  }, [params])
+      .then((r) => setResult({ ok: true, text: r.status === 'PENDING' ? 'Email confirmed. Our team will review your application shortly.' : 'Email confirmed. You can sign in now.' }))
+      .catch((e) => setResult({ ok: false, text: errorText(e, 'This link is invalid or has expired') }))
+  }, [token])
   return (
     <Shell title={state === null ? t('Confirming…') : state.ok ? t('Email confirmed') : t('Link not valid')}>
       <p className="text-center text-sm text-slate-300">{state ? t(state.text) : t('Please wait.')}</p>
@@ -252,16 +255,18 @@ export const PartnerImpersonate: React.FC = () => {
   const t = useT()
   const navigate = useNavigate()
   const { setAuth, setAccessToken } = useAuthStore()
-  const [error, setError] = useState<string | null>(null)
+  // Read once: the effect below strips the token from the address bar
+  const [token] = useState(() => new URLSearchParams(window.location.hash.slice(1)).get('token') || impersonation.get())
+  const [failure, setFailure] = useState<string | null>(null)
+  const error = token ? failure : 'Missing token'
   useEffect(() => {
-    const token = new URLSearchParams(window.location.hash.slice(1)).get('token') || impersonation.get()
-    if (!token) { setError('Missing token'); return }
+    if (!token) return
     impersonation.set(token)
     window.history.replaceState(null, '', '/partner/impersonate')
     setAccessToken(token)
     authApi.getCurrentUser()
       .then((user) => { setAuth(user, token); navigate('/partner/dashboard', { replace: true }) })
-      .catch((e) => setError(errorText(e, 'The view has expired')))
-  }, [navigate, setAccessToken, setAuth])
+      .catch((e) => setFailure(errorText(e, 'The view has expired')))
+  }, [token, navigate, setAccessToken, setAuth])
   return <Shell title={t('Opening partner view…')}>{error && <p className="text-center text-sm text-rose-300">{t(error)}</p>}</Shell>
 }

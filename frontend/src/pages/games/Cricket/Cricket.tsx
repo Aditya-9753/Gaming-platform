@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { Activity, RefreshCw, Trophy, Clock, MapPin, Info } from 'lucide-react'
 import { Button } from '../../../components/common/Button'
-import { showToast } from '../../../components/common/Toast'
+import { showToast } from '../../../components/common/toastBus'
 import { formatPaiseToRupee, rupeeToPaise } from '../../../utils/formatters'
 import { getApiErrorMessage } from '../../../utils/apiError'
 import { apiClient } from '../../../services/api'
@@ -127,6 +127,7 @@ export const Cricket: React.FC = () => {
   }, [])
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect -- polls the server
     void refreshMatches()
     void refreshMine()
     const refresh = setInterval(() => { void refreshMatches(); void refreshMine() }, 10000)

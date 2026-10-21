@@ -1,15 +1,13 @@
 import React, { useEffect, useState } from 'react'
 import { Plus } from 'lucide-react'
-import {
-  DisplayCurrencyContext, formatMoney,
-  Badge, Btn, Card, ConfirmPrompt, Empty, ErrorBox, Field, Modal, Money, Spinner, StatusDot, Table, Tabs, Td, cx, dateOnly, dateTime,
-  inputCls, toastError, useAsync,
-} from '../../components/affiliate/ui'
-import { showToast } from '../../components/common/Toast'
+import { Badge, Btn, Card, ConfirmPrompt, Empty, ErrorBox, Field, Modal, Money, Spinner, StatusDot, Table, Tabs, Td, inputCls } from '../../components/affiliate/ui'
+import { DisplayCurrencyContext, formatMoney, cx, dateOnly, dateTime, toastError, useAsync } from '../../components/affiliate/helpers'
+import { showToast } from '../../components/common/toastBus'
 import { partnerApi } from '../../services/affiliate.api'
 import type { LedgerEntry, Withdrawal } from '../../types/affiliate.types'
 import { useT } from './i18n'
 import { usePartnerStore } from './partner.store'
+import { useNow } from '../../hooks/useNow'
 
 const METHOD_LABEL: Record<string, string> = {
   EWALLET_EMAIL: 'E-wallet (email)', USDT_TRC20: 'USDT (TRC20)', BANK: 'Bank transfer', UPI: 'UPI', OTHER: 'Other',
@@ -31,6 +29,7 @@ export const PartnerWithdrawal: React.FC = () => {
   const [prompt, setPrompt] = useState<null | { title: string; message?: string; run: () => Promise<void> }>(null)
   const [addOpen, setAddOpen] = useState(false)
   const [idemKey, setIdemKey] = useState(() => crypto.randomUUID())
+  const now = useNow()
 
   const currency = React.useContext(DisplayCurrencyContext)
   // "20.00 $ (≈ ₹1,700.00)" while the portal shows rupees; just "20.00 $" otherwise
@@ -42,7 +41,7 @@ export const PartnerWithdrawal: React.FC = () => {
   if (wallet.loading && !wallet.data) return <Spinner />
   if (wallet.error) return <ErrorBox message={wallet.error} onRetry={wallet.reload} />
   const w = wallet.data!
-  const coolingDown = method && new Date(method.usable_after) > new Date()
+  const coolingDown = method && new Date(method.usable_after).getTime() > now
 
   const withdraw = () => setPrompt({
     title: t('Withdraw {amount}', { amount: usdAnd(amount) }),
@@ -121,7 +120,7 @@ export const PartnerWithdrawal: React.FC = () => {
                 <div className="min-w-0 flex-1">
                   <div className="text-[11px] text-slate-400">{t(METHOD_LABEL[m.type] || m.type)} · {m.label}</div>
                   <div className="font-bold">{m.destination}</div>
-                  {new Date(m.usable_after) > new Date() && <div className="text-[11px] text-amber-300">{t('Usable from {time}', { time: dateTime(m.usable_after) })}</div>}
+                  {new Date(m.usable_after).getTime() > now && <div className="text-[11px] text-amber-300">{t('Usable from {time}', { time: dateTime(m.usable_after) })}</div>}
                 </div>
                 {m.is_default ? <Badge tone="blue">{t('Default')}</Badge> : (
                   <Btn tone="ghost" small onClick={async () => { try { await partnerApi.updateMethod(m.id, { is_default: true }); void methods.reload() } catch (e) { toastError(e) } }}>{t('Make default')}</Btn>

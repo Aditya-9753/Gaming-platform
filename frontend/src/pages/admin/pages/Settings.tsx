@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { AlertTriangle, Gamepad2, Info, Palette, Percent, Save, Wrench } from 'lucide-react'
 import { apiClient } from '../../../services/api'
-import { showToast } from '../../../components/common/Toast'
+import { showToast } from '../../../components/common/toastBus'
 import { Button } from '../../../components/common/Button'
 import { Input } from '../../../components/common/Input'
 import { getApiErrorMessage } from '../../../utils/apiError'
@@ -91,6 +91,7 @@ export const AdminSettings: React.FC = () => {
     }
   }, [])
 
+  // oxlint-disable-next-line react/set-state-in-effect -- loads data from the server
   useEffect(() => { void load() }, [load])
 
   const saveSystem = async (patch: Partial<SystemValues>, label: string) => {

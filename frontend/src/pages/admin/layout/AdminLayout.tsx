@@ -3,13 +3,14 @@ import { Outlet, useLocation } from 'react-router-dom'
 import { AdminHeader } from './AdminHeader'
 import { AdminSidebar } from './AdminSidebar'
 import { ToastContainer } from '../../../components/common/Toast'
+import { useOnChange } from '../../../hooks/useOnChange'
 
 export const AdminLayout: React.FC = () => {
   const [menuOpen, setMenuOpen] = useState(false)
   const { pathname } = useLocation()
 
   // Close the mobile drawer on navigation and on Escape
-  useEffect(() => { setMenuOpen(false) }, [pathname])
+  useOnChange(pathname, () => setMenuOpen(false))
   useEffect(() => {
     if (!menuOpen) return
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpen(false) }

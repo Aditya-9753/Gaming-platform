@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { Gauge, Play, ShieldCheck, ShieldOff } from 'lucide-react'
 import { apiClient } from '../../../services/api'
-import { showToast } from '../../../components/common/Toast'
+import { showToast } from '../../../components/common/toastBus'
 import { getApiErrorMessage } from '../../../utils/apiError'
 import { formatPaiseToRupee } from '../../../utils/formatters'
 
@@ -80,6 +80,7 @@ export const RiskControls: React.FC = () => {
     } catch { /* no report yet */ }
   }, [])
 
+  // oxlint-disable-next-line react/set-state-in-effect -- loads data from the server
   useEffect(() => { void load(); void loadReport() }, [load, loadReport])
 
   const toggle = async (family: string, next: 'ON' | 'OFF') => {

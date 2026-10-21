@@ -3,8 +3,9 @@ import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
 import { DataTable, type Column } from '../components/DataTable'
 import { formatDateTime } from '../../../utils/formatters'
 import { apiClient } from '../../../services/api'
-import { showToast } from '../../../components/common/Toast'
+import { showToast } from '../../../components/common/toastBus'
 import { Input } from '../../../components/common/Input'
+import { useOnChange } from '../../../hooks/useOnChange'
 
 interface AuditItem {
   id: string
@@ -33,7 +34,7 @@ export const AuditLogs: React.FC = () => {
   const [total, setTotal] = useState(0)
   const [pages, setPages] = useState(0)
 
-  useEffect(() => { setPage(1) }, [q, targetType, from, to])
+  useOnChange(JSON.stringify([q, targetType, from, to]), () => setPage(1))
 
   useEffect(() => {
     const timer = window.setTimeout(() => {

@@ -1,21 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Plus, Save, Shield } from 'lucide-react'
 import { apiClient } from '../../../services/api'
-import { showToast } from '../../../components/common/Toast'
+import { showToast } from '../../../components/common/toastBus'
 import { Button } from '../../../components/common/Button'
 import { Input } from '../../../components/common/Input'
 import { Modal } from '../components/Modal'
 import { getApiErrorMessage } from '../../../utils/apiError'
-
-export interface RoleRow { id: number; name: string; description: string | null; permissions: string[] }
-export interface PermissionRow { id: number; code: string; name: string; description: string | null }
-
-/** Group permission codes by their prefix ("wallet:read" -> "wallet"). */
-export const groupPermissions = (perms: PermissionRow[]) => {
-  const groups: Record<string, PermissionRow[]> = {}
-  for (const p of perms) (groups[p.code.split(':')[0]] ??= []).push(p)
-  return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b))
-}
+import { groupPermissions, type PermissionRow, type RoleRow } from './rolesModel'
+import { useOnChange } from '../../../hooks/useOnChange'
 
 export const Roles: React.FC = () => {
   const [roles, setRoles] = useState<RoleRow[]>([])
@@ -38,10 +30,11 @@ export const Roles: React.FC = () => {
     }
   }, [])
 
+  // oxlint-disable-next-line react/set-state-in-effect -- loads data from the server
   useEffect(() => { void load() }, [load])
 
   const selected = roles.find((r) => r.id === selectedId) ?? null
-  useEffect(() => { setDraft(new Set(selected?.permissions ?? [])) }, [selected])
+  useOnChange(selected, (role) => setDraft(new Set(role?.permissions ?? [])))
   const grouped = useMemo(() => groupPermissions(perms), [perms])
   const locked = selected?.name === 'SUPERADMIN'
   const dirty = selected ? selected.permissions.length !== draft.size || selected.permissions.some((c) => !draft.has(c)) : false

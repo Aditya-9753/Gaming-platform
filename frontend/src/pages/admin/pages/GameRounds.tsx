@@ -5,7 +5,7 @@ import { Modal } from '../components/Modal'
 import { Pagination } from '../../../components/common/Pagination'
 import { formatDateTime, formatPaiseToRupee } from '../../../utils/formatters'
 import { apiClient } from '../../../services/api'
-import { showToast } from '../../../components/common/Toast'
+import { showToast } from '../../../components/common/toastBus'
 
 interface RoundRecord {
   round_id: string
@@ -86,6 +86,7 @@ export const GameRounds: React.FC = () => {
     }
   }, [page, gameId, status])
 
+  // oxlint-disable-next-line react/set-state-in-effect -- loads data from the server
   useEffect(() => { void load() }, [load])
 
   // Live refresh only on the first page (later pages would keep shifting)
@@ -96,6 +97,7 @@ export const GameRounds: React.FC = () => {
   }, [live, page, load])
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect -- loads the selected round from the server
     if (!selected) { setDetails(null); return }
     apiClient.get<RoundDetails>(`/admin/rounds/${selected.round_id}`)
       .then(({ data }) => setDetails(data))

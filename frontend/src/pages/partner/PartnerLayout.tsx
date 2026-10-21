@@ -8,7 +8,8 @@ import { BrandLogo } from '../../components/common/BrandLogo'
 import { Loader } from '../../components/common/Loader'
 import { ToastContainer } from '../../components/common/Toast'
 import { ErrorBoundary } from '../../components/common/ErrorBoundary'
-import { Badge, Btn, DisplayCurrencyContext, Money, PremiumUI, clearAsyncCache, cx, errorText, formatMoney, pct, type DisplayCurrency } from '../../components/affiliate/ui'
+import { Badge, Btn, Money } from '../../components/affiliate/ui'
+import { DisplayCurrencyContext, PremiumUI, clearAsyncCache, cx, errorText, formatMoney, pct, type DisplayCurrency } from '../../components/affiliate/helpers'
 import '../../components/brand/brand.css'
 import { authApi } from '../../services/auth.api'
 import { partnerApi } from '../../services/affiliate.api'
@@ -16,6 +17,7 @@ import { useAuthStore } from '../../store/auth.store'
 import { usePartnerStore } from './partner.store'
 import { impersonation } from '../../utils/impersonation'
 import { LANGUAGE_NAMES, useT, type TKey } from './i18n'
+import { useOnChange } from '../../hooks/useOnChange'
 
 const TILES: Array<{ to: string; key: TKey; icon: React.ReactNode; sub?: boolean }> = [
   { to: '/partner/dashboard', key: 'dashboard', icon: <LayoutDashboard className="h-5 w-5" /> },
@@ -58,7 +60,7 @@ export const PartnerLayout: React.FC = () => {
     document.addEventListener('visibilitychange', onVisible)
     return () => document.removeEventListener('visibilitychange', onVisible)
   }, [isAuthenticated, user?.role, refresh])
-  useEffect(() => { setMenuOpen(false) }, [pathname])
+  useOnChange(pathname, () => setMenuOpen(false))
   useEffect(() => {
     if (me?.partner.locale && me.partner.locale !== locale && !savedLocale()) setLocale(me.partner.locale)
   }, [me?.partner.locale, locale, setLocale])

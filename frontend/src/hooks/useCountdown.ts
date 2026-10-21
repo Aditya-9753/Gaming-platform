@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 
 export function useCountdown(targetMs: number): number {
-  const [remaining, setRemaining] = useState(Math.max(0, targetMs - Date.now()))
+  const [remaining, setRemaining] = useState(() => Math.max(0, targetMs - Date.now()))
   const rafRef = useRef<number>(0)
 
   useEffect(() => {

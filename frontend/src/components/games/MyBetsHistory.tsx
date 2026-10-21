@@ -4,6 +4,7 @@ import { apiClient } from '../../services/api'
 import { formatPaiseToRupee } from '../../utils/formatters'
 import { useAuthStore } from '../../store/auth.store'
 import { t as tr } from '../../i18n'
+import { useOnChange } from '../../hooks/useOnChange'
 
 export interface BetHistoryItem {
   entry_id: string
@@ -31,7 +32,7 @@ const GAME_LABEL: Record<string, string> = {
 }
 
 /** Human readable pick for any game. */
-export function describeSelection(item: BetHistoryItem): string {
+function describeSelection(item: BetHistoryItem): string {
   const s = item.selection ?? {}
   if (s.type === 'SIDE' && typeof s.value === 'string') return `Player ${s.value}`
   if (typeof s.type === 'string' && typeof s.value === 'string') {
@@ -64,6 +65,7 @@ export interface MyBetsHistoryProps {
 export const MyBetsHistory: React.FC<MyBetsHistoryProps> = ({ gameId, pageSize = 10, refreshKey = 0, showGame = false, title }) => {
   const { isAuthenticated } = useAuthStore()
   const [page, setPage] = useState(1)
+  useOnChange(gameId, () => setPage(1))
   const [data, setData] = useState<Page>({ items: [], total_pages: 0 })
   const [loading, setLoading] = useState(false)
 
@@ -80,8 +82,8 @@ export const MyBetsHistory: React.FC<MyBetsHistoryProps> = ({ gameId, pageSize =
     }
   }, [gameId, page, pageSize, isAuthenticated])
 
+  // oxlint-disable-next-line react/set-state-in-effect -- loads data from the server
   useEffect(() => { void load() }, [load, refreshKey])
-  useEffect(() => { setPage(1) }, [gameId])
 
   if (!isAuthenticated) return <p className="p-4 text-center text-xs text-slate-400">{tr('Sign in to see your bet history.')}</p>
 

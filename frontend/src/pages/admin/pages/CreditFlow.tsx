@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { ArrowDownRight, ArrowUpRight, Coins, Landmark, Wallet } from 'lucide-react'
 import { apiClient } from '../../../services/api'
-import { showToast } from '../../../components/common/Toast'
+import { showToast } from '../../../components/common/toastBus'
 import { formatPaiseToRupee } from '../../../utils/formatters'
 import { getApiErrorMessage } from '../../../utils/apiError'
 

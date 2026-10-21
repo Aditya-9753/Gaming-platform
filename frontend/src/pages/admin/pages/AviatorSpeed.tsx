@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Gauge, Plane, RotateCcw, Save, Timer } from 'lucide-react'
 import { apiClient } from '../../../services/api'
-import { Btn, Card, ErrorBox, Spinner, cx, errorText } from '../../../components/affiliate/ui'
-import { showToast } from '../../../components/common/Toast'
+import { Btn, Card, ErrorBox, Spinner } from '../../../components/affiliate/ui'
+import { cx, errorText } from '../../../components/affiliate/helpers'
+import { showToast } from '../../../components/common/toastBus'
 
 interface SpeedView {
   exp_growth_rate: number
@@ -37,6 +38,7 @@ export const AviatorSpeed: React.FC = () => {
       setError(errorText(e, 'Could not load the Aviator speed'))
     }
   }
+  // oxlint-disable-next-line react/set-state-in-effect -- loads data from the server
   useEffect(() => { void load() }, [])
 
   const rate = Math.log(2) / twoX

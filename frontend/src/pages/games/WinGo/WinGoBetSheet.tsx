@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import { Minus, Plus } from 'lucide-react'
-import { EditableQuickAmounts, useQuickAmounts } from '../../../components/games/EditableQuickAmounts'
-import { pickLabel, pickTheme, type WingoPick } from './wingoRules'
+import { EditableQuickAmounts } from '../../../components/games/EditableQuickAmounts'
+import { useQuickAmounts } from '../../../components/games/useQuickAmounts'
+import { QUANTITY_MULTIPLIERS, pickLabel, pickTheme, type WingoPick } from './wingoRules'
 import { t as tr } from '../../../i18n'
-
-export const QUANTITY_MULTIPLIERS = [1, 5, 10, 20, 50, 100]
+import { useOnChange } from '../../../hooks/useOnChange'
 
 export interface WinGoBetSheetProps {
   open: boolean
@@ -29,7 +29,7 @@ export const WinGoBetSheet: React.FC<WinGoBetSheetProps> = ({
   const [quantity, setQuantity] = useState(multiplier)
   const [agree, setAgree] = useState(true)
 
-  useEffect(() => { setQuantity(multiplier) }, [multiplier, open])
+  useOnChange(`${multiplier}|${open}`, () => setQuantity(multiplier))
   useEffect(() => { if (open && locked) onClose() }, [locked, open, onClose])
 
   if (!open || !pick) return null

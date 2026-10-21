@@ -1,5 +1,6 @@
 import React from 'react'
-import { BrandLogo, isBuiltInBrand } from '../common/BrandLogo'
+import { BrandLogo } from '../common/BrandLogo'
+import { isBuiltInBrand } from '../common/brandName'
 import { usePlatformConfig } from '../../hooks/usePlatformConfig'
 import logoUrl from '../../assets/brand/runwin-logo.webp'
 import './brand.css'

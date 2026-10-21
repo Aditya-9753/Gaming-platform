@@ -3,10 +3,8 @@ import { Activity, Bot, ChevronRight, Gamepad2, IndianRupee, Landmark, RefreshCw
 import { apiClient } from '../../../services/api'
 import { HourlyFlowChart, type HourPoint } from '../components/HourlyFlowChart'
 import { PartnerSplitCard } from '../components/PartnerSplitCard'
-import {
-  BetsTable, GAME_LABEL, LiveDrawer, LiveStatus, PlayerLink, ago, money, signed,
-  type BetRow, type PanelTarget,
-} from '../components/LivePanels'
+import { BetsTable, LiveDrawer, LiveStatus, PlayerLink, type PanelTarget } from '../components/LivePanels'
+import { GAME_LABEL, ago, money, signed, type BetRow } from '../components/liveFormat'
 
 interface Kpis {
   players_total: number; signups_today: number; suspended: number; active_15m: number; active_24h: number
@@ -50,7 +48,7 @@ export const Dashboard: React.FC = () => {
   const [data, setData] = useState<Live | null>(null)
   const [includeBots, setIncludeBots] = useState(false)
   const [error, setError] = useState(false)
-  const [now, setNow] = useState(Date.now())
+  const [now, setNow] = useState(() => Date.now())
   const [loading, setLoading] = useState(false)
   const [stack, setStack] = useState<PanelTarget[]>([])
   const inflight = useRef(false)
@@ -77,6 +75,7 @@ export const Dashboard: React.FC = () => {
   }, [includeBots])
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect -- polls the server
     void load()
     const poll = setInterval(() => { if (document.visibilityState === 'visible') void load() }, REFRESH_MS)
     const tick = setInterval(() => setNow(Date.now()), 1000)

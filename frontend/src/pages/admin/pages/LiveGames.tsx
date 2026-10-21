@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { Ban, Bomb, Pause, Play, Plane, Radio, ShieldCheck, Target } from 'lucide-react'
 import { apiClient } from '../../../services/api'
-import { showToast } from '../../../components/common/Toast'
+import { showToast } from '../../../components/common/toastBus'
 import { Button } from '../../../components/common/Button'
 import { Input } from '../../../components/common/Input'
 import { Modal } from '../components/Modal'
@@ -56,6 +56,7 @@ export const LiveGames: React.FC = () => {
   }, [])
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect -- polls the server
     void load()
     const timer = setInterval(() => void load(), 2000)
     return () => clearInterval(timer)

@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
 import { Minus, Plus } from 'lucide-react'
 import type { AviatorBetSlot } from './useAviatorBet'
-import { EditableQuickAmounts, useQuickAmounts } from '../../../components/games/EditableQuickAmounts'
+import { EditableQuickAmounts } from '../../../components/games/EditableQuickAmounts'
+import { useQuickAmounts } from '../../../components/games/useQuickAmounts'
 import { formatPaiseToRupee, rupeeToPaise } from '../../../utils/formatters'
 import { t as tr } from '../../../i18n'
 

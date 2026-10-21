@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { Send } from 'lucide-react'
 import { Input } from '../../../components/common/Input'
 import { Button } from '../../../components/common/Button'
-import { showToast } from '../../../components/common/Toast'
+import { showToast } from '../../../components/common/toastBus'
 import { apiClient } from '../../../services/api'
 
 export const AdminNotifications: React.FC = () => {

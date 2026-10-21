@@ -390,15 +390,21 @@ const SCENES: Record<string, () => React.ReactElement> = {
   tennis: () => <FieldScene id="ft" grass="#3f6212" kind="tennis" icon="🎾" score="6-4  3-2  40-15" />,
 }
 
-export const hasGameArt = (id: string): boolean => id in SCENES
-
-/** The scene for a lobby game, filling its tile. */
-export const GameArt: React.FC<{ id: string; className?: string }> = ({ id, className = '' }) => {
+/**
+ * The scene for a lobby game, filling its tile. `overlay` is drawn on top of the
+ * scene; `fallback` is shown instead when the game has no scene.
+ */
+export const GameArt: React.FC<{ id: string; className?: string; overlay?: React.ReactNode; fallback?: React.ReactNode }> = ({
+  id, className = '', overlay, fallback = null,
+}) => {
   const Scene = SCENES[id]
-  if (!Scene) return null
+  if (!Scene) return <>{fallback}</>
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice" className={className} aria-hidden>
-      <Scene />
-    </svg>
+    <>
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice" className={className} aria-hidden>
+        <Scene />
+      </svg>
+      {overlay}
+    </>
   )
 }

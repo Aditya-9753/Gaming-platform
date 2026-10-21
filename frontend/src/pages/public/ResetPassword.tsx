@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Lock } from 'lucide-react'
 import { Input } from '../../components/common/Input'
 import { Button } from '../../components/common/Button'
-import { showToast } from '../../components/common/Toast'
+import { showToast } from '../../components/common/toastBus'
 import { authApi } from '../../services/auth.api'
 import { t as tr } from '../../i18n'
 

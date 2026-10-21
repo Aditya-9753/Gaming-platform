@@ -4,7 +4,7 @@ import { CheckCircle2, FlaskConical, KeyRound, Lock, RefreshCw, ShieldAlert, Shi
 import { apiClient } from '../../../services/api'
 import { getApiErrorMessage } from '../../../utils/apiError'
 import { formatPaiseToRupee } from '../../../utils/formatters'
-import { showToast } from '../../../components/common/Toast'
+import { showToast } from '../../../components/common/toastBus'
 import { BacktestTab } from '../components/BacktestReport'
 
 type Tab = 'backtest' | 'hold' | 'integrity' | 'seed'
@@ -110,6 +110,7 @@ const HoldTab: React.FC = () => {
       setReport(data)
     } catch (e) { errorToast('Could not load hold analysis', e) }
   }, [days, bots])
+  // oxlint-disable-next-line react/set-state-in-effect -- loads data from the server
   useEffect(() => { void load() }, [load])
 
   const simulate = async () => {
@@ -235,6 +236,7 @@ const IntegrityTab: React.FC = () => {
   const load = useCallback(async () => {
     try { setStatus((await apiClient.get<IntegrityStatus>('/admin/integrity/status')).data) } catch (e) { errorToast('Could not load status', e) }
   }, [])
+  // oxlint-disable-next-line react/set-state-in-effect -- loads data from the server
   useEffect(() => { void load() }, [load])
 
   const verify = async (kind: 'ledger' | 'audit') => {
@@ -315,6 +317,7 @@ const SeedTab: React.FC = () => {
   const load = useCallback(async () => {
     try { setState((await apiClient.get<SeedState>('/admin/fairness/client-seed')).data) } catch (e) { errorToast('Could not load seeds', e) }
   }, [])
+  // oxlint-disable-next-line react/set-state-in-effect -- loads data from the server
   useEffect(() => { void load() }, [load])
   const rotate = async () => {
     if (!window.confirm('Rotate the public client seed? New rounds will use it; finished rounds are not affected.')) return

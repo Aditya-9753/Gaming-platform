@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { DataTable, type Column } from '../components/DataTable'
 import { apiClient } from '../../../services/api'
-import { showToast } from '../../../components/common/Toast'
+import { showToast } from '../../../components/common/toastBus'
 
 interface Ticket {
   id: string

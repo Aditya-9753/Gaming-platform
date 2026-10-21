@@ -1,15 +1,15 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Download, Lock, Plus, RotateCcw } from 'lucide-react'
-import {
-  Badge, Btn, Card, ErrorBox, Field, Modal, Money, Spinner, Table, Tabs, Td, cx, dateOnly, dateTime, inputCls, pct, toastError, useAsync,
-} from '../../../components/affiliate/ui'
-import { showToast } from '../../../components/common/Toast'
+import { Badge, Btn, Card, ErrorBox, Field, Modal, Money, Spinner, Table, Tabs, Td, inputCls } from '../../../components/affiliate/ui'
+import { cx, dateOnly, dateTime, pct, toastError, useAsync } from '../../../components/affiliate/helpers'
+import { showToast } from '../../../components/common/toastBus'
 import { usePermission } from '../../../hooks/usePermission'
 import { useAuthStore } from '../../../store/auth.store'
 import { affAdminApi, saveBlob } from '../../../services/affiliateAdmin.api'
 import type { CommissionPlan, Withdrawal } from '../../../types/affiliate.types'
 import { ReasonModal } from './AffPartners'
+import { useNow } from '../../../hooks/useNow'
 
 // ============================================================ settlement
 
@@ -23,7 +23,8 @@ export const AffSettlement: React.FC = () => {
   const [reopen, setReopen] = useState<null | { title: string; needReason: boolean; run: (r: string) => Promise<void> }>(null)
   const [busy, setBusy] = useState(false)
   const period = periods.data?.items.find((p) => p.id === selected)
-  const today = new Date().toISOString().slice(0, 10)
+  const now = useNow()
+  const today = new Date(now).toISOString().slice(0, 10)
 
   return (
     <div className="space-y-4">
@@ -278,7 +279,7 @@ export const AffDeals: React.FC = () => {
   const { hasPermission } = usePermission()
   const canEdit = hasPermission('aff:deal:manage')
   const [edit, setEdit] = useState<(typeof emptyPlan & { id?: number }) | null>(null)
-  const [rate, setRate] = useState({ rate_date: new Date().toISOString().slice(0, 10), currency: 'INR', rate_to_usd: '' })
+  const [rate, setRate] = useState(() => ({ rate_date: new Date().toISOString().slice(0, 10), currency: 'INR', rate_to_usd: '' }))
   const [busy, setBusy] = useState(false)
   return (
     <div className="space-y-4">

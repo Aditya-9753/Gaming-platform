@@ -4,7 +4,7 @@ import { StatCard } from '../components/StatCard'
 import { HourlyFlowChart } from '../components/HourlyFlowChart'
 import { apiClient } from '../../../services/api'
 import { formatPaiseToRupee } from '../../../utils/formatters'
-import { showToast } from '../../../components/common/Toast'
+import { showToast } from '../../../components/common/toastBus'
 
 interface Totals { wagered: number; paid: number; house_net: number; bets: number; players: number; hold_pct: number; signups?: number }
 interface DayPoint extends Totals { date: string; label: string; signups: number }
@@ -46,6 +46,7 @@ export const Reports: React.FC = () => {
     }
   }, [days, includeBots])
 
+  // oxlint-disable-next-line react/set-state-in-effect -- loads data from the server
   useEffect(() => { void load() }, [load])
   useEffect(() => {
     if (!live) return

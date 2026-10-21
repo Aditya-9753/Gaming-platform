@@ -1,5 +1,4 @@
 import React, { useEffect, useRef } from 'react'
-import axios from 'axios'
 
 declare global {
   interface Window {
@@ -44,11 +43,4 @@ export const Turnstile: React.FC<{ siteKey: string; onToken: (token: string | nu
     }
   }, [siteKey, onToken])
   return <div ref={box} className="flex min-h-[65px] justify-center" />
-}
-
-/** Site key from a CAPTCHA_REQUIRED sign-in error, else null. */
-export const captchaSiteKey = (error: unknown): string | null => {
-  if (!axios.isAxiosError(error)) return null
-  const body = error.response?.data as { error?: { code?: string; details?: { site_key?: string } } } | undefined
-  return body?.error?.code === 'CAPTCHA_REQUIRED' ? body.error.details?.site_key || null : null
 }

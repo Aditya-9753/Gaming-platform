@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo } from 'react'
-import { create } from 'zustand'
+import React, { useEffect, useState } from 'react'
+import { useLogoSplash } from './logoSplashStore'
 import markUrl from '../../assets/brand/runwin-mark.webp'
 // Solid-shape mask (no soft glow) so the shine never lights up the glow's box
 import maskUrl from '../../assets/brand/runwin-mark-mask.webp'
@@ -9,36 +9,32 @@ import './logo-splash.css'
 const DURATION_MS = 2500
 const REDUCED_MS = 1400
 
-/** Set right after a successful sign-in; the splash clears it when it finishes. */
-export const useLogoSplash = create<{ visible: boolean; show: () => void; hide: () => void }>((set) => ({
-  visible: false,
-  show: () => set({ visible: true }),
-  hide: () => set({ visible: false }),
-}))
+const makeSparks = () => Array.from({ length: 18 }, (_, i) => {
+  const angle = (i / 18) * Math.PI * 2 + Math.random() * 0.4
+  const dist = 140 + Math.random() * 160
+  return {
+    '--dx': `${Math.cos(angle) * dist}px`,
+    '--dy': `${Math.sin(angle) * dist}px`,
+    animationDelay: `${0.5 + Math.random() * 0.5}s`,
+  } as React.CSSProperties
+})
 
 /** Full-screen RunWin logo intro. Mount once near the router root. */
 export const LogoSplash: React.FC = () => {
   const { visible, hide } = useLogoSplash()
+  return visible ? <SplashStage hide={hide} /> : null
+}
 
+const SplashStage: React.FC<{ hide: () => void }> = ({ hide }) => {
   useEffect(() => {
-    if (!visible) return
     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
     const timer = window.setTimeout(hide, reduced ? REDUCED_MS : DURATION_MS)
     return () => window.clearTimeout(timer)
-  }, [visible, hide])
+  }, [hide])
 
-  // Sparks fly out from behind the mark in random directions
-  const sparks = useMemo(() => Array.from({ length: 18 }, (_, i) => {
-    const angle = (i / 18) * Math.PI * 2 + Math.random() * 0.4
-    const dist = 140 + Math.random() * 160
-    return {
-      '--dx': `${Math.cos(angle) * dist}px`,
-      '--dy': `${Math.sin(angle) * dist}px`,
-      animationDelay: `${0.5 + Math.random() * 0.5}s`,
-    } as React.CSSProperties
-  }), [visible]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Sparks fly out from behind the mark in random directions (fresh on every showing)
+  const [sparks] = useState(makeSparks)
 
-  if (!visible) return null
   const maskStyle = { maskImage: `url(${maskUrl})`, WebkitMaskImage: `url(${maskUrl})` } as React.CSSProperties
   return (
     <div className="rw-splash" role="presentation" onClick={hide}>

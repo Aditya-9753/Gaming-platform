@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { formatMultiplier } from '../../../utils/formatters'
 import { t as tr } from '../../../i18n'
+import { useOnChange } from '../../../hooks/useOnChange'
 
 export const AVIATOR_COVER_SRC = '/games/aviator/cover.jpg'
 export const AVIATOR_PLANE_SRC = '/games/aviator/plane.webp'
@@ -12,6 +13,9 @@ export interface AviatorChartProps {
   /** Total betting window in seconds, for the countdown bar. */
   bettingTotal?: number
 }
+
+/** Bob phase per unit of ln(multiplier): (1 s / 0.09) / 380 ms. */
+const BOB_PHASE_PER_LOG_X = 1000 / 0.09 / 380
 
 /** Flight progress 0→1: climbs quickly at first, then cruises near the top-right. */
 const flightProgress = (multiplier: number) => 1 - Math.exp(-(Math.max(multiplier, 1) - 1) / 1.6)
@@ -43,15 +47,14 @@ export const AviatorChart: React.FC<AviatorChartProps> = ({
   const maxX = width * 0.78
   const topY = height * 0.24
   const progress = phase === 'flying' || phase === 'crashed' ? flightProgress(multiplier) : 0
-  // Gentle cruise bob once the plane has (nearly) levelled out
-  const bob = phase === 'flying' && progress > 0.85 ? Math.sin(Date.now() / 380) * height * 0.015 : 0
+  // Gentle cruise bob once the plane has (nearly) levelled out. Flight time is
+  // read off the multiplier (it grows as e^(0.09 t)), so render stays pure.
+  const bob = phase === 'flying' && progress > 0.85 ? Math.sin(Math.log(multiplier) * BOB_PHASE_PER_LOG_X) * height * 0.015 : 0
   const endX = startX + (maxX - startX) * progress
   const endY = startY - (startY - topY) * Math.pow(progress, 0.85) + bob
 
-  useEffect(() => {
-    if (phase === 'crashed') setCrashPoint((point) => point ?? { x: endX, y: endY })
-    else setCrashPoint(null)
-  }, [phase, endX, endY])
+  // Freeze where the plane was when it crashed
+  useOnChange(phase, (next) => setCrashPoint(next === 'crashed' ? { x: endX, y: endY } : null))
 
   useEffect(() => {
     const canvas = canvasRef.current

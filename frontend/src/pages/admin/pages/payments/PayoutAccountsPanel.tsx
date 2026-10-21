@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { Check, Clock } from 'lucide-react'
 import { Button } from '../../../../components/common/Button'
-import { showToast } from '../../../../components/common/Toast'
+import { showToast } from '../../../../components/common/toastBus'
 import { adminPaymentsApi, type WaitingPayoutAccount } from '../../../../services/payments.api'
 import { formatDateTime } from '../../../../utils/formatters'
-import { actionFailed, ago, inputCls } from './shared'
+import { inputCls } from './shared'
+import { actionFailed, ago } from './helpers'
 
 /**
  * Players' new payout accounts still in the security wait (24 h by default).
@@ -18,6 +19,7 @@ export const PayoutAccountsPanel: React.FC<{ isSuper: boolean; onChanged: () => 
   const load = useCallback(async () => {
     try { setItems(await adminPaymentsApi.payoutAccounts()) } catch (error) { actionFailed('Could not load payout accounts', error) }
   }, [])
+  // oxlint-disable-next-line react/set-state-in-effect -- loads data from the server
   useEffect(() => { void load() }, [load])
 
   const approve = async (account: WaitingPayoutAccount) => {

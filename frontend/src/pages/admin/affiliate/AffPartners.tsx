@@ -1,18 +1,17 @@
 import React, { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Eye, KeyRound, Plus, Search, Snowflake } from 'lucide-react'
-import {
-  Badge, Btn, Card, CopyButton, Empty, ErrorBox, Field, Modal, Money, Spinner, Table, Tabs, Td, cx, dateOnly, dateTime, inputCls, pct,
-  toastError, useAsync,
-} from '../../../components/affiliate/ui'
-import { showToast } from '../../../components/common/Toast'
+import { Badge, Btn, Card, CopyButton, Empty, ErrorBox, Field, Modal, Money, Spinner, Table, Tabs, Td, inputCls } from '../../../components/affiliate/ui'
+import { cx, dateOnly, dateTime, pct, toastError, useAsync } from '../../../components/affiliate/helpers'
+import { showToast } from '../../../components/common/toastBus'
 import { usePermission } from '../../../hooks/usePermission'
 import { affAdminApi } from '../../../services/affiliateAdmin.api'
 import type { LedgerEntry } from '../../../types/affiliate.types'
+import { useOnChange } from '../../../hooks/useOnChange'
 
 const STATUS_TABS = [{ id: '', label: 'All' }, { id: 'PENDING', label: 'Pending' }, { id: 'ACTIVE', label: 'Active' }, { id: 'SUSPENDED', label: 'Suspended' }, { id: 'BLOCKED', label: 'Blocked' }]
 
-export const dealText = (d?: { deal_type: string; revshare_rate: string; cpa_amount: string } | null) =>
+const dealText = (d?: { deal_type: string; revshare_rate: string; cpa_amount: string } | null) =>
   !d ? '—' : `${d.deal_type}${Number(d.revshare_rate) > 0 && d.deal_type !== 'CPA' ? ` ${pct(d.revshare_rate)}` : ''}${Number(d.cpa_amount) > 0 ? ` · CPA ${d.cpa_amount}$` : ''}`
 
 export const AffPartners: React.FC<{ subpartnersOnly?: boolean }> = ({ subpartnersOnly }) => {
@@ -269,7 +268,7 @@ const SetPasswordModal: React.FC<{ open: boolean; partnerId: number; email: stri
   const [password, setPassword] = useState('')
   const [show, setShow] = useState(false)
   const [busy, setBusy] = useState(false)
-  useEffect(() => { if (open) { setPassword(''); setShow(false) } }, [open])
+  useOnChange(open, (isOpen) => { if (isOpen) { setPassword(''); setShow(false) } })
   return (
     <Modal open={open} title="Set partner password" onClose={onClose}>
       <div className="space-y-3">
@@ -297,7 +296,7 @@ const SetPasswordModal: React.FC<{ open: boolean; partnerId: number; email: stri
 export const ReasonModal: React.FC<{ action: null | { title: string; needReason: boolean; run: (reason: string) => Promise<void> }; onClose: () => void }> = ({ action, onClose }) => {
   const [reason, setReason] = useState('')
   const [busy, setBusy] = useState(false)
-  useEffect(() => setReason(''), [action])
+  useOnChange(action, () => setReason(''))
   return (
     <Modal open={action !== null} title={action?.title || ''} onClose={onClose}>
       <div className="space-y-3">

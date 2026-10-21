@@ -2,10 +2,11 @@ import React, { useCallback, useEffect, useState } from 'react'
 import { RefreshCw, Search } from 'lucide-react'
 import { Modal } from '../../components/Modal'
 import { Button } from '../../../../components/common/Button'
-import { showToast } from '../../../../components/common/Toast'
+import { showToast } from '../../../../components/common/toastBus'
 import { adminPaymentsApi, type AdminDeposit } from '../../../../services/payments.api'
 import { formatDateTime, formatPaiseToRupee, rupeeToPaise } from '../../../../utils/formatters'
-import { actionFailed, ago, Field, inputCls, StatusPill, Timeline } from './shared'
+import { Field, inputCls, StatusPill, Timeline } from './shared'
+import { actionFailed, ago } from './helpers'
 
 const FILTERS = [
   { id: 'REVIEW', label: 'Needs review' },
@@ -153,6 +154,7 @@ export const DepositsPanel: React.FC<{ isSuper: boolean; canManage: boolean; onC
     } catch (error) { actionFailed('Could not load deposits', error) }
   }, [filter, search, page])
 
+  // oxlint-disable-next-line react/set-state-in-effect -- loads data from the server
   useEffect(() => { void load() }, [load])
   useEffect(() => {
     const t = window.setInterval(() => { void load() }, 15000)

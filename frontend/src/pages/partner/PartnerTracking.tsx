@@ -1,9 +1,8 @@
 import React, { useMemo, useState } from 'react'
 import { Download, ExternalLink, Link2, Plus, QrCode as QrIcon } from 'lucide-react'
-import {
-  Badge, Btn, Card, CopyButton, Empty, ErrorBox, Field, Modal, Spinner, Tabs, cx, inputCls, toastError, useAsync,
-} from '../../components/affiliate/ui'
-import { showToast } from '../../components/common/Toast'
+import { Badge, Btn, Card, CopyButton, Empty, ErrorBox, Field, Modal, Spinner, Tabs, inputCls } from '../../components/affiliate/ui'
+import { cx, toastError, useAsync } from '../../components/affiliate/helpers'
+import { showToast } from '../../components/common/toastBus'
 import { partnerApi } from '../../services/affiliate.api'
 import type { Campaign, Source, TrackingLink } from '../../types/affiliate.types'
 import { useT } from './i18n'

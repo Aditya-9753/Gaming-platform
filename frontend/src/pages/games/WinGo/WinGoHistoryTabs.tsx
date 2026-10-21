@@ -5,6 +5,7 @@ import { MyBetsHistory } from '../../../components/games/MyBetsHistory'
 import { numberColours } from './wingoRules'
 import type { WingoResult } from './useWingoRound'
 import { t as tr } from '../../../i18n'
+import { useOnChange } from '../../../hooks/useOnChange'
 
 interface RoundRow { period: string; number: number; size: string; colours: string[] }
 
@@ -37,6 +38,7 @@ export const WinGoHistoryTabs: React.FC<WinGoHistoryTabsProps> = ({ gameId, late
   const [page, setPage] = useState(1)
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect -- clears, then loads the new game history
     setRows([])
     setPage(1)
     apiClient.get<ApiRound[]>(`/games/${gameId}/history`, { params: { limit: 100 } })
@@ -46,12 +48,12 @@ export const WinGoHistoryTabs: React.FC<WinGoHistoryTabsProps> = ({ gameId, late
       .catch(() => undefined)
   }, [gameId])
 
-  useEffect(() => {
-    if (!latest) return
-    setRows((items) => (items.some((r) => r.period === latest.period)
+  useOnChange(latest, (round) => {
+    if (!round) return
+    setRows((items) => (items.some((r) => r.period === round.period)
       ? items
-      : [{ period: latest.period, number: latest.number, size: latest.size, colours: latest.colours }, ...items].slice(0, 100)))
-  }, [latest])
+      : [{ period: round.period, number: round.number, size: round.size, colours: round.colours }, ...items].slice(0, 100)))
+  })
 
   useEffect(() => { onRecent?.(rows.slice(0, 5).map((r) => r.number)) }, [rows, onRecent])
 

@@ -1,12 +1,12 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { Plus } from 'lucide-react'
-import {
-  Badge, Btn, Card, Field, Modal, Spinner, Table, Tabs, Td, cx, dateTime, inputCls, toastError, useAsync,
-} from '../../../components/affiliate/ui'
-import { showToast } from '../../../components/common/Toast'
+import { Badge, Btn, Card, Field, Modal, Spinner, Table, Tabs, Td, inputCls } from '../../../components/affiliate/ui'
+import { cx, dateTime, toastError, useAsync } from '../../../components/affiliate/helpers'
+import { showToast } from '../../../components/common/toastBus'
 import { usePermission } from '../../../hooks/usePermission'
 import { affAdminApi } from '../../../services/affiliateAdmin.api'
 import type { BlogPost, Contact, Faq, PrMaterial } from '../../../types/affiliate.types'
+import { useOnChange } from '../../../hooks/useOnChange'
 
 const readFile = (file: File) => new Promise<string>((resolve, reject) => {
   const reader = new FileReader()
@@ -182,7 +182,7 @@ const Contacts: React.FC = () => {
   const data = useAsync(() => affAdminApi.contacts(status || undefined), [status])
   const [open, setOpen] = useState<Contact | null>(null)
   const [reply, setReply] = useState('')
-  useEffect(() => setReply(open?.reply || ''), [open])
+  useOnChange(open, (contact) => setReply(contact?.reply || ''))
   return (
     <Card>
       <div className="mb-3"><Tabs value={status} onChange={setStatus} tabs={[{ id: 'NEW', label: 'New' }, { id: 'IN_PROGRESS', label: 'In progress' }, { id: 'CLOSED', label: 'Closed' }, { id: '', label: 'All' }]} /></div>
@@ -231,9 +231,9 @@ export const AffSettings: React.FC = () => {
   const [draft, setDraft] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState(false)
   const [newTerms, setNewTerms] = useState({ version: '', content: '' })
-  useEffect(() => {
-    if (data.data) setDraft(Object.fromEntries(Object.entries(data.data.values).map(([k, v]) => [k, typeof v === 'object' ? JSON.stringify(v) : String(v)])))
-  }, [data.data])
+  useOnChange(data.data, (loaded) => {
+    if (loaded) setDraft(Object.fromEntries(Object.entries(loaded.values).map(([k, v]) => [k, typeof v === 'object' ? JSON.stringify(v) : String(v)])))
+  })
   if (data.loading && !data.data) return <Spinner />
   const values = data.data?.values || {}
   return (

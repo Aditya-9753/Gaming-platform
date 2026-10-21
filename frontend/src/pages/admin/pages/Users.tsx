@@ -3,9 +3,10 @@ import { UserTable } from '../components/UserTable'
 import { Input } from '../../../components/common/Input'
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
 import { apiClient } from '../../../services/api'
-import { showToast } from '../../../components/common/Toast'
+import { showToast } from '../../../components/common/toastBus'
 import type { AdminUserRecord } from '../../../types/admin.types'
 import { STAFF_ROLES, type UserRole } from '../../../types/auth.types'
+import { useOnChange } from '../../../hooks/useOnChange'
 
 interface ApiUser {
   id: string
@@ -28,7 +29,7 @@ export const Users: React.FC = () => {
   const [total, setTotal] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
 
-  useEffect(() => { setPage(1) }, [search])
+  useOnChange(search, () => setPage(1))
 
   useEffect(() => {
     const timer = window.setTimeout(() => {

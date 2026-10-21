@@ -45,3 +45,6 @@ export const pickTheme = (pick: WingoPick): string => {
   }
   return pick.value === 'GREEN' ? 'from-emerald-500 to-emerald-600' : pick.value === 'RED' ? 'from-rose-500 to-rose-600' : 'from-violet-500 to-violet-600'
 }
+
+/** Quantity shortcuts in the bet sheet (x the chosen chip). */
+export const QUANTITY_MULTIPLIERS = [1, 5, 10, 20, 50, 100]

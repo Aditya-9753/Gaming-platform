@@ -1,7 +1,8 @@
 import React from 'react'
 import { Minus, Plus } from 'lucide-react'
 import { formatPaiseToRupee } from '../../../utils/formatters'
-import { EditableQuickAmounts, useQuickAmounts } from '../../../components/games/EditableQuickAmounts'
+import { EditableQuickAmounts } from '../../../components/games/EditableQuickAmounts'
+import { useQuickAmounts } from '../../../components/games/useQuickAmounts'
 import { t as tr } from '../../../i18n'
 
 export interface MinesControlsProps {

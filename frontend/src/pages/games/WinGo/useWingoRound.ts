@@ -49,6 +49,7 @@ export function useWingoRound(gameId: string): WingoRoundState {
   const offsetRef = useRef(0)
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect -- resets, then subscribes to the round socket
     setState(empty)
     let socket: WebSocket | null = null
     let reconnect: ReturnType<typeof setTimeout>

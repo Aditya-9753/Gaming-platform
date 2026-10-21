@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { ArrowDownLeft, ArrowUpRight, Banknote, CheckCircle2, Clock, Copy, History, KeyRound, Plus, QrCode, ShieldCheck, Trash2, XCircle } from 'lucide-react'
 import { Button } from '../../components/common/Button'
 import { StatusPill } from '../../components/payments/StatusPill'
-import { showToast } from '../../components/common/Toast'
+import { showToast } from '../../components/common/toastBus'
 import { useIdempotencyKey } from '../../hooks/useIdempotencyKey'
 import { paymentsApi, type Beneficiary, type Deposit, type Eligibility, type PaymentConfig, type Withdrawal } from '../../services/payments.api'
 import { syncWalletBalance } from '../../services/wallet.api'
@@ -287,6 +287,7 @@ const WithdrawTab: React.FC = () => {
       setAccounts(b)
     } catch (error) { fail('Could not load withdrawal details', error) }
   }, [])
+  // oxlint-disable-next-line react/set-state-in-effect -- loads data from the server
   useEffect(() => { void load() }, [load])
 
   // Re-check every 30 s so an account becomes selectable as soon as its cooling period ends
@@ -298,15 +299,13 @@ const WithdrawTab: React.FC = () => {
   const usable = useMemo(() => accounts.filter((a) => new Date(a.cooling_until).getTime() <= now), [accounts, now])
   const nextReady = useMemo(() => accounts.filter((a) => new Date(a.cooling_until).getTime() > now)
     .sort((a, b) => a.cooling_until.localeCompare(b.cooling_until))[0], [accounts, now])
-  useEffect(() => {
-    if (target && !usable.some((a) => a.id === target)) setTarget('')
-    else if (!target && usable[0]) setTarget(usable[0].id)
-  }, [usable, target])
+  // The chosen account while it is usable, else the first usable one
+  const payoutTo = usable.some((a) => a.id === target) ? target : usable[0]?.id || ''
 
   const submit = async () => {
     setBusy(true)
     try {
-      await paymentsApi.requestWithdrawal(rupeeToPaise(amount), target, pin, key)
+      await paymentsApi.requestWithdrawal(rupeeToPaise(amount), payoutTo, pin, key)
       rotateKey()
       setAmount(''); setPin('')
       showToast({ title: tr('Withdrawal requested'), message: tr('The amount is on hold until it is paid out.'), type: 'success' })
@@ -329,7 +328,7 @@ const WithdrawTab: React.FC = () => {
     if (!usable.length && nextReady) {
       return tr('Your payout account is in the {hours}-hour security cooling period. You can withdraw from {time}.', { hours: elig.cooling_hours, time: formatDateTime(nextReady.cooling_until) })
     }
-    if (!target) return tr('Choose a payout account.')
+    if (!payoutTo) return tr('Choose a payout account.')
     if (!amountPaise) return tr('Enter the amount.')
     if (amountPaise < elig.min_paise) return tr('The minimum withdrawal is {amount}.', { amount: formatPaiseToRupee(elig.min_paise, false) })
     if (amountPaise > elig.available_paise) return tr('You can withdraw at most {amount} now.', { amount: formatPaiseToRupee(elig.available_paise, false) })
@@ -386,7 +385,7 @@ const WithdrawTab: React.FC = () => {
         <h3 className="flex items-center gap-2 text-sm font-black text-white"><ArrowUpRight className="h-4 w-4 text-emerald-400" />{tr('Withdraw')}</h3>
         <div className="grid gap-2 sm:grid-cols-3">
           <input className={inputCls} inputMode="decimal" placeholder={tr('Amount (min ₹{min})', { min: elig.min_paise / 100 })} value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^\d.]/g, ''))} />
-          <select className={inputCls} value={target} onChange={(e) => setTarget(e.target.value)}>
+          <select className={inputCls} value={payoutTo} onChange={(e) => setTarget(e.target.value)}>
             <option value="">{tr('Choose payout account')}</option>
             {accounts.map((a) => {
               const ready = usable.some((u) => u.id === a.id)
@@ -422,6 +421,7 @@ const HistoryTab: React.FC = () => {
       setWithdrawals(w.items)
     } catch (error) { fail('Could not load history', error) }
   }, [])
+  // oxlint-disable-next-line react/set-state-in-effect -- loads data from the server
   useEffect(() => { void load() }, [load])
 
   const cancel = async (id: string) => {

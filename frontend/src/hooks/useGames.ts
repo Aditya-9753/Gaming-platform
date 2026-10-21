@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { useGameStore } from '../store/game.store'
 import { gameApi } from '../services/game.api'
-import { showToast } from '../components/common/Toast'
+import { showToast } from '../components/common/toastBus'
 import { t as tr } from '../i18n'
 
 export function useGames() {

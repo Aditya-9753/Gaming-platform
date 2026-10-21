@@ -3,7 +3,7 @@ import { AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, Play, XCircle }
 import { apiClient } from '../../../services/api'
 import { getApiErrorMessage } from '../../../utils/apiError'
 import { formatPaiseToRupee } from '../../../utils/formatters'
-import { showToast } from '../../../components/common/Toast'
+import { showToast } from '../../../components/common/toastBus'
 
 // Validated categorical slots 1-2 (dark) on the #11151d card surface
 const BLUE = '#3987e5'
@@ -121,6 +121,7 @@ export const BacktestTab: React.FC = () => {
   const load = useCallback(async () => {
     try { setData((await apiClient.get('/admin/backtest/latest')).data) } catch (e) { showToast({ title: 'Could not load backtest', message: getApiErrorMessage(e, 'Please try again.'), type: 'error' }) }
   }, [])
+  // oxlint-disable-next-line react/set-state-in-effect -- loads data from the server
   useEffect(() => { void load() }, [load])
 
   const run = async () => {

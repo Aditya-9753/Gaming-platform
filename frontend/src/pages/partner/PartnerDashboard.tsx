@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react'
 import { Maximize2, SlidersHorizontal } from 'lucide-react'
 import { DualAxisChart } from '../../components/affiliate/DualAxisChart'
-import { Btn, Card, ErrorBox, Field, Modal, Money, Spinner, cx, errorText, inputCls } from '../../components/affiliate/ui'
+import { Btn, Card, ErrorBox, Field, Modal, Money, Spinner, inputCls } from '../../components/affiliate/ui'
+import { cx, errorText } from '../../components/affiliate/helpers'
 import { partnerApi, type StatsQuery } from '../../services/affiliate.api'
 import type { FilterOptions, Kpis, SeriesPoint } from '../../types/affiliate.types'
 import { useT, type TKey } from './i18n'
 
-export const PERIODS: Array<[string, TKey]> = [
+const PERIODS: Array<[string, TKey]> = [
   ['all', 'forAllTime'], ['today', 'today'], ['yesterday', 'yesterday'], ['7d', 'last7'], ['30d', 'last30'],
   ['this_month', 'thisMonth'], ['last_month', 'lastMonth'], ['custom', 'custom'],
 ]
@@ -51,12 +52,14 @@ export const PartnerDashboard: React.FC = () => {
 
   useEffect(() => {
     if (kpiQuery.period === 'custom' && (!kpiQuery.date_from || !kpiQuery.date_to)) return
+    // oxlint-disable-next-line react/set-state-in-effect -- clears, then loads data for the new query
     setKpis(null)
     partnerApi.summary(kpiQuery).then(setKpis).catch((e) => setKpiError(errorText(e)))
   }, [kpiQuery])
   useEffect(() => { partnerApi.filters().then(setOptions).catch(() => setOptions({ sources: [], links: [], countries: [] })) }, [])
   useEffect(() => {
     if (chartQuery.period === 'custom' && (!chartQuery.date_from || !chartQuery.date_to)) return
+    // oxlint-disable-next-line react/set-state-in-effect -- clears, then loads data for the new query
     setSeries(null)
     partnerApi.timeseries(chartQuery).then((r) => setSeries(r.series)).catch(() => setSeries([]))
   }, [chartQuery])

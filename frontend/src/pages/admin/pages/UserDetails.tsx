@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, Ban, CheckCircle2, Coins, Handshake, Phone } from 'lucide-react'
 import { Button } from '../../../components/common/Button'
-import { showToast } from '../../../components/common/Toast'
+import { showToast } from '../../../components/common/toastBus'
 import { apiClient } from '../../../services/api'
 import { getApiErrorMessage } from '../../../utils/apiError'
 import { formatDateTime, formatPaiseToRupee } from '../../../utils/formatters'
@@ -47,6 +47,7 @@ export const UserDetails: React.FC = () => {
       setError(getApiErrorMessage(e, 'Could not load this player'))
     }
   }, [id])
+  // oxlint-disable-next-line react/set-state-in-effect -- loads data from the server
   useEffect(() => { void load() }, [load])
 
   const toggleSuspend = async () => {

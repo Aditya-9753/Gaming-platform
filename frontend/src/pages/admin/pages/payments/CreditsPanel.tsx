@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { Upload } from 'lucide-react'
 import { Button } from '../../../../components/common/Button'
-import { showToast } from '../../../../components/common/Toast'
+import { showToast } from '../../../../components/common/toastBus'
 import { adminPaymentsApi, type BankCredit, type CollectionAccount } from '../../../../services/payments.api'
 import { formatDateTime, formatPaiseToRupee, rupeeToPaise } from '../../../../utils/formatters'
-import { actionFailed, inputCls, StatusPill } from './shared'
+import { inputCls, StatusPill } from './shared'
+import { actionFailed } from './helpers'
 
 /** "UTR, amount in ₹, remark, payer" per line (comma or tab separated); a header row is skipped. */
 function parseStatement(text: string) {
@@ -35,6 +36,7 @@ export const CreditsPanel: React.FC<{ canManage: boolean; myId?: string; isSuper
   const load = useCallback(async () => {
     try { setRows((await adminPaymentsApi.credits({ status, page_size: 100 })).items) } catch (error) { actionFailed('Could not load bank credits', error) }
   }, [status])
+  // oxlint-disable-next-line react/set-state-in-effect -- loads data from the server
   useEffect(() => { void load() }, [load])
   useEffect(() => {
     adminPaymentsApi.accounts().then((list) => {

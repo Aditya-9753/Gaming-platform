@@ -2,7 +2,7 @@ import { useCallback } from 'react'
 import { useAuthStore } from '../store/auth.store'
 import { authApi } from '../services/auth.api'
 import type { LoginCredentials, RegisterCredentials } from '../types/auth.types'
-import { showToast } from '../components/common/Toast'
+import { showToast } from '../components/common/toastBus'
 import { t as tr } from '../i18n'
 
 export function useAuth() {

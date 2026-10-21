@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Check, Key, Minus } from 'lucide-react'
 import { apiClient } from '../../../services/api'
-import { showToast } from '../../../components/common/Toast'
+import { showToast } from '../../../components/common/toastBus'
 import { getApiErrorMessage } from '../../../utils/apiError'
-import { groupPermissions, type PermissionRow, type RoleRow } from './Roles'
+import { groupPermissions, type PermissionRow, type RoleRow } from './rolesModel'
 
 /** Read-only matrix: which role holds which permission. Edit on the Roles page. */
 export const Permissions: React.FC = () => {

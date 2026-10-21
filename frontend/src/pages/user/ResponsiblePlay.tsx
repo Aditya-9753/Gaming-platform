@@ -6,7 +6,7 @@ import { SessionReminder } from '../../components/responsible-play/SessionRemind
 import { useUserStore } from '../../store/user.store'
 import { responsiblePlayApi } from '../../services/responsible-play.api'
 import type { ResponsiblePlayLimits } from '../../types/user.types'
-import { showToast } from '../../components/common/Toast'
+import { showToast } from '../../components/common/toastBus'
 import { t as tr } from '../../i18n'
 
 export const ResponsiblePlay: React.FC = () => {

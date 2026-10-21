@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { ShieldAlert, Check } from 'lucide-react'
 import { Button } from '../common/Button'
 import { Input } from '../common/Input'
-import { showToast } from '../common/Toast'
+import { showToast } from '../common/toastBus'
 import type { ResponsiblePlayLimits } from '../../types/user.types'
 import { formatPaiseToRupee, rupeeToPaise } from '../../utils/formatters'
 import { t as tr } from '../../i18n'
+import { useOnChange } from '../../hooks/useOnChange'
 
 export interface LimitsFormProps {
   initialLimits?: ResponsiblePlayLimits
@@ -22,12 +23,13 @@ export const LimitsForm: React.FC<LimitsFormProps> = ({ initialLimits, onSave })
   const [sessionLimit, setSessionLimit] = useState(initialLimits?.sessionTimeLimitMinutes?.toString() || '60')
   const [isSaving, setIsSaving] = useState(false)
 
-  useEffect(() => {
-    if (!initialLimits) return
-    setDailyBet(initialLimits.dailyBetLimitPaise ? (initialLimits.dailyBetLimitPaise / 100).toString() : '')
-    setDailyLoss(initialLimits.dailyLossLimitPaise ? (initialLimits.dailyLossLimitPaise / 100).toString() : '')
-    setSessionLimit(initialLimits.sessionTimeLimitMinutes?.toString() || '60')
-  }, [initialLimits])
+  // Refill the form when new limits arrive from the server
+  useOnChange(initialLimits, (limits) => {
+    if (!limits) return
+    setDailyBet(limits.dailyBetLimitPaise ? (limits.dailyBetLimitPaise / 100).toString() : '')
+    setDailyLoss(limits.dailyLossLimitPaise ? (limits.dailyLossLimitPaise / 100).toString() : '')
+    setSessionLimit(limits.sessionTimeLimitMinutes?.toString() || '60')
+  })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

@@ -57,6 +57,7 @@ export const Leaderboard: React.FC = () => {
   }, [period])
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect -- polls the server
     setLoading(true)
     void load()
     const timer = setInterval(() => void load(), 30000)

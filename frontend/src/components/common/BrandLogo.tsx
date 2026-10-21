@@ -3,6 +3,7 @@ import { Flame } from 'lucide-react'
 import { usePlatformConfig } from '../../hooks/usePlatformConfig'
 import markUrl from '../../assets/brand/runwin-mark-sm.webp'
 import wordUrl from '../../assets/brand/runwin-wordmark-sm.webp'
+import { isBuiltInBrand } from './brandName'
 import '../brand/brand.css'
 
 /** Splits "Rudra247" into the word and a trailing number so the number can sit in a blue chip. */
@@ -10,9 +11,6 @@ const splitName = (name: string): [string, string] => {
   const match = name.match(/^(.*?)(\d+)$/)
   return match && match[1] ? [match[1], match[2]] : [name, '']
 }
-
-/** The built-in artwork spells RUN WIN, so it is only used while the brand name matches. */
-export const isBuiltInBrand = (name: string) => /^run\s*win$/i.test(name.trim())
 
 /**
  * Platform logo + name, both configurable by the super admin.

@@ -12,7 +12,7 @@ import { SoundToggle } from '../common/SoundToggle'
 import { NotificationBell } from '../notifications/NotificationBell'
 import { walletApi } from '../../services/wallet.api'
 import { authApi } from '../../services/auth.api'
-import { showToast } from '../common/Toast'
+import { showToast } from '../common/toastBus'
 import { isStaffRole } from '../../types/auth.types'
 import { t as tr } from '../../i18n'
 

@@ -6,10 +6,10 @@ import { Input } from '../../components/common/Input'
 import { Button } from '../../components/common/Button'
 import { useAuthStore } from '../../store/auth.store'
 import { authApi } from '../../services/auth.api'
-import { showToast } from '../../components/common/Toast'
+import { showToast } from '../../components/common/toastBus'
 import { clearReferral, getReferral } from '../../utils/referral'
 import { t as tr } from '../../i18n'
-import { useLogoSplash } from '../../components/brand/LogoSplash'
+import { useLogoSplash } from '../../components/brand/logoSplashStore'
 import { BrandHero } from '../../components/brand/BrandHero'
 
 // Indian mobile number (10 digits, starts 6-9); the server stores it as +91XXXXXXXXXX

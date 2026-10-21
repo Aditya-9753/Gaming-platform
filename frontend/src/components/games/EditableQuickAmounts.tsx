@@ -1,29 +1,6 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { Check, Pencil, RotateCcw } from 'lucide-react'
 import { t as tr } from '../../i18n'
-
-/**
- * Quick-bet chips the player can edit (pencil). Values are rupees and are
- * remembered per `storageKey` in this browser.
- */
-export function useQuickAmounts(storageKey: string, defaults: number[]) {
-  const read = (): number[] => {
-    try {
-      const raw = window.localStorage.getItem(storageKey)
-      const parsed = raw ? (JSON.parse(raw) as unknown) : null
-      if (Array.isArray(parsed) && parsed.length === defaults.length && parsed.every((n) => typeof n === 'number' && n > 0)) {
-        return parsed as number[]
-      }
-    } catch { /* storage unavailable */ }
-    return defaults
-  }
-  const [amounts, setAmounts] = useState<number[]>(read)
-  const save = (next: number[]) => {
-    setAmounts(next)
-    try { window.localStorage.setItem(storageKey, JSON.stringify(next)) } catch { /* ignore */ }
-  }
-  return { amounts, save, reset: () => save(defaults) }
-}
 
 export interface EditableQuickAmountsProps {
   amounts: number[]
@@ -51,8 +28,6 @@ export const EditableQuickAmounts: React.FC<EditableQuickAmountsProps> = ({
 
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState<string[]>(amounts.map(String))
-
-  useEffect(() => { if (!editing) setDraft(amounts.map(String)) }, [amounts, editing])
 
   const commit = () => {
     const next = draft.map((value, index) => {
@@ -100,7 +75,7 @@ export const EditableQuickAmounts: React.FC<EditableQuickAmountsProps> = ({
             <button type="button" onClick={commit} className="flex items-center gap-1 font-bold text-emerald-400"><Check className="w-3 h-3" />{tr('Save')}</button>
           </>
         ) : (
-          <button type="button" onClick={() => setEditing(true)} disabled={disabled} className="flex items-center gap-1 text-slate-400 hover:text-white disabled:opacity-40"><Pencil className="w-3 h-3" />{tr('Edit amounts')}</button>
+          <button type="button" onClick={() => { setDraft(amounts.map(String)); setEditing(true) }} disabled={disabled} className="flex items-center gap-1 text-slate-400 hover:text-white disabled:opacity-40"><Pencil className="w-3 h-3" />{tr('Edit amounts')}</button>
         )}
       </div>
     </div>

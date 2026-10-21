@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { Check, ImagePlus, Plus, X } from 'lucide-react'
 import { Button } from '../../../../components/common/Button'
-import { showToast } from '../../../../components/common/Toast'
+import { showToast } from '../../../../components/common/toastBus'
 import { adminPaymentsApi, type CollectionAccount } from '../../../../services/payments.api'
 import { formatPaiseToRupee, rupeeToPaise } from '../../../../utils/formatters'
-import { actionFailed, inputCls, StatusPill } from './shared'
+import { inputCls, StatusPill } from './shared'
+import { actionFailed } from './helpers'
 
 const MAX_IMAGE_BYTES = 400 * 1024
 
@@ -78,6 +79,7 @@ export const AccountsPanel: React.FC<{ isSuper: boolean; canManage: boolean; myI
   const load = useCallback(async () => {
     try { setAccounts(await adminPaymentsApi.accounts()) } catch (error) { actionFailed('Could not load accounts', error) }
   }, [])
+  // oxlint-disable-next-line react/set-state-in-effect -- loads data from the server
   useEffect(() => { void load() }, [load])
 
   const act = async (id: string, fn: () => Promise<unknown>, done: string) => {
