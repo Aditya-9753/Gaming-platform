@@ -1,6 +1,6 @@
 import React from 'react'
 import { NavLink } from 'react-router-dom'
-import { Menu, Home, Spade, Gift, Trophy } from 'lucide-react'
+import { Menu, Home, LogIn, Spade, Gift, Trophy } from 'lucide-react'
 import { useAuthStore } from '../../store/auth.store'
 import { useUIStore } from '../../store/ui.store'
 import { t as tr } from '../../i18n'
@@ -12,7 +12,7 @@ export const MobileNav: React.FC = () => {
   const links = [
     // The casino lobby is the home page
     { to: '/', label: 'Casino', icon: <Spade className="w-5 h-5" /> },
-    { to: isAuthenticated ? '/dashboard' : '/login', label: isAuthenticated ? 'Dashboard' : 'Sign In', icon: <Home className="w-5 h-5" /> },
+    { to: isAuthenticated ? '/dashboard' : '/login', label: isAuthenticated ? 'Dashboard' : 'Sign In', icon: isAuthenticated ? <Home className="w-5 h-5" /> : <LogIn className="w-5 h-5" /> },
     { to: isAuthenticated ? '/wallet' : '/register', label: 'Free bonus', icon: <Gift className="w-5 h-5" /> },
     { to: '/games/cricket', label: 'Sports', icon: <Trophy className="w-5 h-5" /> },
   ]

@@ -17,7 +17,7 @@ from app.core.database import close_db, init_db
 from app.core.logging import get_logger, setup_logging
 from app.core.redis import close_redis, init_redis
 from app.middleware.cors import setup_cors
-from app.middleware.error_handler import setup_error_handlers
+from app.middleware.error_handler import UnhandledErrorMiddleware, setup_error_handlers
 from app.middleware.request_id import RequestIdMiddleware
 from app.middleware.security_headers import SecurityHeadersMiddleware
 
@@ -142,6 +142,7 @@ def create_app() -> FastAPI:
     app.add_middleware(GlobalRateLimitMiddleware, per_minute=settings.GLOBAL_RATE_LIMIT_PER_MINUTE,
                        writes_per_minute=settings.GLOBAL_WRITE_LIMIT_PER_MINUTE)
     app.add_middleware(CSRFOriginMiddleware, allowed_origins=settings.CORS_ORIGINS)
+    app.add_middleware(UnhandledErrorMiddleware)
     setup_cors(app)
     app.add_middleware(RequestIdMiddleware)
 
