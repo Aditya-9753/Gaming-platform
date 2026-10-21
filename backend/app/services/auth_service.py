@@ -21,10 +21,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 from app.core.constants import MFA_REQUIRED_ROLES, TransactionStatus, TransactionType, UserRole
 from app.core.exceptions import (
+    AppException,
     BadRequestException,
     ConflictException,
     ForbiddenException,
     NotFoundException,
+    ServiceUnavailableException,
     UnauthorizedException,
 )
 from app.core.logging import get_logger
@@ -45,6 +47,7 @@ from app.repositories.wallet_repo import WalletRepository
 from app.services.email_service import get_email_service
 from app.services.two_factor_service import two_factor_service
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 # A refresh token used again this soon after its rotation is a concurrent request, not theft
 _ROTATION_GRACE_SECONDS = 30
@@ -68,6 +71,8 @@ class AuthService:
         self._users = UserRepository(session)
         self._tokens = TokenRepository(session)
         self._wallets = WalletRepository(session)
+        # Set by register(): the bonus a promo code gave, or why the code gave nothing
+        self.signup_promo: Optional[dict] = None
 
     # ------------------------------------------------------------------
     # Registration
@@ -133,14 +138,18 @@ class AuthService:
             is_active=True,
             is_verified=False,
         )
-        user = await self._users.create(user)
+        try:
+            user = await self._users.create(user)
+        except IntegrityError as exc:
+            # Two sign-ups with the same number/email/name at the same moment: the database's
+            # unique indexes let only one through
+            await self._db.rollback()
+            raise ConflictException("This mobile number or email is already registered. Sign in instead.") from exc
 
-        # Signup bonus (atomic; single transaction, ledger row with idempotency_key)
-        from app.services import platform_settings
+        # Automatic sign-up bonus: 0 by default (bonuses come from promo codes), atomic with the account
+        from app.services import platform_settings, promo_service
 
-        bonus_paise = (await platform_settings.get_all(self._db)).get(
-            "signup_bonus_paise", settings.INITIAL_FAUCET_CREDITS
-        )
+        bonus_paise = (await platform_settings.get_all(self._db)).get("signup_bonus_paise", 0)
         wallet = Wallet(
             id=str(uuid.uuid4()),
             user_id=user.id,
@@ -150,19 +159,28 @@ class AuthService:
         )
         wallet = await self._wallets.create(wallet)
 
-        tx = WalletTransaction(
-            id=str(uuid.uuid4()),
-            wallet_id=wallet.id,
-            idempotency_key=f"signup-bonus-{user.id}",
-            type=TransactionType.FAUCET.value,
-            amount=bonus_paise,
-            balance_before=0,
-            balance_after=bonus_paise,
-            status=TransactionStatus.COMPLETED.value,
-            description="Signup welcome bonus",
-            reference="SIGNUP",
-        )
-        await self._wallets.add_transaction(tx)
+        if bonus_paise > 0:
+            tx = WalletTransaction(
+                id=str(uuid.uuid4()),
+                wallet_id=wallet.id,
+                idempotency_key=f"signup-bonus-{user.id}",
+                type=TransactionType.FAUCET.value,
+                amount=bonus_paise,
+                balance_before=0,
+                balance_after=bonus_paise,
+                status=TransactionStatus.COMPLETED.value,
+                description="Signup welcome bonus",
+                reference="SIGNUP",
+            )
+            await self._wallets.add_transaction(tx)
+
+        # The sign-up code box takes bonus codes and partner codes; a code that is neither
+        # (or a used-up bonus code) never blocks the sign-up
+        if promo_code and await promo_service.find(self._db, promo_code):
+            try:
+                self.signup_promo = await promo_service.redeem(self._db, user.id, promo_code)
+            except AppException as exc:
+                self.signup_promo = {"code": promo_service.normalize(promo_code), "amount_paise": 0, "message": exc.message}
 
         # Referred player: report to the affiliate platform in the same transaction (outbox)
         from app.affiliate import operator_bridge
@@ -341,28 +359,57 @@ class AuthService:
     # Forgot / Reset Password
     # ------------------------------------------------------------------
 
-    async def forgot_password(self, email: str) -> None:
-        """Send password-reset email (always returns 200 to prevent enumeration)."""
-        user = await self._users.get_by_email(email.lower())
+    async def forgot_password(self, identifier: str) -> dict:
+        """Email a one-hour reset link to the account found by mobile number, email or username.
+
+        Sign-up already tells whether a number or email is registered, so the replies here
+        say plainly what happened instead of pretending a link was sent.
+        """
+        from app.core.phone import looks_like_phone, normalize_phone
+        from app.core.redis import get_redis_client
+        from app.services.email_otp_service import mask_email
+        from app.services.email_service import EmailDeliveryError, email_delivery_configured
+
+        identifier = identifier.strip()
+        if "@" in identifier:
+            user = await self._users.get_by_email(identifier.lower())
+        elif looks_like_phone(identifier):
+            user = await self._users.get_by_phone(normalize_phone(identifier) or "")
+        else:
+            user = await self._users.get_by_username(identifier)
         if not user:
-            return  # silent — don't reveal whether address is registered
+            raise NotFoundException("No account found with this mobile number or email")
+        if not user.is_active:
+            raise ForbiddenException("This account has been suspended. Contact support.")
+        if not user.email:
+            raise BadRequestException(
+                "This account has no email address, so a reset link cannot be sent. Contact support to recover it."
+            )
+        if settings.is_production and not email_delivery_configured():
+            logger.error("Password reset requested but no email provider is configured")
+            raise ServiceUnavailableException("Password reset by email is not available right now. Contact support.")
 
         raw_token = generate_secure_random_token(32)
-        token_hash = hash_token(raw_token)
-
-        # Store token hash in Redis with 1h TTL
-        from app.core.redis import get_redis_client
+        key = f"{_PWD_RESET_PREFIX}{hash_token(raw_token)}"
         redis = get_redis_client()
-        key = f"{_PWD_RESET_PREFIX}{token_hash}"
         try:
             await redis.set(key, user.id, ex=_PWD_RESET_TTL)
-        except Exception:
+        except Exception as exc:
             logger.warning("Redis unavailable — cannot store password-reset token")
-            return
+            raise ServiceUnavailableException("Password reset is temporarily unavailable. Try again shortly.") from exc
 
-        email_svc = get_email_service()
-        await email_svc.send_password_reset_email(user.email, raw_token)
-        logger.info("Password reset email sent", user_id=user.id)
+        link = f"{settings.affiliate_public_base_url}/reset-password?token={raw_token}"
+        try:
+            await get_email_service().send_password_reset_email(user.email, link)
+        except EmailDeliveryError as exc:
+            logger.error("Password reset email failed", user_id=user.id, error=str(exc))
+            try:
+                await redis.delete(key)
+            except Exception:
+                pass
+            raise ServiceUnavailableException("The reset email could not be sent. Try again in a few minutes.") from exc
+        logger.info("Password reset email sent", user_id=user.id, to=mask_email(user.email))
+        return {"sent_to": mask_email(user.email)}
 
     async def reset_password(self, raw_token: str, new_password: str) -> None:
         """Validate reset token, update password hash, and revoke all sessions."""
@@ -383,6 +430,16 @@ class AuthService:
         user = await self._users.get_by_id(user_id)
         if not user:
             raise NotFoundException("User not found")
+
+        # Same rule as when the account was made: players and partners sign up with a simple rule, staff need a strong one
+        from app.schemas.auth import PASSWORD_PATTERN, PLAYER_PASSWORD_PATTERN
+
+        role_name = user.role.name.upper() if user.role else UserRole.USER.value
+        is_player = role_name in (UserRole.USER.value, UserRole.PARTNER.value)
+        if is_player and not PLAYER_PASSWORD_PATTERN.match(new_password):
+            raise BadRequestException("Password must be at least 8 characters with a letter and a number")
+        if not is_player and not PASSWORD_PATTERN.match(new_password):
+            raise BadRequestException("Staff passwords need upper and lower case letters, a number and a symbol")
 
         user.password_hash = hash_password(new_password)
         await self._users.save(user)

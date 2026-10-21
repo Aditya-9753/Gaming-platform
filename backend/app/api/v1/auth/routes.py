@@ -25,9 +25,11 @@ from app.services import captcha_service
 from app.middleware.rate_limit import rate_limit_dependency
 from app.schemas.auth import (
     ForgotPasswordRequest,
+    ForgotPasswordResponse,
     LoginRequest,
     MeResponse,
     RegisterRequest,
+    RegisterResponse,
     ResetPasswordRequest,
     TOTPSetupResponse,
     TOTPVerifyRequest,
@@ -73,7 +75,7 @@ def _clear_refresh_cookie(response: Response) -> None:
 
 @router.post(
     "/register",
-    response_model=TokenResponse,
+    response_model=RegisterResponse,
     status_code=201,
     dependencies=[
         Depends(rate_limit_dependency("auth:register", max_requests=5, window_seconds=300))
@@ -84,10 +86,10 @@ async def register(
     request: Request,
     response: Response,
     db: AsyncSession = Depends(get_db),
-) -> TokenResponse:
+) -> RegisterResponse:
     """Register a new player account.
 
-    Creates user, virtual-credit wallet and signup-bonus ledger entry in one transaction.
+    Creates user and wallet (plus any promo-code bonus) in one transaction.
     Returns access JWT in body; refresh token in httpOnly cookie.
     """
     svc = AuthService(db)
@@ -104,9 +106,10 @@ async def register(
         country=request_country(request),
     )
     _set_refresh_cookie(response, refresh_raw)
-    return TokenResponse(
+    return RegisterResponse(
         access_token=access_token,
         expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        promo=svc.signup_promo,
     )
 
 
@@ -295,18 +298,18 @@ async def logout_all(
 
 @router.post(
     "/forgot-password",
-    status_code=204,
+    response_model=ForgotPasswordResponse,
     dependencies=[
-        Depends(rate_limit_dependency("auth:forgot", max_requests=3, window_seconds=300))
+        Depends(rate_limit_dependency("auth:forgot", max_requests=5, window_seconds=600))
     ],
 )
 async def forgot_password(
     body: ForgotPasswordRequest,
     db: AsyncSession = Depends(get_db),
-) -> None:
-    """Send a password-reset email. Always 204 to prevent email enumeration."""
+) -> ForgotPasswordResponse:
+    """Email a reset link to the account with this mobile number / email; replies with the masked address."""
     svc = AuthService(db)
-    await svc.forgot_password(body.email)
+    return ForgotPasswordResponse(**await svc.forgot_password(body.lookup))
 
 
 # ---------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import axios from 'axios'
-import { Lock, Phone, ShieldAlert, ArrowRight, Eye, EyeOff, Check, X } from 'lucide-react'
+import { Lock, Mail, Phone, ShieldAlert, ArrowRight, Eye, EyeOff, Check, X } from 'lucide-react'
 import { Input } from '../../components/common/Input'
 import { Button } from '../../components/common/Button'
 import { useAuthStore } from '../../store/auth.store'
@@ -50,11 +50,12 @@ export const Register: React.FC = () => {
   const navigate = useNavigate()
   const { setAuth, setAccessToken } = useAuthStore()
   const [phone, setPhone] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [is18, setIs18] = useState(false)
-  // Partner promo code (prefilled from a ?promo= link); the partner click id is sent automatically
+  // Bonus or partner promo code (prefilled from a ?promo= link); the partner click id is sent automatically
   const [promoCode, setPromoCode] = useState(() => getReferral().promo || '')
   const [isLoading, setIsLoading] = useState(false)
 
@@ -81,13 +82,19 @@ export const Register: React.FC = () => {
     }
     setIsLoading(true)
     try {
-      const { access_token } = await authApi.register('', password, is18, undefined, { click_id: getReferral().click_id, promo_code: promoCode }, `+91${phone}`)
+      const { access_token, promo } = await authApi.register('', password, is18, email.trim() || undefined, { click_id: getReferral().click_id, promo_code: promoCode }, `+91${phone}`)
       clearReferral()
       setAccessToken(access_token)
       const user = await authApi.getCurrentUser()
       setAuth(user, access_token)
       useLogoSplash.getState().show()
-      showToast({ title: tr('Account created'), message: tr('Your account is ready.'), type: 'success' })
+      if (promo && promo.amount_paise > 0) {
+        showToast({ title: tr('Promo bonus added'), message: `₹${(promo.amount_paise / 100).toLocaleString('en-IN')} ${tr('from code')} ${promo.code}`, type: 'success', duration: 7000 })
+      } else if (promo?.message) {
+        showToast({ title: tr('Account created'), message: `${tr('Promo code')} ${promo.code}: ${promo.message}`, type: 'warning', duration: 9000 })
+      } else {
+        showToast({ title: tr('Account created'), message: tr('Your account is ready.'), type: 'success' })
+      }
       navigate('/')
     } catch (error) {
       showToast({ title: tr('Registration failed'), message: getRegistrationError(error), type: 'error', duration: 9000 })
@@ -137,6 +144,12 @@ export const Register: React.FC = () => {
             error={confirmPassword && confirmPassword !== password ? '✗ Passwords do not match' : undefined}
             success={confirmPassword && confirmPassword === password ? '✓ Passwords match' : undefined}
             required
+          />
+          <Input
+            label={tr('Email (optional)')} type="email" autoComplete="email" maxLength={255} placeholder="you@example.com"
+            value={email} onChange={(e) => setEmail(e.target.value)}
+            leftElement={<Mail className="w-4 h-4 text-slate-400" />}
+            helperText={tr('Needed to reset your password if you forget it')}
           />
           <Input
             label={tr('Promo code (optional)')} autoCapitalize="characters" maxLength={32}

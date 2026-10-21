@@ -568,5 +568,20 @@
   "Mobile number or password is incorrect.": "मोबाइल नंबर या पासवर्ड गलत है।",
   "You sign in with this number": "आप इसी नंबर से साइन इन करते हैं",
   "Add your number to sign in with it": "इससे साइन इन करने के लिए अपना नंबर जोड़ें",
-  "That username, email or mobile number is already used by another account.": "यह यूज़रनेम, ईमेल या मोबाइल नंबर किसी दूसरे खाते में इस्तेमाल हो रहा है।"
+  "That username, email or mobile number is already used by another account.": "यह यूज़रनेम, ईमेल या मोबाइल नंबर किसी दूसरे खाते में इस्तेमाल हो रहा है।",
+  "Have a promo code?": "प्रोमो कोड है?",
+  "Enter code": "कोड डालें",
+  "Promo code": "प्रोमो कोड",
+  "Apply": "लगाएँ",
+  "Promo bonus added": "प्रोमो बोनस जुड़ गया",
+  "from code": "कोड से",
+  "This promo code could not be used.": "यह प्रोमो कोड इस्तेमाल नहीं हो सका।",
+  "Email (optional)": "ईमेल (वैकल्पिक)",
+  "Needed to reset your password if you forget it": "पासवर्ड भूलने पर रीसेट करने के लिए ज़रूरी",
+  "Mobile number or email": "मोबाइल नंबर या ईमेल",
+  "Enter your mobile number or email. We will email a link to set a new password.": "अपना मोबाइल नंबर या ईमेल डालें। नया पासवर्ड बनाने का लिंक हम ईमेल पर भेजेंगे।",
+  "The link goes to the email saved in your profile. No email on your account? Contact support.": "लिंक आपकी प्रोफ़ाइल में सेव ईमेल पर जाता है। खाते में ईमेल नहीं है? सपोर्ट से संपर्क करें।",
+  "We emailed a reset link to": "रीसेट लिंक भेजा गया:",
+  "Open it within 1 hour to choose a new password. Check the spam folder if it is not in your inbox.": "नया पासवर्ड बनाने के लिए इसे 1 घंटे के अंदर खोलें। इनबॉक्स में न दिखे तो स्पैम फ़ोल्डर देखें।",
+  "Send again": "फिर से भेजें"
 }

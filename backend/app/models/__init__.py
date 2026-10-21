@@ -7,6 +7,7 @@ from app.models.game_archive import GameArchive
 from app.models.cricket import CricketMatchRecord, CricketPrediction
 from app.models.leaderboard import Leaderboard
 from app.models.notification import Notification
+from app.models.promo import PromoCode, PromoRedemption
 from app.models.payment import (
     BankCredit,
     Beneficiary,
@@ -46,6 +47,8 @@ __all__ = [
     "CricketMatchRecord",
     "CricketPrediction",
     "Notification",
+    "PromoCode",
+    "PromoRedemption",
     "SupportTicket",
     "SupportMessage",
     "Leaderboard",

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { BalanceCard } from '../../components/wallet/BalanceCard'
 import { WalletCard } from '../../components/wallet/WalletCard'
 import { DailyClaimCard } from '../../components/wallet/DailyClaimCard'
+import { PromoCodeCard } from '../../components/wallet/PromoCodeCard'
 import { TransactionList } from '../../components/wallet/TransactionList'
 import { useWalletStore } from '../../store/wallet.store'
 import { Link } from 'react-router-dom'
@@ -46,6 +47,8 @@ export const WalletPage: React.FC = () => {
 
       {/* Daily Claim */}
       <DailyClaimCard />
+
+      <PromoCodeCard onRedeemed={() => { walletApi.getTransactions().then((value) => setTransactions(value.items)).catch(() => undefined) }} />
 
       {/* Tabs */}
       <div className="grid grid-cols-2 gap-2 p-1 bg-dark-elevated rounded-xl">

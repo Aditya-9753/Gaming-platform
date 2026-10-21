@@ -18,7 +18,7 @@ PLAYER_PASSWORD_PATTERN = re.compile(r"^(?=.*[A-Za-z])(?=.*\d).{8,128}$")
 
 
 class RegisterRequest(BaseModel):
-    # Players sign up with a mobile number; a username is made for them when they do not pick one
+    # Players sign up with a mobile number (required, one account per number); a username is made for them when they do not pick one
     phone: Optional[str] = Field(None, max_length=20)
     username: Optional[str] = Field(None, min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_]+$")
     email: Optional[EmailStr] = None
@@ -55,8 +55,9 @@ class RegisterRequest(BaseModel):
         return phone
 
     @model_validator(mode="after")
-    def phone_or_username(self) -> "RegisterRequest":
-        if not self.phone and not self.username:
+    def phone_required(self) -> "RegisterRequest":
+        # One account per mobile number: an account without a number could be created endlessly
+        if not self.phone:
             raise ValueError("Mobile number is required")
         return self
 
@@ -97,22 +98,41 @@ class TokenResponse(BaseModel):
     expires_in: int = Field(description="Access token TTL in seconds")
 
 
+class SignupPromo(BaseModel):
+    code: str
+    amount_paise: int
+    message: Optional[str] = None
+
+
+class RegisterResponse(TokenResponse):
+    # Bonus a promo code entered at sign-up gave (amount 0 + message when the code gave nothing)
+    promo: Optional[SignupPromo] = None
+
+
 class ForgotPasswordRequest(BaseModel):
-    email: EmailStr
+    # Mobile number, email or username; ``email`` is still accepted from older clients
+    identifier: Optional[str] = Field(None, max_length=255)
+    email: Optional[str] = Field(None, max_length=255)
+
+    @model_validator(mode="after")
+    def needs_identifier(self) -> "ForgotPasswordRequest":
+        if not (self.identifier or self.email or "").strip():
+            raise ValueError("Enter your mobile number or email")
+        return self
+
+    @property
+    def lookup(self) -> str:
+        return (self.identifier or self.email or "").strip()
+
+
+class ForgotPasswordResponse(BaseModel):
+    sent_to: str  # masked email address the link went to
 
 
 class ResetPasswordRequest(BaseModel):
     token: str
+    # Players and staff have different strength rules; the service checks the one that applies
     new_password: str = Field(min_length=8, max_length=128)
-
-    @field_validator("new_password")
-    @classmethod
-    def password_strength(cls, v: str) -> str:
-        if not PASSWORD_PATTERN.match(v):
-            raise ValueError(
-                "Password must contain uppercase, lowercase, digit and special character"
-            )
-        return v
 
 
 class TOTPSetupResponse(BaseModel):

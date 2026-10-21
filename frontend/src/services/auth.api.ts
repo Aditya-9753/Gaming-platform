@@ -6,6 +6,13 @@ export interface TokenResponse {
   expires_in: number
 }
 
+/** What a promo code typed at sign-up gave (amount 0 + message when it gave nothing). */
+export interface SignupPromo {
+  code: string
+  amount_paise: number
+  message?: string | null
+}
+
 interface ApiUser {
   id: string
   username: string
@@ -52,7 +59,7 @@ export const authApi = {
   },
   /** `username` may be left empty when signing up with a mobile number (the server picks one). */
   register: async (username: string, password: string, ageConfirmed: boolean, email?: string, referral?: { click_id?: string; promo_code?: string }, phone?: string) => {
-    const { data } = await apiClient.post<TokenResponse>('/auth/register', {
+    const { data } = await apiClient.post<TokenResponse & { promo?: SignupPromo | null }>('/auth/register', {
       username: username.trim() || undefined,
       phone: phone?.trim() || undefined,
       email: email?.trim() || undefined,
@@ -77,8 +84,10 @@ export const authApi = {
   logout: async () => {
     await apiClient.post('/auth/logout')
   },
-  forgotPassword: async (email: string) => {
-    await apiClient.post('/auth/forgot-password', { email })
+  /** Mobile number, email or username; returns the masked email the reset link went to. */
+  forgotPassword: async (identifier: string) => {
+    const { data } = await apiClient.post<{ sent_to: string }>('/auth/forgot-password', { identifier: identifier.trim() })
+    return data
   },
   resetPassword: async (token: string, newPassword: string) => {
     await apiClient.post('/auth/reset-password', { token, new_password: newPassword })

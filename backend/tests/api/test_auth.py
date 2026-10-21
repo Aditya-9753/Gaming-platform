@@ -124,6 +124,7 @@ async def client(session_factory, engine) -> AsyncGenerator[AsyncClient, None]:
 # -------------------------------------------------------------------------
 
 VALID_USER = {
+    "phone": "9000000001",
     "username": "testplayer",
     "email": "player@test.com",
     "password": "TestPass@2026",
@@ -181,7 +182,7 @@ async def test_register_duplicate_email(client: AsyncClient):
     await client.post("/api/v1/auth/register", json=VALID_USER)
     resp = await client.post(
         "/api/v1/auth/register",
-        json={**VALID_USER, "username": "other_user"},
+        json={**VALID_USER, "username": "other_user", "phone": "9000000002"},
     )
     assert resp.status_code == 409
     assert "Email" in resp.json()["error"]["message"]
@@ -192,7 +193,7 @@ async def test_register_duplicate_username(client: AsyncClient):
     await client.post("/api/v1/auth/register", json=VALID_USER)
     resp = await client.post(
         "/api/v1/auth/register",
-        json={**VALID_USER, "email": "other@test.com"},
+        json={**VALID_USER, "email": "other@test.com", "phone": "9000000002"},
     )
     assert resp.status_code == 409
     assert "Username" in resp.json()["error"]["message"]
@@ -421,13 +422,13 @@ async def test_require_permission_factory_is_callable(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_forgot_password_no_error_on_unknown_email(client: AsyncClient):
-    """Returns 204 even if email is not registered (prevents enumeration)."""
+async def test_forgot_password_unknown_account_says_so(client: AsyncClient):
+    """Sign-up already reveals whether a number/email is registered, so the reset page says it plainly."""
     resp = await client.post(
         "/api/v1/auth/forgot-password",
         json={"email": "nobody@nowhere.example"},
     )
-    assert resp.status_code == 204
+    assert resp.status_code == 404
 
 
 @pytest.mark.asyncio
@@ -471,17 +472,17 @@ async def test_register_accepts_simple_player_passwords(client: AsyncClient):
     from app.schemas.auth import RegisterRequest
 
     for password in ["sanukhan27", "Sanu.1234", "Sanu@123", "my pass 9"]:
-        RegisterRequest(username="Sanu_x", password=password, age_confirmed=True)
+        RegisterRequest(phone="9000000003", username="Sanu_x", password=password, age_confirmed=True)
     for password in ["sanukhan", "12345678", "abc12"]:
         with pytest.raises(ValidationError):
-            RegisterRequest(username="Sanu_x", password=password, age_confirmed=True)
-    resp = await client.post("/api/v1/auth/register", json={"username": "Sanukhan_27", "password": "Sanu.1234", "age_confirmed": True})
+            RegisterRequest(phone="9000000003", username="Sanu_x", password=password, age_confirmed=True)
+    resp = await client.post("/api/v1/auth/register", json={"phone": "9000000004", "username": "Sanukhan_27", "password": "Sanu.1234", "age_confirmed": True})
     assert resp.status_code == 201, resp.text
 
 
 @pytest.mark.asyncio
 async def test_username_available_suggests_free_names(client: AsyncClient):
-    await client.post("/api/v1/auth/register", json={"username": "Sanukhan_27", "password": "sanukhan27", "age_confirmed": True})
+    await client.post("/api/v1/auth/register", json={"phone": "9000000004", "username": "Sanukhan_27", "password": "sanukhan27", "age_confirmed": True})
     taken = (await client.get("/api/v1/auth/username-available", params={"username": "sanukhan_27"})).json()
     assert taken["available"] is False and len(taken["suggestions"]) == 3
     for name in taken["suggestions"]:

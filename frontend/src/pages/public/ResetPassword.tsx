@@ -5,6 +5,7 @@ import { Input } from '../../components/common/Input'
 import { Button } from '../../components/common/Button'
 import { showToast } from '../../components/common/toastBus'
 import { authApi } from '../../services/auth.api'
+import { getApiErrorMessage } from '../../utils/apiError'
 import { t as tr } from '../../i18n'
 
 export const ResetPassword: React.FC = () => {
@@ -16,6 +17,10 @@ export const ResetPassword: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!/^(?=.*[A-Za-z])(?=.*\d).{8,128}$/.test(password)) {
+      showToast({ title: tr('Password too weak'), message: tr('Use at least 8 characters with a letter and a number.'), type: 'error' })
+      return
+    }
     if (password !== confirmPassword) {
       showToast({ title: tr('Passwords do not match'), type: 'error' })
       return
@@ -30,8 +35,8 @@ export const ResetPassword: React.FC = () => {
       await authApi.resetPassword(token, password)
       showToast({ title: tr('Password Reset'), message: tr('You can now sign in with your new password.'), type: 'success' })
       navigate('/login')
-    } catch {
-      showToast({ title: tr('Password reset failed'), message: tr('The reset link may have expired or the password is invalid.'), type: 'error' })
+    } catch (err) {
+      showToast({ title: tr('Password reset failed'), message: getApiErrorMessage(err, tr('The reset link may have expired or the password is invalid.')), type: 'error', duration: 9000 })
     } finally {
       setIsLoading(false)
     }
@@ -43,7 +48,7 @@ export const ResetPassword: React.FC = () => {
         <div>
           <h2 className="text-2xl font-black text-white">{tr('Create New Password')}</h2>
           <p className="text-xs text-slate-400 mt-1">
-            {tr('Ensure your new password has at least 8 characters.')}
+            {tr('Use at least 8 characters with a letter and a number.')}
           </p>
         </div>
 

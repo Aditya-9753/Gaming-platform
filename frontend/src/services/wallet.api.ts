@@ -24,6 +24,12 @@ export const walletApi = {
     return { amountPaise: data.transaction.amount, newBalance: await walletApi.getBalance() }
   },
 
+  /** Add a promo code's bonus (each code once per player). */
+  redeemPromo: async (code: string) => {
+    const { data } = await apiClient.post<{ code: string; amount_paise: number; balance_after: number }>('/wallet/promo', { code: code.trim() })
+    return data
+  },
+
   getTransactions: async (page = 1, pageSize = 20): Promise<{ items: WalletTransaction[]; total: number }> => {
     const { data } = await apiClient.get<ApiPage<Record<string, unknown>> | Array<Record<string, unknown>>>('/wallet/transactions', { params: { page, page_size: pageSize } })
     const items = Array.isArray(data) ? data : data.items

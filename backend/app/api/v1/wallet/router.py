@@ -1,16 +1,18 @@
-"""Wallet API router — GET /wallet, GET /wallet/transactions, POST /wallet/daily-claim."""
+"""Wallet API router — GET /wallet, GET /wallet/transactions, POST /wallet/daily-claim, POST /wallet/promo."""
 
 from __future__ import annotations
 
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Header, Query, Request
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.constants import PermissionCode
 from app.core.database import get_db
 from app.core.deps import CurrentUser, get_current_user, require_permission
 from app.core.exceptions import BadRequestException, NotFoundException
+from app.middleware.rate_limit import rate_limit_dependency
 from app.repositories.wallet_repo import WalletRepository
 from app.schemas.wallet import (
     DailyClaimResponse,
@@ -100,3 +102,29 @@ async def daily_claim(
         new_balance=tx.balance_after,
         cooldown_remaining_seconds=cooldown,
     )
+
+
+# ---------------------------------------------------------------------------
+# POST /wallet/promo — redeem a bonus promo code
+# ---------------------------------------------------------------------------
+
+
+class PromoRedeemRequest(BaseModel):
+    code: str = Field(..., min_length=3, max_length=32)
+
+
+@router.post(
+    "/promo",
+    dependencies=[Depends(rate_limit_dependency("wallet:promo", max_requests=10, window_seconds=600))],
+)
+async def redeem_promo(
+    payload: PromoRedeemRequest,
+    current_user: CurrentUser = Depends(require_permission(PermissionCode.WALLET_CLAIM)),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Add a promo code's bonus to the wallet (each code once per player)."""
+    from app.services import promo_service
+
+    result = await promo_service.redeem(db, current_user.id, payload.code)
+    await db.commit()
+    return result

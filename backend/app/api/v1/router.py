@@ -3,6 +3,7 @@
 from fastapi import APIRouter
 
 from app.api.v1.admin.aviator_speed import router as aviator_speed_router
+from app.api.v1.admin.promo_codes import router as promo_codes_router
 from app.api.v1.admin.routes import router as admin_router
 from app.api.v1.affiliate.admin import router as aff_admin_router
 from app.api.v1.affiliate.ingest import router as aff_ingest_router
@@ -68,6 +69,7 @@ api_router.include_router(support_router)
 api_router.include_router(admin_router)
 api_router.include_router(superadmin_router)
 api_router.include_router(aviator_speed_router)
+api_router.include_router(promo_codes_router)
 api_router.include_router(system_router)
 
 # Risk exposure controls & yield backtesting (super admin only)

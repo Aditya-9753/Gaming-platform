@@ -471,7 +471,7 @@ async def test_self_signup_subpartner_and_sub_commission(env):
 async def test_rudra247_signup_reports_to_affiliate(env):
     data = await create_partner(env)
     cid = click_id_from(await click(env, data["partner"]["partner_code"]))
-    r = await env["client"].post("/api/v1/auth/register", json={"username": "newplayer", "password": "Player123",
+    r = await env["client"].post("/api/v1/auth/register", json={"phone": "9822233344", "username": "newplayer", "password": "Player123",
                                                                 "age_confirmed": True, "click_id": cid})
     assert r.status_code == 201, r.text
     async with env["db"]() as db:

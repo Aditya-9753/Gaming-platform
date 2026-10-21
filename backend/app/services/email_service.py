@@ -46,6 +46,26 @@ def _otp_bodies(code: str, purpose: str, brand: str) -> tuple[str, str, str]:
     return subject, text, body
 
 
+def _reset_bodies(link: str, brand: str) -> tuple[str, str, str]:
+    subject = f"Reset your {brand} password"
+    text = (
+        f"Someone asked to reset the password of your {brand} account.\n\n"
+        f"Open this link to choose a new password (valid for 1 hour, once):\n{link}\n\n"
+        "If it was not you, ignore this email: your password stays the same."
+    )
+    safe = html.escape(link, quote=True)
+    body = f"""
+<div style="font-family:Arial,sans-serif;max-width:420px;margin:auto;padding:24px;border:1px solid #eee;border-radius:12px">
+  <h2 style="margin:0 0 8px;color:#111">{html.escape(brand)}</h2>
+  <p style="color:#444">Someone asked to reset the password of your account. Tap the button to choose a new one:</p>
+  <p style="margin:20px 0"><a href="{safe}" style="background:#10b981;color:#fff;text-decoration:none;font-weight:bold;padding:12px 20px;border-radius:10px;display:inline-block">Set a new password</a></p>
+  <p style="color:#666;font-size:13px">The link works once and expires in 1 hour.<br>
+  If it was not you, ignore this email: your password stays the same.</p>
+  <p style="color:#999;font-size:11px;word-break:break-all">{safe}</p>
+</div>"""
+    return subject, text, body
+
+
 class EmailServiceInterface(ABC):
     """Abstract interface for transactional email notifications."""
 
@@ -57,8 +77,9 @@ class EmailServiceInterface(ABC):
         subject, text, body = _otp_bodies(code, purpose, get_settings().EMAIL_FROM_NAME)
         await self.send(to_email, subject, text, body)
 
-    async def send_password_reset_email(self, to_email: str, reset_token: str) -> None:
-        await self.send(to_email, "Reset your password", f"Your password reset token: {reset_token}")
+    async def send_password_reset_email(self, to_email: str, reset_link: str) -> None:
+        subject, text, body = _reset_bodies(reset_link, get_settings().EMAIL_FROM_NAME)
+        await self.send(to_email, subject, text, body)
 
     async def send_verification_email(self, to_email: str, verify_token: str) -> None:
         await self.send(to_email, "Verify your email", f"Your verification token: {verify_token}")

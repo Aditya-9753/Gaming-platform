@@ -73,6 +73,7 @@ const Setup2FA = lazy(() => import('../pages/admin/pages/Setup2FA').then((m) => 
 const AdminPayments = lazy(() => import('../pages/admin/pages/Payments').then((m) => ({ default: m.AdminPayments })))
 const AdminSettings = lazy(() => import('../pages/admin/pages/Settings').then((m) => ({ default: m.AdminSettings })))
 const AviatorSpeed = lazy(() => import('../pages/admin/pages/AviatorSpeed').then((m) => ({ default: m.AviatorSpeed })))
+const PromoCodes = lazy(() => import('../pages/admin/pages/PromoCodes').then((m) => ({ default: m.PromoCodes })))
 
 // Partner portal (mobile-first, own layout)
 const partnerAuth = () => import('../pages/partner/PartnerAuth')
@@ -375,6 +376,7 @@ const router = createBrowserRouter([
       { path: '2fa', element: <Setup2FA /> },
       { path: 'settings', element: <RequireSuperAdmin><AdminSettings /></RequireSuperAdmin> },
       { path: 'aviator-speed', element: <RequireSuperAdmin><AviatorSpeed /></RequireSuperAdmin> },
+      { path: 'promo-codes', element: <RequireSuperAdmin><PromoCodes /></RequireSuperAdmin> },
       // Affiliate back office (each API checks its own permission)
       { path: 'affiliate', element: <AffOverview /> },
       { path: 'affiliate/partners', element: <AffPartners /> },
