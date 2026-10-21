@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.deps import CurrentUser, get_optional_current_user
 from app.services.leaderboard_service import LeaderboardService
 
 router = APIRouter(prefix="/leaderboard", tags=["Leaderboard"])
@@ -18,10 +19,17 @@ async def get_leaderboard(
     game_id: Optional[str] = Query(None, description="Optional specific game ID"),
     limit: int = Query(50, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
+    viewer: Optional[CurrentUser] = Depends(get_optional_current_user),
 ) -> List[Dict[str, Any]]:
-    """Retrieve top rankings and virtual credit turnover for the given timeframe."""
+    """Top rankings for the timeframe. Public: names are masked (usernames can be mobile numbers),
+    no user ids; ``is_me`` marks the signed-in viewer's own row."""
+    from app.utils.validators import mask_username
+
     svc = LeaderboardService(db)
-    return await svc.get_leaderboard(period=period, game_id=game_id, limit=limit)
+    rows = await svc.get_leaderboard(period=period, game_id=game_id, limit=limit)
+    viewer_id = viewer.id if viewer else None
+    return [{**{k: v for k, v in row.items() if k != "user_id"}, "username": mask_username(row["username"]),
+             "is_me": viewer_id is not None and row["user_id"] == viewer_id} for row in rows]
 
 
 @router.get("/recent-wins")

@@ -630,26 +630,30 @@ async def test_referred_player_who_loses_earns_the_partner_money_despite_signup_
 
 
 async def test_backfill_recomputes_older_days_of_open_periods(env):
-    """A day older than yesterday, still in an open period, is re-reported by the hourly back-fill."""
+    """A day older than yesterday, in a period finance has not closed yet, is re-reported by the hourly back-fill."""
     import uuid as _uuid
 
+    from app.affiliate import commission as commission_engine
+    from app.affiliate.constants import PeriodStatus, PeriodType
+    from app.models.affiliate import AffSettlementPeriod
     from app.models.game import GameEntry
     from app.models.user import User
 
     data = await create_partner(env, email="backfill@example.com")
     cid = click_id_from(await click(env, data["partner"]["partner_code"]))
     assert (await env["client"].post("/api/v1/auth/register", json={"phone": "9811112222", "password": "Player123", "age_confirmed": True, "click_id": cid})).status_code == 201
-    three_days_ago = datetime.now(timezone.utc) - timedelta(days=3)
     async with env["db"]() as db:
         await operator_bridge.process_outbox(db)
-        from app.affiliate import commission as commission_engine
-
-        await commission_engine.ensure_current_period(db)
+        current = await commission_engine.ensure_current_period(db)
+        # last week's period is still open (finance has not closed it)
+        db.add(AffSettlementPeriod(period_type=PeriodType.WEEKLY, start_date=current.start_date - timedelta(days=7),
+                                   end_date=current.start_date - timedelta(days=1), status=PeriodStatus.OPEN))
+        played = datetime.combine(current.start_date - timedelta(days=3), datetime.min.time(), tzinfo=timezone.utc) + timedelta(hours=12)
         player = (await db.execute(select(User).where(User.phone == "+919811112222"))).scalar_one()
         db.add(GameEntry(id=str(_uuid.uuid4()), round_id=str(_uuid.uuid4()), user_id=player.id, idempotency_key=_uuid.uuid4().hex,
-                         bet_amount=10000, payout_amount=0, status="LOST", created_at=three_days_ago))
+                         bet_amount=10000, payout_amount=0, status="LOST", created_at=played))
         await db.commit()
-        await operator_bridge.sync_today(db)  # today + yesterday only: nothing for three days ago
+        await operator_bridge.sync_today(db)  # today + yesterday only: nothing for that day
         await operator_bridge.process_outbox(db)
         await db.commit()
         assert (await wallet(env, data["partner"]["id"]))[1] == 0

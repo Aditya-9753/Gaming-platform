@@ -477,3 +477,7 @@ async def test_leaderboard_service_and_api(test_env):
     assert len(lb) >= 1
     assert lb[0]["rank"] == 1
     assert lb[0]["total_won"] == 1250
+    # public list: names masked (they can be mobile numbers), no user ids; the viewer's own row is flagged
+    assert "user_id" not in lb[0] and "***" in lb[0]["username"] and lb[0]["is_me"] is True
+    anonymous = (await client.get("/api/v1/leaderboard?period=DAILY")).json()
+    assert anonymous[0]["username"] == lb[0]["username"] and anonymous[0]["is_me"] is False

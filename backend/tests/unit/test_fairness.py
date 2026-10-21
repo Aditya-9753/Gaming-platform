@@ -371,7 +371,7 @@ async def test_verify_active_round_raises_403(session_factory):
 async def test_verify_completed_round(session_factory):
     """Completed round verification returns correct flags."""
     from app.services.fairness_service import FairnessService
-    from app.games.aviator.rules import compute_crash_point, format_crash
+    from app.games.aviator.rules import CRASH_FORMULA_V2, DEFAULT_HOUSE_EDGE_BP, compute_crash_point, format_crash
     from sqlalchemy import select
     from app.models.game import GameRound
 
@@ -380,16 +380,18 @@ async def test_verify_completed_round(session_factory):
         svc = FairnessService(db)
         game_round = await svc.create_round_seed(game_id, round_no=4)
 
-        # Settle the round: compute crash, store result, mark COMPLETED
+        # Settle the round with the same formula the stored result names (v1 and v2 differ for some seeds)
         crash_x100 = compute_crash_point(
             game_round.server_seed,
             game_round.client_seed,
             game_round.round_no,
+            DEFAULT_HOUSE_EDGE_BP,
+            CRASH_FORMULA_V2,
         )
         game_round.result = {
             "crash_point_x100": crash_x100,
             "crash_point": format_crash(crash_x100),
-            "crash_formula": 2,
+            "crash_formula": CRASH_FORMULA_V2,
         }
         game_round.status = RoundStatus.COMPLETED.value
         db.add(game_round)

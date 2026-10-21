@@ -362,11 +362,16 @@ async def test_refresh_token_reuse_detection(client: AsyncClient):
     assert resp1.status_code == 200
     new_cookie = _extract_cookie(resp1, "refresh_token")
 
-    # Reuse the now-revoked old_cookie — should be detected as theft
-    resp2 = await client.post(
-        "/api/v1/auth/refresh",
-        headers={"Cookie": f"refresh_token={old_cookie}"},
-    )
+    # Reuse the now-revoked old_cookie after the short concurrency window — detected as theft
+    from unittest.mock import AsyncMock, patch as _patch
+
+    from app.services.auth_service import AuthService
+
+    with _patch.object(AuthService, "_recently_rotated", AsyncMock(return_value=False)):
+        resp2 = await client.post(
+            "/api/v1/auth/refresh",
+            headers={"Cookie": f"refresh_token={old_cookie}"},
+        )
     assert resp2.status_code == 401
     body = resp2.json()["error"]["message"].lower()
     assert "revoked" in body or "used" in body or "session" in body
@@ -530,3 +535,20 @@ async def test_refresh_returns_the_profile_so_the_app_needs_one_round_trip(clien
     assert body["access_token"] and body["user"]["username"] == VALID_USER["username"] and body["user"]["role"] == "USER"
     me = (await client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {body['access_token']}"})).json()
     assert body["user"] == me
+
+
+@pytest.mark.asyncio
+async def test_concurrent_refresh_with_the_same_token_does_not_sign_out(client: AsyncClient):
+    """Two tabs / a quick reload send the same refresh token at once: the late request gets a fresh
+    token instead of revoking the whole session. After log-out-everywhere the window does not help."""
+    _access, cookie = await _register(client)
+    first = await client.post("/api/v1/auth/refresh", headers={"Cookie": f"refresh_token={cookie}"})
+    late = await client.post("/api/v1/auth/refresh", headers={"Cookie": f"refresh_token={cookie}"})
+    assert first.status_code == 200 and late.status_code == 200, late.text
+    newest = _extract_cookie(late, "refresh_token")
+    assert (await client.post("/api/v1/auth/refresh", headers={"Cookie": f"refresh_token={newest}"})).status_code == 200
+
+    # log out everywhere: even inside the window the old token must not bring the session back
+    token = first.json()["access_token"]
+    assert (await client.post("/api/v1/auth/logout-all", headers={"Authorization": f"Bearer {token}"})).status_code in (200, 204)
+    assert (await client.post("/api/v1/auth/refresh", headers={"Cookie": f"refresh_token={cookie}"})).status_code == 401

@@ -37,6 +37,19 @@ function shouldRetry(error: AxiosError, config: InternalAxiosRequestConfig & { _
   return method === 'get'
 }
 
+// ── One refresh at a time ─────────────────────────────────────────────────────
+// The server rotates the refresh cookie on every use, so a second refresh sent while the
+// first is still running would present an already-used cookie. Callers share one request.
+let refreshInFlight: Promise<{ data: unknown; status: number }> | null = null
+
+export function postRefresh<T>(): Promise<{ data: T | undefined; status: number }> {
+  refreshInFlight ??= apiClient
+    .post('/auth/refresh', undefined, { timeout: SESSION_TIMEOUT_MS })
+    .then(({ data, status }) => ({ data, status }))
+    .finally(() => { refreshInFlight = null })
+  return refreshInFlight as Promise<{ data: T | undefined; status: number }>
+}
+
 // ── Response interceptor: silent token refresh on 401 ─────────────────────────
 let isRefreshing = false
 let queue: Array<(result: { token?: string; error?: unknown }) => void> = []
@@ -82,11 +95,7 @@ apiClient.interceptors.response.use(
 
     isRefreshing = true
     try {
-      const { data, status } = await axios.post<{ access_token: string } | undefined>(
-        `${API_BASE}/auth/refresh`,
-        {},
-        { withCredentials: true, timeout: SESSION_TIMEOUT_MS }
-      )
+      const { data, status } = await postRefresh<{ access_token: string }>()
       if (status === 204 || !data?.access_token) {
         throw new Error('Refresh session is missing')
       }

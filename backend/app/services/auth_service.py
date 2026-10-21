@@ -46,6 +46,9 @@ from app.services.email_service import get_email_service
 from app.services.two_factor_service import two_factor_service
 from sqlalchemy import select
 
+# A refresh token used again this soon after its rotation is a concurrent request, not theft
+_ROTATION_GRACE_SECONDS = 30
+
 logger = get_logger("auth_service")
 settings = get_settings()
 
@@ -261,6 +264,15 @@ class AuthService:
             raise UnauthorizedException("Invalid refresh token")
 
         if stored.revoked:
+            # Two requests with the same token at the same time (two tabs, a quick reload, a retry
+            # after a lost reply) are not theft: within a short window the late one gets a fresh
+            # token of the same family, as long as the family is still signed in.
+            if await self._recently_rotated(token_hash) and await self._tokens.get_active_family(stored.family_id):
+                user = await self._users.get_by_id(stored.user_id)
+                if user and user.is_active:
+                    access_token, new_refresh_raw = await self._issue_token_pair(user, stored.family_id)
+                    await self._db.commit()
+                    return access_token, new_refresh_raw
             # Stolen-token detection: revoke the entire family
             await self._tokens.revoke_family(stored.family_id)
             await self._db.commit()
@@ -284,12 +296,29 @@ class AuthService:
 
         # Revoke old token, issue new sibling in same family
         await self._tokens.revoke(stored)
+        await self._mark_rotated(token_hash)
         access_token, new_refresh_raw = await self._issue_token_pair(
             user, stored.family_id
         )
 
         await self._db.commit()
         return access_token, new_refresh_raw
+
+    async def _mark_rotated(self, token_hash: str) -> None:
+        try:
+            from app.core.redis import get_redis_client
+
+            await get_redis_client().set(f"rt:rotated:{token_hash}", "1", ex=_ROTATION_GRACE_SECONDS)
+        except Exception:  # without Redis the strict rule applies
+            pass
+
+    async def _recently_rotated(self, token_hash: str) -> bool:
+        try:
+            from app.core.redis import get_redis_client
+
+            return bool(await get_redis_client().get(f"rt:rotated:{token_hash}"))
+        except Exception:
+            return False
 
     # ------------------------------------------------------------------
     # Logout

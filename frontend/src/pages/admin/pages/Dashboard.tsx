@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { Activity, Bot, ChevronRight, Gamepad2, IndianRupee, Landmark, RefreshCw, Ticket, TrendingUp, UserPlus, Users } from 'lucide-react'
+import { Activity, Banknote, Bot, ChevronRight, Gamepad2, Handshake, Headphones, IndianRupee, Landmark, RefreshCw, Ticket, TrendingUp, UserPlus, Users } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { usePermission } from '../../../hooks/usePermission'
 import { apiClient } from '../../../services/api'
 import { HourlyFlowChart, type HourPoint } from '../components/HourlyFlowChart'
 import { PartnerSplitCard } from '../components/PartnerSplitCard'
@@ -44,7 +46,42 @@ const More: React.FC<{ onClick: () => void; children: React.ReactNode }> = ({ on
   <button type="button" onClick={onClick} className="flex shrink-0 items-center gap-0.5 text-xs text-emerald-300 hover:underline">{children}<ChevronRight className="h-3.5 w-3.5" /></button>
 )
 
+// Staff without the live-metrics permission (e.g. support) get shortcuts to their own pages
+const STAFF_SHORTCUTS = [
+  { perm: 'user:read', to: '/admin/users', label: 'Find a player', hint: 'Profile, wallet and play history', icon: <Users className="h-5 w-5" /> },
+  { perm: 'payment:read', to: '/admin/payments', label: 'Payments', hint: 'Deposits and withdrawals', icon: <Banknote className="h-5 w-5" /> },
+  { perm: 'ticket:manage', to: '/admin/support', label: 'Support tickets', hint: 'Answer player questions', icon: <Headphones className="h-5 w-5" /> },
+  { perm: 'aff:partner:read', to: '/admin/affiliate', label: 'Partners', hint: 'Affiliate partners and their players', icon: <Handshake className="h-5 w-5" /> },
+]
+
+const StaffHome: React.FC = () => {
+  const { hasPermission } = usePermission()
+  const shortcuts = STAFF_SHORTCUTS.filter((s) => hasPermission(s.perm))
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-black text-white">Welcome</h1>
+        <p className="text-xs text-slate-400">Live business figures are for administrators. Your tools are below and in the menu.</p>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {shortcuts.map((s) => (
+          <Link key={s.to} to={s.to} className="group flex items-center gap-3 rounded-2xl border border-dark-border bg-dark-card p-4 transition hover:border-emerald-500/50 hover:bg-dark-elevated/50">
+            <span className="text-emerald-300">{s.icon}</span>
+            <span className="min-w-0 flex-1"><span className="block text-sm font-black text-white">{s.label}</span><span className="block text-[11px] text-slate-500">{s.hint}</span></span>
+            <ChevronRight className="h-4 w-4 text-slate-500 transition group-hover:text-emerald-300" />
+          </Link>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export const Dashboard: React.FC = () => {
+  const { hasPermission } = usePermission()
+  return hasPermission('audit:read') ? <LiveDashboard /> : <StaffHome />
+}
+
+const LiveDashboard: React.FC = () => {
   const [data, setData] = useState<Live | null>(null)
   const [includeBots, setIncludeBots] = useState(false)
   const [error, setError] = useState(false)

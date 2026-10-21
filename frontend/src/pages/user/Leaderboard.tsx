@@ -7,7 +7,10 @@ import { t as tr } from '../../i18n'
 
 interface Entry {
   rank: number
+  /** Masked public name ("98***0") */
   username: string
+  /** The signed-in viewer's own row */
+  is_me?: boolean
   total_wagered: number
   total_won: number
   net_profit: number
@@ -65,7 +68,7 @@ export const Leaderboard: React.FC = () => {
   }, [load])
 
   const top3 = [entries[1], entries[0], entries[2]]
-  const myRank = entries.find((e) => e.username === user?.username)
+  const myRank = user ? entries.find((e) => e.is_me) : undefined
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -89,7 +92,7 @@ export const Leaderboard: React.FC = () => {
           {entries.length >= 3 && (
             <div className="grid grid-cols-3 items-end gap-3 rounded-3xl bg-gradient-to-b from-amber-500/10 to-transparent p-4">
               {top3.map((entry, index) => entry && (
-                <div key={entry.username} className="flex flex-col items-center gap-2 text-center">
+                <div key={`${entry.rank}-${entry.username}`} className="flex flex-col items-center gap-2 text-center">
                   {entry.rank === 1 && <Crown className="h-7 w-7 text-amber-400" />}
                   <span className="flex h-12 w-12 items-center justify-center rounded-full bg-dark-elevated text-lg font-black text-white ring-2 ring-amber-400/60">{entry.username.charAt(0).toUpperCase()}</span>
                   <p className="max-w-full truncate text-xs font-bold text-white">{entry.username}</p>
@@ -109,7 +112,7 @@ export const Leaderboard: React.FC = () => {
               <span>{tr('Rank')}</span><span>{tr('Player')}</span><span className="text-right">{tr('Wagered')}</span><span className="text-right">{tr('Won')}</span><span className="text-right">{tr('Net')}</span>
             </div>
             {loading ? <p className="p-5 text-sm text-slate-400">{tr('Loading rankings…')}</p> : entries.length === 0 ? <p className="p-5 text-sm text-slate-400">{tr('No rankings for this period yet — play a round to get on the board!')}</p> : entries.map((entry) => (
-              <div key={`${entry.rank}-${entry.username}`} className={`grid grid-cols-[60px_1fr_1fr_1fr_1fr] items-center border-t border-dark-border/50 px-4 py-3 ${entry.username === user?.username ? 'bg-emerald-500/10' : ''}`}>
+              <div key={`${entry.rank}-${entry.username}`} className={`grid grid-cols-[60px_1fr_1fr_1fr_1fr] items-center border-t border-dark-border/50 px-4 py-3 ${entry.is_me ? 'bg-emerald-500/10' : ''}`}>
                 <span className={`text-sm font-black ${entry.rank === 1 ? 'text-amber-400' : entry.rank === 2 ? 'text-slate-300' : entry.rank === 3 ? 'text-orange-400' : 'text-slate-500'}`}>#{entry.rank}</span>
                 <span className="truncate text-xs font-bold text-white">{entry.username}</span>
                 <span className="text-right font-mono text-xs text-slate-300">{formatPaiseToRupee(entry.total_wagered)}</span>
