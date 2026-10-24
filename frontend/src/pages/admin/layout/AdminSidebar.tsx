@@ -60,6 +60,8 @@ const adminLinks = [
   { name: 'Audit Logs', to: '/admin/audit-logs', icon: <FileText className="w-4 h-4" />, perm: 'audit:read' },
   { name: 'Email 2FA', to: '/admin/2fa', icon: <Lock className="w-4 h-4" /> },
   { name: 'Platform Settings', to: '/admin/settings', icon: <Settings className="w-4 h-4" />, superOnly: true },
+
+  
   // Partner / affiliate platform
   { section: 'Partners', name: 'Affiliate Overview', to: '/admin/affiliate', icon: <Handshake className="w-4 h-4" />, perm: 'aff:partner:read' },
   { name: 'Partners', to: '/admin/affiliate/partners', icon: <Users className="w-4 h-4" />, perm: 'aff:partner:read' },
