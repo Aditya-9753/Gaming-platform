@@ -290,6 +290,41 @@ async def set_user_status(
     }
 
 
+@router.post("/users/{user_id}/reset-password")
+async def reset_user_password(
+    user_id: str,
+    request: Request,
+    current_user: CurrentUser = Depends(require_permission(PermissionCode.USER_MANAGE)),
+    db: AsyncSession = Depends(get_db),
+) -> Dict[str, Any]:
+    """Give a player a temporary password (most players sign up with only a mobile number,
+    so the emailed reset link cannot reach them). Signs them out everywhere; shown once."""
+    import secrets
+    import string
+
+    from app.core.security import hash_password
+    from app.repositories.audit_repo import AuditRepository
+    from app.repositories.token_repo import TokenRepository
+    from app.repositories.user_repo import UserRepository
+
+    user = await UserRepository(db).get_by_id(user_id)
+    if not user:
+        raise NotFoundException("User not found")
+    if (user.role.name.upper() if user.role else UserRole.USER.value) != UserRole.USER.value:
+        raise ForbiddenException("Only player passwords can be reset here; staff and partners use the email reset")
+    # Letters + digits only (easy to read out over the phone), always meets the player password rule
+    alphabet = "".join(c for c in string.ascii_lowercase + string.digits if c not in "0o1il")
+    temporary = "rw" + "".join(secrets.choice(alphabet) for _ in range(6)) + str(secrets.randbelow(90) + 10)
+    user.password_hash = hash_password(temporary)
+    await TokenRepository(db).revoke_all_for_user(user.id)
+    await AuditRepository(db).create_log(
+        action="USER_PASSWORD_RESET_BY_STAFF", target_type="USER", actor_id=current_user.id, target_id=user.id,
+        details={"username": user.username, "phone": user.phone}, ip_address=client_ip_of(request),
+    )
+    await db.commit()
+    return {"user_id": user.id, "username": user.username, "phone": user.phone, "temporary_password": temporary}
+
+
 @router.get("/users/{user_id}/wallet")
 async def get_user_wallet(
     user_id: str,

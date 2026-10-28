@@ -174,3 +174,20 @@ async def test_forgot_password_by_mobile_number_emails_a_working_link(env):
     assert (await client.post("/api/v1/auth/reset-password", json={"token": token, "new_password": "other2026x"})).status_code == 400
     assert (await client.post("/api/v1/auth/login", json={"username": "9833300001", "password": "newpass2026"})).status_code == 200
     assert (await client.post("/api/v1/auth/login", json={"username": "9833300001", "password": "Player123"})).status_code == 401
+
+
+async def test_staff_resets_a_number_only_players_password(env):
+    client = env["client"]
+    r = await _signup(client, "9844400001")  # no email: the emailed link cannot reach this player
+    assert r.status_code == 201
+    async with env["db"]() as db:
+        uid = (await db.execute(select(User.id).where(User.phone == "+919844400001"))).scalar_one()
+
+    reset = await client.post(f"/api/v1/admin/users/{uid}/reset-password", headers=env["admin"])
+    assert reset.status_code == 200, reset.text
+    temporary = reset.json()["temporary_password"]
+    assert (await client.post("/api/v1/auth/login", json={"username": "9844400001", "password": "Player123"})).status_code == 401
+    assert (await client.post("/api/v1/auth/login", json={"username": "9844400001", "password": temporary})).status_code == 200
+
+    # staff accounts are not reset this way
+    assert (await client.post("/api/v1/admin/users/super/reset-password", headers=env["admin"])).status_code == 403

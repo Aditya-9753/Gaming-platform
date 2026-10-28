@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Ban, CheckCircle2, Coins, Handshake, Phone } from 'lucide-react'
+import { ArrowLeft, Ban, CheckCircle2, Coins, Handshake, KeyRound, Phone } from 'lucide-react'
 import { Button } from '../../../components/common/Button'
 import { showToast } from '../../../components/common/toastBus'
 import { apiClient } from '../../../services/api'
@@ -33,6 +33,7 @@ export const UserDetails: React.FC = () => {
   const [entries, setEntries] = useState<Entry[]>([])
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [tempPassword, setTempPassword] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     try {
@@ -61,6 +62,21 @@ export const UserDetails: React.FC = () => {
       await load()
     } catch (e) {
       showToast({ title: 'Not changed', message: getApiErrorMessage(e, 'Please try again.'), type: 'error' })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // Most players have no email, so the emailed reset link cannot reach them: support sets a temporary password
+  const resetPassword = async () => {
+    if (!user) return
+    if (!window.confirm(`Give ${user.phone ? `+91 ${user.phone.slice(3)}` : user.username} a new temporary password? They will be signed out everywhere.`)) return
+    setBusy(true)
+    try {
+      const { data } = await apiClient.post<{ temporary_password: string }>(`/admin/users/${encodeURIComponent(user.id)}/reset-password`)
+      setTempPassword(data.temporary_password)
+    } catch (e) {
+      showToast({ title: 'Password not reset', message: getApiErrorMessage(e, 'Please try again.'), type: 'error' })
     } finally {
       setBusy(false)
     }
@@ -95,11 +111,26 @@ export const UserDetails: React.FC = () => {
               {!user.is_active && <span className="ml-2 rounded bg-rose-500/20 px-1.5 text-[10px] font-bold text-rose-300">SUSPENDED</span>}
             </div>
           </div>
-          <Button variant={user.is_active ? 'danger' : 'primary'} size="sm" onClick={toggleSuspend} isLoading={busy}
-            leftIcon={user.is_active ? <Ban className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5" />}>
-            {user.is_active ? 'Suspend Account' : 'Re-activate'}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {user.role.toUpperCase() === 'USER' && (
+              <Button variant="secondary" size="sm" onClick={resetPassword} isLoading={busy} leftIcon={<KeyRound className="w-3.5 h-3.5" />}>
+                Reset Password
+              </Button>
+            )}
+            <Button variant={user.is_active ? 'danger' : 'primary'} size="sm" onClick={toggleSuspend} isLoading={busy}
+              leftIcon={user.is_active ? <Ban className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5" />}>
+              {user.is_active ? 'Suspend Account' : 'Re-activate'}
+            </Button>
+          </div>
         </div>
+
+        {tempPassword && (
+          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-100">
+            <p>New temporary password (shown only once):</p>
+            <p className="mt-1 select-all font-mono text-2xl font-black tracking-wider text-white">{tempPassword}</p>
+            <p className="mt-1 text-xs text-emerald-200/80">Tell the player to sign in with their mobile number and this password, then change it in Profile.</p>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Stat label="Balance" value={formatPaiseToRupee(user.wallet?.balance ?? 0)} tone="text-emerald-400" />

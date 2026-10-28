@@ -366,7 +366,7 @@ class AuthService:
             raise ForbiddenException("This account has been suspended. Contact support.")
         if not user.email:
             raise BadRequestException(
-                "This account has no email address, so a reset link cannot be sent. Contact support to recover it."
+                "This account has no email address, so a reset link cannot be sent. Contact support with your mobile number and they will set a new password for you."
             )
         if settings.is_production and not email_delivery_configured():
             logger.error("Password reset requested but no email provider is configured")

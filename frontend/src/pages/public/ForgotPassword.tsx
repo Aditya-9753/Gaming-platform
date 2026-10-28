@@ -72,7 +72,7 @@ export const ForgotPassword: React.FC = () => {
                 {tr('Send Reset Link')}
               </Button>
               <p className="text-[11px] text-slate-500">
-                {tr('The link goes to the email saved in your profile. No email on your account? Contact support.')}
+                {tr('The link goes to the email saved in your account. Signed up with only a mobile number? Contact support with your number and they will set a new password for you.')}
               </p>
             </form>
           </>
