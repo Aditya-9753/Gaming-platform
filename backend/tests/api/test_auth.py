@@ -85,14 +85,12 @@ async def client(session_factory, engine) -> AsyncGenerator[AsyncClient, None]:
     from scripts.seed_db import (
         seed_games,
         seed_roles_and_permissions,
-        seed_system_settings,
     )
 
     # Seed in a dedicated session
     async with session_factory() as seed_sess:
         await seed_roles_and_permissions(seed_sess)
         await seed_games(seed_sess)
-        await seed_system_settings(seed_sess)
 
     app = create_app()
 

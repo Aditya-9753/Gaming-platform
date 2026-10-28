@@ -19,7 +19,7 @@ from typing import Optional, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
-from app.core.constants import MFA_REQUIRED_ROLES, TransactionStatus, TransactionType, UserRole
+from app.core.constants import MFA_REQUIRED_ROLES, UserRole
 from app.core.exceptions import (
     AppException,
     BadRequestException,
@@ -40,7 +40,7 @@ from app.core.security import (
 from app.models.refresh_token import RefreshToken
 from app.models.role import Role
 from app.models.user import User
-from app.models.wallet import Wallet, WalletTransaction
+from app.models.wallet import Wallet
 from app.repositories.token_repo import TokenRepository
 from app.repositories.user_repo import UserRepository
 from app.repositories.wallet_repo import WalletRepository
@@ -146,33 +146,16 @@ class AuthService:
             await self._db.rollback()
             raise ConflictException("This mobile number or email is already registered. Sign in instead.") from exc
 
-        # Automatic sign-up bonus: 0 by default (bonuses come from promo codes), atomic with the account
-        from app.services import platform_settings, promo_service
+        # New accounts start at zero: credits only come from a promo code or the daily bonus
+        from app.services import promo_service
 
-        bonus_paise = (await platform_settings.get_all(self._db)).get("signup_bonus_paise", 0)
-        wallet = Wallet(
+        await self._wallets.create(Wallet(
             id=str(uuid.uuid4()),
             user_id=user.id,
-            balance=bonus_paise,
+            balance=0,
             locked_balance=0,
             currency="VIRTUAL",
-        )
-        wallet = await self._wallets.create(wallet)
-
-        if bonus_paise > 0:
-            tx = WalletTransaction(
-                id=str(uuid.uuid4()),
-                wallet_id=wallet.id,
-                idempotency_key=f"signup-bonus-{user.id}",
-                type=TransactionType.FAUCET.value,
-                amount=bonus_paise,
-                balance_before=0,
-                balance_after=bonus_paise,
-                status=TransactionStatus.COMPLETED.value,
-                description="Signup welcome bonus",
-                reference="SIGNUP",
-            )
-            await self._wallets.add_transaction(tx)
+        ))
 
         # The sign-up code box takes bonus codes and partner codes; a code that is neither
         # (or a used-up bonus code) never blocks the sign-up

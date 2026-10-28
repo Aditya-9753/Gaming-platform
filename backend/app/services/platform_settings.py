@@ -21,7 +21,6 @@ SETTINGS_SCHEMA: Dict[str, tuple] = {
     "platform_logo_url": (str, "", "Logo image URL (empty = built-in RunWin logo)"),
     "maintenance_mode": (bool, False, "Block new bets for everyone except staff"),
     "maintenance_message": (str, "We are upgrading the platform. Betting resumes shortly.", "Banner text during maintenance"),
-    "signup_bonus_paise": (int, 0, "Credits every new account gets automatically (paise). Keep 0: one person with many numbers collects it many times — give bonuses with promo codes instead"),
     "daily_claim_amount_paise": (int, 1000, "Daily bonus amount (paise)"),
     # Payments
     "payments_enabled": (bool, True, "Accept new deposits and withdrawal requests"),

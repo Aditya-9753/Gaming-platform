@@ -109,7 +109,6 @@ class Settings(BaseSettings):
     SENTRY_DSN: Optional[str] = None
 
     # Virtual Credits (100 paise = 1 Credit)
-    INITIAL_FAUCET_CREDITS: int = 10000
     PAISE_PER_CREDIT: int = 100
 
     # Admin security / local bootstrap

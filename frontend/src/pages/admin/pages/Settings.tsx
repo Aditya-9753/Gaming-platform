@@ -12,7 +12,6 @@ interface SystemValues {
   platform_logo_url: string
   maintenance_mode: boolean
   maintenance_message: string
-  signup_bonus_paise: number
   daily_claim_amount_paise: number
 }
 
@@ -204,9 +203,9 @@ export const AdminSettings: React.FC = () => {
         </Section>
 
         <Section title="Virtual credit amounts" icon={<Info className="h-4 w-4 text-emerald-400" />}>
-          <Input label="Sign-up bonus (₹)" type="number" min={0} value={values.signup_bonus_paise / 100} onChange={(e) => setValues({ ...values, signup_bonus_paise: Math.round(Number(e.target.value) * 100) })} />
+          <p className="text-xs text-slate-400">New accounts start with ₹0. Players get credits only from a promo code (Promo Codes page) or this daily bonus.</p>
           <Input label="Daily bonus (₹)" type="number" min={0} value={values.daily_claim_amount_paise / 100} onChange={(e) => setValues({ ...values, daily_claim_amount_paise: Math.round(Number(e.target.value) * 100) })} />
-          <Button type="button" leftIcon={<Save className="h-4 w-4" />} isLoading={saving === 'Credit amounts'} onClick={() => void saveSystem({ signup_bonus_paise: values.signup_bonus_paise, daily_claim_amount_paise: values.daily_claim_amount_paise }, 'Credit amounts')}>Save amounts</Button>
+          <Button type="button" leftIcon={<Save className="h-4 w-4" />} isLoading={saving === 'Credit amounts'} onClick={() => void saveSystem({ daily_claim_amount_paise: values.daily_claim_amount_paise }, 'Credit amounts')}>Save amounts</Button>
         </Section>
 
         <Section title="Real money & payments" icon={<AlertTriangle className="h-4 w-4 text-rose-400" />}>

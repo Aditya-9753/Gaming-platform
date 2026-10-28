@@ -4,7 +4,6 @@ Idempotently provisions:
 - Roles (USER, SUPPORT, ADMIN, SUPERADMIN, AUDITOR)
 - Fine-grained permissions and role_permissions associations
 - Core 4 Games (Aviator, Mines, Color, Cricket) with default settings
-- System configuration settings (signup bonus, daily faucet credits, etc.)
 """
 
 import asyncio
@@ -18,7 +17,6 @@ from app.core.database import close_db, get_session_factory, init_db
 from app.core.logging import get_logger, setup_logging
 from app.models.game import Game, GameSetting
 from app.models.role import Permission, Role, RolePermission
-from app.models.system_setting import SystemSetting
 
 logger = get_logger("seed_db")
 
@@ -139,34 +137,6 @@ for _game_id, _label, _desc in [
         }
     )
 
-# System configuration settings
-SYSTEM_SETTINGS_DATA = [
-    {
-        "key": "signup_bonus_paise",
-        "value": "10000",
-        "description": "Initial virtual credit faucet awarded to new users upon registration (10,000 paise = 100 credits)",
-    },
-    {
-        "key": "daily_faucet_paise",
-        "value": "5000",
-        "description": "Daily virtual credit refill amount (5,000 paise = 50 credits)",
-    },
-    {
-        "key": "faucet_cooldown_hours",
-        "value": "24",
-        "description": "Cooldown period between consecutive daily faucet claims in hours",
-    },
-    {
-        "key": "platform_mode",
-        "value": "VIRTUAL_ONLY",
-        "description": "Enforce strict virtual-credit platform mode (no real money)",
-    },
-    {
-        "key": "responsible_gaming_max_daily_bet",
-        "value": "5000000",
-        "description": "Default maximum daily aggregate bet amount in paise (50,000 credits)",
-    },
-]
 
 
 async def seed_roles_and_permissions(session: AsyncSession) -> None:
@@ -258,27 +228,6 @@ async def seed_games(session: AsyncSession) -> None:
     logger.info("Games and settings successfully seeded")
 
 
-async def seed_system_settings(session: AsyncSession) -> None:
-    """Seed default system configuration key-values."""
-    logger.info("Seeding system settings...")
-    for sdata in SYSTEM_SETTINGS_DATA:
-        result = await session.execute(
-            select(SystemSetting).where(SystemSetting.key == sdata["key"])
-        )
-        setting = result.scalar_one_or_none()
-
-        if setting is None:
-            setting = SystemSetting(
-                key=sdata["key"],
-                value=sdata["value"],
-                description=sdata["description"],
-            )
-            session.add(setting)
-
-    await session.commit()
-    logger.info("System settings successfully seeded")
-
-
 async def main() -> None:
     """Run all database seeding procedures."""
     setup_logging()
@@ -291,7 +240,6 @@ async def main() -> None:
         try:
             await seed_roles_and_permissions(session)
             await seed_games(session)
-            await seed_system_settings(session)
 
             from app.core.config import get_settings
             if not get_settings().is_production:

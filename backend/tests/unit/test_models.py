@@ -17,7 +17,6 @@ from scripts.create_super_admin import create_or_promote_super_admin
 from scripts.seed_db import (
     seed_games,
     seed_roles_and_permissions,
-    seed_system_settings,
 )
 
 
@@ -39,10 +38,9 @@ async def in_memory_session():
 
 @pytest.mark.asyncio
 async def test_seed_database_operations(in_memory_session: AsyncSession):
-    """Test seeding roles, permissions, games, and system settings."""
+    """Test seeding roles, permissions and games."""
     await seed_roles_and_permissions(in_memory_session)
     await seed_games(in_memory_session)
-    await seed_system_settings(in_memory_session)
 
     # 1. Verify roles seeded
     roles_res = await in_memory_session.execute(select(Role))
@@ -71,13 +69,8 @@ async def test_seed_database_operations(in_memory_session: AsyncSession):
         assert setting.min_bet >= 100
         assert setting.max_bet > setting.min_bet
 
-    # 4. Verify system settings
-    bonus_res = await in_memory_session.execute(
-        select(SystemSetting).where(SystemSetting.key == "signup_bonus_paise")
-    )
-    bonus = bonus_res.scalar_one_or_none()
-    assert bonus is not None
-    assert bonus.value == "10000"
+    # 4. No leftover settings rows: new accounts get no automatic credits
+    assert (await in_memory_session.execute(select(SystemSetting))).scalars().all() == []
 
 
 @pytest.mark.asyncio

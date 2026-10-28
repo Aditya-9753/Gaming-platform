@@ -1,7 +1,7 @@
 """Bonus promo codes.
 
-New accounts get no automatic bonus (``signup_bonus_paise`` defaults to 0): a bonus only
-comes from a promo code the super admin created. Each player can use a code once, a code
+New accounts start with nothing: credits only come from a promo code the super admin
+created (or the daily bonus). Each player can use a code once, a code
 can be limited to a number of uses and an expiry date, and every credit is a normal BONUS
 ledger row so wallet integrity checks keep balancing.
 

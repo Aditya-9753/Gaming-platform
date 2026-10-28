@@ -127,12 +127,10 @@ async def bootstrap_dev_data() -> None:
                 from scripts.seed_db import (
                     seed_games,
                     seed_roles_and_permissions,
-                    seed_system_settings,
                 )
 
                 await seed_roles_and_permissions(session)
                 await seed_games(session)
-                await seed_system_settings(session)
             except ImportError:
                 logger.warning("scripts.seed_db not importable; skipping reference data seed")
 
