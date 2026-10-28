@@ -190,3 +190,17 @@ async def test_game_entry_idempotency_constraint(in_memory_session: AsyncSession
     with pytest.raises(IntegrityError):
         await in_memory_session.commit()
     await in_memory_session.rollback()
+
+
+@pytest.mark.asyncio
+async def test_partner_content_seeded_once(in_memory_session: AsyncSession):
+    """An empty database gets default partner terms and FAQs; later runs never duplicate or overwrite them."""
+    from app.models.affiliate import AffFaq, AffTermsVersion
+    from scripts.seed_db import DEFAULT_PARTNER_FAQS, seed_affiliate_content
+
+    await seed_affiliate_content(in_memory_session)
+    await seed_affiliate_content(in_memory_session)
+    terms = (await in_memory_session.execute(select(AffTermsVersion))).scalars().all()
+    faqs = (await in_memory_session.execute(select(AffFaq))).scalars().all()
+    assert [t.version for t in terms] == ["1.0"] and "Partner Programme" in terms[0].content
+    assert len(faqs) == len(DEFAULT_PARTNER_FAQS)

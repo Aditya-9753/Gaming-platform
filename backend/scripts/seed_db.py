@@ -4,6 +4,7 @@ Idempotently provisions:
 - Roles (USER, SUPPORT, ADMIN, SUPERADMIN, AUDITOR)
 - Fine-grained permissions and role_permissions associations
 - Core 4 Games (Aviator, Mines, Color, Cricket) with default settings
+- Default partner terms and FAQs (only when none exist)
 """
 
 import asyncio
@@ -228,6 +229,62 @@ async def seed_games(session: AsyncSession) -> None:
     logger.info("Games and settings successfully seeded")
 
 
+# Partner programme content. Admins edit it in the back office; this only fills an empty
+# database so the sign-up "Terms" link and the partner FAQ are never blank.
+DEFAULT_PARTNER_TERMS = """RunWin Partner Programme - Terms and Conditions (version 1.0)
+
+1. Who can join
+You must be at least 18 years old and allowed to promote online games where you live. One account per person or company.
+
+2. How you earn
+You earn the commission of the deal assigned to your account (shown on your dashboard). The standard deal is a 50% revenue share of the net gaming revenue (NGR) of the players you refer: what they bet minus what they won. If your players win more than they lose in a period, that period's commission is negative and is carried forward.
+
+3. Tracking
+A player is yours when they sign up through your tracking link or with your promo code. The tracking cookie lasts 30 days; the last partner link clicked before sign-up wins. Players who already have an account cannot be re-assigned.
+
+4. Payouts
+Commission is settled weekly. You can withdraw once your available balance reaches the minimum payout (USD 20). A new or changed payout method can be used 24 hours after it is added. You are responsible for any taxes on your earnings.
+
+5. Traffic that is not allowed
+Spam, misleading or false advertising, promising guaranteed winnings, targeting minors, bidding on our brand name, cookie stuffing, incentivised or fake sign-ups, and referring yourself or your own accounts. We may hold, reverse or cancel commission from such traffic and close the account.
+
+6. Our brand
+Use only the banners, texts and links from the PR tools page. Do not present yourself as RunWin or its staff.
+
+7. Changes and ending the agreement
+We may update these terms; you will be asked to accept the new version before you continue. Either side may end the partnership at any time. Commission earned from allowed traffic before the end is paid out normally.
+
+8. Responsible gaming
+Promote responsibly. Do not encourage anyone to gamble more than they can afford.
+"""
+
+DEFAULT_PARTNER_FAQS = [
+    ("How much do I earn?", "You earn the deal shown on your dashboard. The standard deal is a 50% revenue share: half of what your referred players lose (their bets minus their wins). Your dashboard shows live income in USD or INR.", "Earnings"),
+    ("When is my commission paid?", "Commission is settled every week. Once a week is closed, the amount moves to your available balance and you can request a withdrawal.", "Payouts"),
+    ("What is the minimum withdrawal?", "USD 20. Add a payout method on the Withdrawal page first; a new or changed method can be used after 24 hours (security cool-down).", "Payouts"),
+    ("Why is my commission negative?", "In a period where your players win more than they lose, the revenue share is negative. It is carried forward and balanced by later periods.", "Earnings"),
+    ("How do players get linked to me?", "When they sign up through your tracking link or enter your promo code at sign-up. The tracking cookie lasts 30 days and the last partner link clicked wins.", "Tracking"),
+    ("How do I make a tracking link, promo code or QR code?", "Open PR tools. Create a source (where you promote, e.g. your Telegram channel), then a tracking link. From a link you can create a promo code and a QR code.", "Tracking"),
+    ("Can I invite other partners?", "Yes. Share your invite link from the Subpartners page. You earn a share of your subpartners' positive commission.", "Subpartners"),
+    ("What traffic is not allowed?", "Spam, misleading ads, promising sure wins, targeting minors, fake or incentivised sign-ups and referring yourself. Commission from such traffic can be held or cancelled. See the Terms for details.", "Rules"),
+]
+
+
+async def seed_affiliate_content(session: AsyncSession) -> None:
+    """Default partner terms and FAQs, only when none exist yet (never overwrites admin edits)."""
+    from app.affiliate.constants import ContentStatus
+    from app.models.affiliate import AffFaq, AffTermsVersion
+
+    if (await session.execute(select(AffTermsVersion.id).limit(1))).first() is None:
+        session.add(AffTermsVersion(version="1.0", content=DEFAULT_PARTNER_TERMS))
+    if (await session.execute(select(AffFaq.id).limit(1))).first() is None:
+        session.add_all([
+            AffFaq(question=q, answer=a, category=c, language="en", status=ContentStatus.PUBLISHED, sort_order=i)
+            for i, (q, a, c) in enumerate(DEFAULT_PARTNER_FAQS)
+        ])
+    await session.commit()
+
+
 async def main() -> None:
     """Run all database seeding procedures."""
     setup_logging()
@@ -240,6 +297,7 @@ async def main() -> None:
         try:
             await seed_roles_and_permissions(session)
             await seed_games(session)
+            await seed_affiliate_content(session)
 
             from app.core.config import get_settings
             if not get_settings().is_production:
