@@ -1,6 +1,7 @@
 import React, { lazy, Suspense, useEffect } from 'react'
 import {
   createBrowserRouter,
+  type RouteObject,
   RouterProvider,
   Outlet,
   Navigate,
@@ -12,6 +13,7 @@ import { Sidebar } from '../components/layout/Sidebar'
 import { Footer } from '../components/layout/Footer'
 import { MobileNav } from '../components/layout/MobileNav'
 import { MaintenanceBanner } from '../components/games/MaintenanceBanner'
+import { RouteError } from '../components/common/RouteError'
 import { AgeGateModal } from '../components/common/AgeGateModal'
 import { ToastContainer } from '../components/common/Toast'
 import { ErrorBoundary } from '../components/common/ErrorBoundary'
@@ -255,7 +257,7 @@ const AppShell: React.FC = () => {
 // Router Configuration
 // -------------------------------------------------------------------
 
-const router = createBrowserRouter([
+const routes: RouteObject[] = [
   {
     element: <AppShell />,
     children: [
@@ -413,7 +415,11 @@ const router = createBrowserRouter([
       { path: 'affiliate/settings', element: <RequireSuperAdmin><AffSettings /></RequireSuperAdmin> },
     ],
   },
-])
+]
+
+// Every top-level route shows RouteError instead of the router's developer screen
+// (and reloads by itself when a deploy replaced the page files)
+const router = createBrowserRouter(routes.map((route) => ({ errorElement: <RouteError />, ...route })))
 
 export const AppRouter: React.FC = () => {
   useSessionBootstrap()

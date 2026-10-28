@@ -2,6 +2,7 @@ import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { AlertTriangle, RefreshCw } from 'lucide-react'
 import { Button } from './Button'
 import { t as tr } from '../../i18n'
+import { isChunkLoadError, reloadForNewVersion } from '../../utils/chunkReload'
 
 interface Props {
   children: ReactNode
@@ -22,6 +23,8 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // A page file from before the latest deploy is gone: reload to get the new version
+    if (isChunkLoadError(error) && reloadForNewVersion()) return
     console.error('Uncaught error in UI component:', error, errorInfo)
   }
 
@@ -39,9 +42,11 @@ export class ErrorBoundary extends Component<Props, State> {
               <AlertTriangle className="w-7 h-7" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white">{tr('Something crashed')}</h3>
+              <h3 className="text-lg font-bold text-white">{isChunkLoadError(this.state.error) ? tr('A new version is available') : tr('Something crashed')}</h3>
               <p className="text-xs text-slate-400 mt-1">
-                {tr('An unexpected interface error occurred. You can reload the page to restore state.')}
+                {isChunkLoadError(this.state.error)
+                  ? tr('The site was just updated. Reload the page to continue.')
+                  : tr('An unexpected interface error occurred. You can reload the page to restore state.')}
               </p>
             </div>
             <Button

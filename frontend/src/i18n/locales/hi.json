@@ -585,5 +585,7 @@
   "Send again": "फिर से भेजें",
   "Partner login": "पार्टनर लॉगिन",
   "Admin login": "एडमिन लॉगिन",
-  "The link goes to the email saved in your account. Signed up with only a mobile number? Contact support with your number and they will set a new password for you.": "लिंक आपके खाते में सेव ईमेल पर जाता है। सिर्फ़ मोबाइल नंबर से खाता बनाया है? अपना नंबर लेकर सपोर्ट से संपर्क करें, वे आपका नया पासवर्ड सेट कर देंगे।"
+  "The link goes to the email saved in your account. Signed up with only a mobile number? Contact support with your number and they will set a new password for you.": "लिंक आपके खाते में सेव ईमेल पर जाता है। सिर्फ़ मोबाइल नंबर से खाता बनाया है? अपना नंबर लेकर सपोर्ट से संपर्क करें, वे आपका नया पासवर्ड सेट कर देंगे।",
+  "A new version is available": "नया वर्ज़न उपलब्ध है",
+  "The site was just updated. Reload the page to continue.": "साइट अभी अपडेट हुई है। आगे बढ़ने के लिए पेज रीलोड करें।"
 }
