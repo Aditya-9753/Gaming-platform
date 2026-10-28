@@ -149,7 +149,7 @@ const RequireAdmin: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   const { user, isAuthenticated, isLoading } = useAuthStore()
   const location = useLocation()
   if (isLoading) return <Loader fullScreen />
-  if (!isAuthenticated) return <Navigate to="/login" replace />
+  if (!isAuthenticated) return <Navigate to="/admin/login" replace />
   if (!user || !isStaffRole(user.role)) {
     return <Navigate to="/dashboard" replace />
   }
@@ -169,7 +169,11 @@ const RequireSuperAdmin: React.FC<{ children: React.ReactNode }> = ({ children }
 const RedirectIfAuthed: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, user } = useAuthStore()
   // Admins that still must enrol 2FA go straight to the setup page
-  if (isAuthenticated) return <Navigate to={user?.role === 'partner' ? '/partner/dashboard' : user?.requires2FASetup ? '/admin/2fa' : '/'} replace />
+  if (isAuthenticated) {
+    const home = user?.role === 'partner' ? '/partner/dashboard'
+      : user?.requires2FASetup ? '/admin/2fa' : user && isStaffRole(user.role) ? '/admin/dashboard' : '/'
+    return <Navigate to={home} replace />
+  }
   return <>{children}</>
 }
 
@@ -336,6 +340,12 @@ const router = createBrowserRouter([
       { path: 'profile', element: <PartnerProfile /> },
       { path: '*', element: <Navigate to="/partner/dashboard" replace /> },
     ],
+  },
+
+  // Staff sign in with email (players use /login with their mobile number)
+  {
+    path: '/admin/login',
+    element: <RedirectIfAuthed><Suspense fallback={<Loader fullScreen />}><Login staff /></Suspense></RedirectIfAuthed>,
   },
 
   // Admin Panel (Separate Layout)

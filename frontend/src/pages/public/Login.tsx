@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import axios from 'axios'
-import { Lock, Phone, ArrowRight, ShieldCheck, KeyRound } from 'lucide-react'
+import { Lock, Mail, Phone, ArrowRight, ShieldCheck, KeyRound } from 'lucide-react'
 import { BrandHero } from '../../components/brand/BrandHero'
 import { useLogoSplash } from '../../components/brand/logoSplashStore'
 import { Turnstile } from '../../components/common/Turnstile'
@@ -14,18 +14,19 @@ import { showToast } from '../../components/common/toastBus'
 import { isStaffRole } from '../../types/auth.types'
 import { t as tr } from '../../i18n'
 
-const getLoginError = (error: unknown): string => {
+const getLoginError = (error: unknown, staff = false): string => {
   if (!axios.isAxiosError(error)) return 'Could not sign in. Check your connection and try again.'
   if (!error.response) return 'Cannot reach the server. Check that the backend is running on port 8000.'
   const body = error.response?.data as { error?: { message?: string } } | undefined
   const message = body?.error?.message
-  if (error.response?.status === 401) return tr('Mobile number or password is incorrect.')
+  if (error.response?.status === 401) return staff ? 'Email or password is incorrect.' : tr('Mobile number or password is incorrect.')
   if (error.response?.status === 403) return message || 'This account is inactive or access is restricted.'
   if (error.response?.status === 429) return 'Too many sign-in attempts. Wait a few minutes before trying again.'
   return message || tr('Could not sign in. Please try again.')
 }
 
-export const Login: React.FC = () => {
+/** Players sign in with their mobile number; `staff` is the admin page (/admin/login), which asks for an email. */
+export const Login: React.FC<{ staff?: boolean }> = ({ staff = false }) => {
   const navigate = useNavigate()
   const { setAuth, setAccessToken } = useAuthStore()
   const [username, setUsername] = useState('')
@@ -52,7 +53,7 @@ export const Login: React.FC = () => {
         ? user.requires2FASetup ? '/admin/2fa' : '/admin/dashboard'
         : '/')
     } catch (error) {
-      const message = getLoginError(error)
+      const message = getLoginError(error, staff)
       const key = captchaSiteKey(error)
       if (key) { setSiteKey(key); setCaptcha(null) }
       if (/verification code sent/i.test(message)) {
@@ -81,13 +82,17 @@ export const Login: React.FC = () => {
       <div className="bg-dark-card border border-dark-border rounded-3xl p-8 shadow-2xl space-y-6">
         <div className="text-center space-y-2">
           <BrandHero className="w-44 sm:w-52" />
-          <h2 className="text-2xl font-black text-white">{tr('Welcome Back')}</h2>
-          <p className="text-xs text-slate-400">{tr('Sign in with your mobile number and password')}</p>
+          <h2 className="text-2xl font-black text-white">{staff ? 'Admin sign in' : tr('Welcome Back')}</h2>
+          <p className="text-xs text-slate-400">{staff ? 'Super admin and staff sign in with email and password' : tr('Sign in with your mobile number and password')}</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <Input label={tr('Mobile number')} placeholder="9876543210" inputMode="tel" autoComplete="username" autoCapitalize="none" spellCheck={false} value={username}
-            onChange={(e) => setUsername(e.target.value)} leftElement={<Phone className="w-4 h-4 text-slate-400" />}
-            helperText={tr('Older accounts can also use their username or email')} required />
+          {staff ? (
+            <Input label="Email" type="email" placeholder="you@example.com" autoComplete="username" autoCapitalize="none" spellCheck={false} value={username}
+              onChange={(e) => setUsername(e.target.value)} leftElement={<Mail className="w-4 h-4 text-slate-400" />} required />
+          ) : (
+            <Input label={tr('Mobile number')} placeholder="9876543210" inputMode="tel" autoComplete="username" autoCapitalize="none" spellCheck={false} value={username}
+              onChange={(e) => setUsername(e.target.value)} leftElement={<Phone className="w-4 h-4 text-slate-400" />} required />
+          )}
           <Input label={tr('Password')} type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} leftElement={<Lock className="w-4 h-4 text-slate-400" />} required />
           {needsTotp ? (
             <div className="space-y-2">
@@ -119,9 +124,22 @@ export const Login: React.FC = () => {
           {siteKey && <Turnstile siteKey={siteKey} onToken={setCaptcha} />}
           <Button type="submit" variant="primary" className="w-full font-black py-3" isLoading={isLoading} disabled={Boolean(siteKey) && !captcha} rightIcon={<ArrowRight className="w-4 h-4" />}>{tr('Sign In')}</Button>
         </form>
-        <p className="text-center text-xs text-slate-400 pt-2">
-          {tr("Don't have an account?")} <Link to="/register" className="text-emerald-400 font-bold hover:underline">{tr('Register')}</Link>
-        </p>
+        {staff ? (
+          <p className="text-center text-xs text-slate-400 pt-2">
+            Player? <Link to="/login" className="text-emerald-400 font-bold hover:underline">Sign in with mobile number</Link>
+          </p>
+        ) : (
+          <>
+            <p className="text-center text-xs text-slate-400 pt-2">
+              {tr("Don't have an account?")} <Link to="/register" className="text-emerald-400 font-bold hover:underline">{tr('Register')}</Link>
+            </p>
+            <p className="text-center text-[11px] text-slate-500">
+              <Link to="/partner/login" className="hover:text-slate-300 hover:underline">{tr('Partner login')}</Link>
+              <span className="mx-2">·</span>
+              <Link to="/admin/login" className="hover:text-slate-300 hover:underline">{tr('Admin login')}</Link>
+            </p>
+          </>
+        )}
         <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-500">
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
           <span>{tr('Secure server-backed authentication')}</span>

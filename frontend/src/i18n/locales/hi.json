@@ -583,5 +583,7 @@
   "The link goes to the email saved in your profile. No email on your account? Contact support.": "लिंक आपकी प्रोफ़ाइल में सेव ईमेल पर जाता है। खाते में ईमेल नहीं है? सपोर्ट से संपर्क करें।",
   "We emailed a reset link to": "रीसेट लिंक भेजा गया:",
   "Open it within 1 hour to choose a new password. Check the spam folder if it is not in your inbox.": "नया पासवर्ड बनाने के लिए इसे 1 घंटे के अंदर खोलें। इनबॉक्स में न दिखे तो स्पैम फ़ोल्डर देखें।",
-  "Send again": "फिर से भेजें"
+  "Send again": "फिर से भेजें",
+  "Partner login": "पार्टनर लॉगिन",
+  "Admin login": "एडमिन लॉगिन"
 }
