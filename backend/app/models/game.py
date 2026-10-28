@@ -103,7 +103,6 @@ class GameRound(Base):
 
     # Required compound index and unique round number per game
     __table_args__ = (
-        Index("ix_game_rounds_game_round_no", "game_id", "round_no"),
         Index("ix_game_rounds_game_status_created", "game_id", "status", "created_at"),
         Index("ix_game_rounds_created_at", "created_at"),
         UniqueConstraint("game_id", "round_no", name="uq_game_rounds_game_round_no"),

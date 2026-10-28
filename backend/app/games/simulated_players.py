@@ -117,7 +117,7 @@ class SimulatedPlayers:
     async def _aviator(self, round_id: str) -> None:
         from app.games.aviator.service import AviatorService
 
-        for bot in random.sample(self.bots, k=random.randint(4, 10)):
+        for bot in random.sample(self.bots, k=random.randint(2, 5)):
             await asyncio.sleep(random.uniform(0.1, 0.6))
             target = round(random.choice([1.2, 1.5, 1.8, 2.0, 2.0, 2.5, 3.0, 5.0, 10.0]) * random.uniform(0.9, 1.1), 2)
             try:
@@ -133,7 +133,7 @@ class SimulatedPlayers:
     async def _wingo(self, game_id: str, round_id: str) -> None:
         from app.games.wingo.service import WingoBetRequest, WingoService
 
-        for bot in random.sample(self.bots, k=random.randint(2, 7)):
+        for bot in random.sample(self.bots, k=random.randint(1, 3)):
             await asyncio.sleep(random.uniform(0.2, 1.0))
             kind = random.choice(["COLOR", "COLOR", "SIZE", "SIZE", "NUMBER"])
             value = (
@@ -155,7 +155,7 @@ class SimulatedPlayers:
     async def _teen_patti(self, round_id: str) -> None:
         from app.games.teen_patti.service import TeenPattiBetRequest, TeenPattiService
 
-        for bot in random.sample(self.bots, k=random.randint(2, 6)):
+        for bot in random.sample(self.bots, k=random.randint(1, 3)):
             await asyncio.sleep(random.uniform(0.3, 2.0))
             try:
                 async with self.session_factory() as session:

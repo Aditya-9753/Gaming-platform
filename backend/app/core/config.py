@@ -124,6 +124,10 @@ class Settings(BaseSettings):
     # Bot accounts that genuinely play (live feeds / leaderboards).
     # None = auto: on outside production and tests.
     SIMULATED_PLAYERS: Optional[bool] = None
+    # Hourly clean-up (app.services.data_retention): bot bets / ledger rows older than this are deleted,
+    # and finished rounds nobody real played are deleted after ROUND_HISTORY_DAYS
+    BOT_HISTORY_HOURS: int = 6
+    ROUND_HISTORY_DAYS: int = 2
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
