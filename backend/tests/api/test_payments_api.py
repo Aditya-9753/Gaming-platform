@@ -275,18 +275,13 @@ async def test_amount_mismatch_goes_to_review_then_manual_confirm(env):
     assert detail["state"] == "MANUAL_REVIEW"
     assert (await wallet(env)).balance == 0
 
-    # No step-up code -> refused
-    r = await env["client"].post(f"/api/v1/admin/payments/deposits/{dep['id']}/confirm", headers=env["a1"],
-                                 json={"utr": "777766665555", "amount_paise": 40_000})
-    assert r.status_code == 403 and r.json()["error"]["code"] == "STEP_UP_REQUIRED"
     # Another admin cannot act on a1's QR deposits (and cannot even see them)
-    h2 = await step(env, "a2", A2_SECRET)
-    assert (await env["client"].post(f"/api/v1/admin/payments/deposits/{dep['id']}/confirm", headers=h2,
+    assert (await env["client"].post(f"/api/v1/admin/payments/deposits/{dep['id']}/confirm", headers=env["a2"],
                                      json={"utr": "777766665555", "amount_paise": 40_000})).status_code == 403
     assert (await env["client"].get("/api/v1/admin/payments/deposits", headers=env["a2"])).json()["total"] == 0
 
-    h1 = await step(env, "a1", A1_SECRET)
-    r = await env["client"].post(f"/api/v1/admin/payments/deposits/{dep['id']}/confirm", headers=h1,
+    # Admins confirm without a verification code (only the super admin is asked for one)
+    r = await env["client"].post(f"/api/v1/admin/payments/deposits/{dep['id']}/confirm", headers=env["a1"],
                                  json={"utr": "777766665555", "amount_paise": 40_000, "note": "seen in bank app"})
     assert r.status_code == 200, r.text
     assert r.json()["status"] == "SUCCESS" and r.json()["verification_method"] == "MANUAL"

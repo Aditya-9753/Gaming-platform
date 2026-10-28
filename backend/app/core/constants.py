@@ -27,8 +27,9 @@ class UserRole(str, Enum):
     PARTNER = "PARTNER"
 
 
-# Staff roles that must use two-factor authentication (when admin 2FA is enforced)
-MFA_REQUIRED_ROLES = frozenset({"ADMIN", "SUPERADMIN", "FINANCE_ADMIN", "SUPPORT"})
+# Roles that sign in with a second factor (an emailed code). Only the super admin: other staff
+# and players sign in with just their password (the owner's decision, 2026-10-28).
+MFA_REQUIRED_ROLES = frozenset({"SUPERADMIN"})
 
 
 class PermissionCode(str, Enum):

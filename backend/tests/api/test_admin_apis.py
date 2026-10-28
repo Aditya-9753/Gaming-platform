@@ -198,11 +198,12 @@ async def test_rbac_permission_denied_cases(admin_env):
         admin.totp_enabled = False
         await session.commit()
 
+    # Only the super admin needs a second factor; an admin without one keeps working
     res = await client.get(
         "/api/v1/admin/dashboard/stats",
         headers=admin_env["admin_headers"],
     )
-    assert res.status_code == 403
+    assert res.status_code == 200
 
 
 @pytest.mark.asyncio
@@ -626,14 +627,22 @@ async def test_cricket_settlement_override_is_permissioned_and_audited(admin_env
 
 @pytest.mark.asyncio
 async def test_admin_2fa_enforcement(admin_env):
-    """Test that admin login requires 2FA enrollment and valid TOTP code."""
+    """Only the super admin signs in with a second factor; other staff use just the password."""
     session_factory = admin_env["session_factory"]
     totp_secret = admin_env["totp_secret"]
 
     async with session_factory() as session:
         auth_svc = AuthService(session)
+        user, access, _refresh = await auth_svc.login("admin@test.com", "AdminPass123!", totp_code=None)
+        assert user.id == "admin_user_id" and access
 
-        # Admin with 2FA enabled must provide its current authenticator code.
+    async with session_factory() as session:
+        admin = await session.get(User, admin_env["admin_id"])
+        admin.role_id = 3  # promote to super admin: now the authenticator code is required
+        await session.commit()
+
+    async with session_factory() as session:
+        auth_svc = AuthService(session)
         from app.core.exceptions import UnauthorizedException
         with pytest.raises(UnauthorizedException) as excinfo:
             await auth_svc.login("admin@test.com", "AdminPass123!", totp_code=None)

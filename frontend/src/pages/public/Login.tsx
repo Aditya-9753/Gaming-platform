@@ -20,7 +20,7 @@ const getLoginError = (error: unknown, staff = false): string => {
   const body = error.response?.data as { error?: { message?: string } } | undefined
   const message = body?.error?.message
   // A 401 also means "password right, now enter the code": keep that message so the code box opens
-  if (error.response?.status === 401 && message && /verification code|authenticator code|totp code/i.test(message)) return message
+  if (error.response?.status === 401 && message && /verification code|authenticator code|totp code|no account found/i.test(message)) return message
   if (error.response?.status === 401) return staff ? 'Email or password is incorrect.' : tr('Mobile number or password is incorrect.')
   if (error.response?.status === 403) return message || 'This account is inactive or access is restricted.'
   if (error.response?.status === 429) return 'Too many sign-in attempts. Wait a few minutes before trying again.'

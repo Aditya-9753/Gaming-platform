@@ -191,3 +191,13 @@ async def test_staff_resets_a_number_only_players_password(env):
 
     # staff accounts are not reset this way
     assert (await client.post("/api/v1/admin/users/super/reset-password", headers=env["admin"])).status_code == 403
+
+
+async def test_login_with_an_unregistered_number_says_so(env):
+    client = env["client"]
+    r = await client.post("/api/v1/auth/login", json={"username": "9855500001", "password": "Player123"})
+    assert r.status_code == 401 and "No account found with this mobile number" in r.text
+    assert (await _signup(client, "9855500001")).status_code == 201
+    wrong = await client.post("/api/v1/auth/login", json={"username": "9855500001", "password": "Wrong12345"})
+    assert wrong.status_code == 401 and "Invalid username or password" in wrong.text
+    assert (await client.post("/api/v1/auth/login", json={"username": "9855500001", "password": "Player123"})).status_code == 200

@@ -36,7 +36,7 @@ async def env(monkeypatch):
         await conn.run_sync(Base.metadata.create_all)
     factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     async with factory() as session:
-        session.add(Role(id=2, name="ADMIN"))
+        session.add(Role(id=2, name="SUPERADMIN"))  # only the super admin uses emailed codes
         session.add(User(id="adm", username="boss", email="boss@example.com", password_hash=hash_password(PASSWORD), role_id=2, is_active=True))
         await session.commit()
 

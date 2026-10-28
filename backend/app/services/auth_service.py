@@ -204,6 +204,9 @@ class AuthService:
         else:
             user = await self._users.get_by_username(identifier)
 
+        if not user and looks_like_phone(identifier):
+            # Sign-up already tells whether a number is registered, so say it plainly here too
+            raise UnauthorizedException("No account found with this mobile number. Create an account first.")
         if not user or not verify_password(password, user.password_hash):
             raise UnauthorizedException("Invalid username or password")
 
@@ -219,7 +222,8 @@ class AuthService:
                 logger.warning("Sign-in with a default password blocked", user_id=user.id)
                 raise ForbiddenException("This account uses a default password. Use 'Forgot password' to set a new one.")
 
-        # Admin 2FA enforcement: Admin users MUST provide a valid TOTP code
+        # Second factor: the super admin always; a player only if they turned on an authenticator
+        # app themselves. Other staff sign in with just the password.
         role_name = user.role.name.upper() if user.role else ""
         is_admin_user = role_name in MFA_REQUIRED_ROLES
 
@@ -233,7 +237,7 @@ class AuthService:
                     )
                 if not two_factor_service.verify_code(user.totp_secret or "", totp_code):
                     raise UnauthorizedException("Invalid authenticator code")
-        elif user.totp_enabled:
+        elif user.totp_enabled and role_name == UserRole.USER.value and user.totp_secret:
             if not totp_code:
                 raise UnauthorizedException("TOTP code required")
             if not two_factor_service.verify_code(user.totp_secret or "", totp_code):

@@ -17,6 +17,7 @@ import jwt
 from jwt import PyJWTError as JWTError
 
 from app.core.config import get_settings
+from app.core.constants import MFA_REQUIRED_ROLES
 from app.core.exceptions import AppException, BadRequestException, ForbiddenException
 from app.services import email_otp_service
 from app.services.two_factor_service import two_factor_service
@@ -71,9 +72,11 @@ async def verify_and_issue(user, code: str) -> dict:
 def require(current_user, token: Optional[str]) -> str:
     """Return the MFA method used, or raise StepUpRequiredException.
 
-    Accounts without 2FA can only exist where admin 2FA is not enforced
-    (local development); they pass with method "none".
+    Only the super admin confirms payment actions with a code; other staff pass with
+    method "none" (accounts without 2FA also pass where admin 2FA is not enforced).
     """
+    if str(current_user.role).upper() not in MFA_REQUIRED_ROLES:
+        return "none"
     if not current_user.totp_enabled:
         if get_settings().admin_2fa_required:
             raise ForbiddenException("Two-factor authentication is required for payment actions")
