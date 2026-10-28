@@ -77,11 +77,8 @@ async def test_super_admin_controls_aviator_speed(env):
     # an ordinary admin can neither read this page nor change speed through game settings
     assert (await client.get("/api/v1/admin/aviator/speed", headers=admin)).status_code == 403
     r = await client.patch("/api/v1/admin/games/aviator/settings", headers=admin, json={"config": {"exp_growth_rate": 0.3}})
-    assert r.status_code == 403 and "super admin" in r.text.lower()
-    # ...but the admin can still save other settings, re-sending the unchanged speed values
-    current = (await client.get("/api/v1/admin/games/aviator/settings", headers=admin)).json()["config"]
-    r = await client.patch("/api/v1/admin/games/aviator/settings", headers=admin, json={"config": current, "min_bet": 200})
-    assert r.status_code == 200, r.text
+    assert r.status_code == 403  # game settings are super-admin only
+    assert (await client.get("/api/v1/admin/games/aviator/settings", headers=admin)).status_code == 403
 
     audit = (await client.get("/api/v1/admin/audit-logs?action=AVIATOR_SPEED_CHANGED", headers=sa)).json()
     assert "AVIATOR_SPEED_CHANGED" in str(audit)

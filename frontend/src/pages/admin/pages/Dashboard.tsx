@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { Activity, Banknote, Bot, ChevronRight, Gamepad2, Handshake, Headphones, IndianRupee, Landmark, RefreshCw, Ticket, TrendingUp, UserPlus, Users } from 'lucide-react'
+import { Activity, Banknote, Bell, Bot, ChevronRight, Gamepad2, Handshake, Headphones, IndianRupee, Landmark, RefreshCw, Ticket, TrendingUp, UserPlus, Users } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { usePermission } from '../../../hooks/usePermission'
 import { apiClient } from '../../../services/api'
@@ -46,12 +46,13 @@ const More: React.FC<{ onClick: () => void; children: React.ReactNode }> = ({ on
   <button type="button" onClick={onClick} className="flex shrink-0 items-center gap-0.5 text-xs text-emerald-300 hover:underline">{children}<ChevronRight className="h-3.5 w-3.5" /></button>
 )
 
-// Staff without the live-metrics permission (e.g. support) get shortcuts to their own pages
+// Staff without the live-metrics permission (admins, support) get shortcuts to their own pages
 const STAFF_SHORTCUTS = [
   { perm: 'user:read', to: '/admin/users', label: 'Find a player', hint: 'Profile, wallet and play history', icon: <Users className="h-5 w-5" /> },
   { perm: 'payment:read', to: '/admin/payments', label: 'Payments', hint: 'Deposits and withdrawals', icon: <Banknote className="h-5 w-5" /> },
   { perm: 'ticket:manage', to: '/admin/support', label: 'Support tickets', hint: 'Answer player questions', icon: <Headphones className="h-5 w-5" /> },
-  { perm: 'aff:partner:read', to: '/admin/affiliate', label: 'Partners', hint: 'Affiliate partners and their players', icon: <Handshake className="h-5 w-5" /> },
+  { perm: 'aff:partner:read', to: '/admin/affiliate/partners', label: 'Partners', hint: 'Approve partners and help them', icon: <Handshake className="h-5 w-5" /> },
+  { perm: 'notification:manage', to: '/admin/notifications', label: 'Broadcast alerts', hint: 'Send a message to players', icon: <Bell className="h-5 w-5" /> },
 ]
 
 const StaffHome: React.FC = () => {
@@ -60,8 +61,8 @@ const StaffHome: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-black text-white">Welcome</h1>
-        <p className="text-xs text-slate-400">Live business figures are for administrators. Your tools are below and in the menu.</p>
+        <h1 className="text-2xl font-black text-white">Admin Panel</h1>
+        <p className="text-xs text-slate-400">Your day-to-day tools are below and in the menu. Profit figures, wallet adjustments, game settings and partner payouts are handled by the super admin.</p>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         {shortcuts.map((s) => (

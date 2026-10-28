@@ -122,7 +122,8 @@ def _page(rows: List[Any], limit: int) -> Dict[str, Any]:
 
 
 @router.get("/overview")
-async def overview(user: CurrentUser = Depends(require_permission(P.AFF_PARTNER_READ)), db: AsyncSession = Depends(get_db)) -> dict:
+async def overview(user: CurrentUser = Depends(require_permission(P.AFF_FINANCE_READ)), db: AsyncSession = Depends(get_db)) -> dict:
+    """Partner programme money summary (commissions, house share, payouts): finance staff and the super admin."""
     by_status = dict((await db.execute(select(AffPartner.status, func.count()).group_by(AffPartner.status))).all())
     open_wd = (await db.execute(select(func.count(), func.coalesce(func.sum(AffWithdrawal.amount), 0)).where(
         AffWithdrawal.status.in_(["PENDING", "UNDER_REVIEW", "APPROVED", "PROCESSING"])))).one()

@@ -159,6 +159,13 @@ const RequireAdmin: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   return <>{children}</>
 }
 
+/** Staff pages that need one permission (the super admin always passes); the API enforces the same. */
+const RequirePerm: React.FC<{ perm: string; children: React.ReactNode }> = ({ perm, children }) => {
+  const { user } = useAuthStore()
+  if (user?.role !== 'superadmin' && !user?.permissions.includes(perm)) return <Navigate to="/admin/dashboard" replace />
+  return <>{children}</>
+}
+
 /** Super-admin-only pages. The matching APIs enforce the same rule server-side. */
 const RequireSuperAdmin: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuthStore()
@@ -363,16 +370,16 @@ const router = createBrowserRouter([
       { path: 'dashboard', element: <AdminDashboard /> },
       { path: 'users', element: <AdminUsers /> },
       { path: 'users/:id', element: <UserDetails /> },
-      { path: 'games', element: <AdminGames /> },
-      { path: 'game-settings', element: <GameSettings /> },
+      { path: 'games', element: <RequirePerm perm="game:manage"><AdminGames /></RequirePerm> },
+      { path: 'game-settings', element: <RequirePerm perm="game:manage"><GameSettings /></RequirePerm> },
       { path: 'live-games', element: <RequireSuperAdmin><LiveGames /></RequireSuperAdmin> },
       { path: 'fairness', element: <RequireSuperAdmin><FairnessPage /></RequireSuperAdmin> },
-      { path: 'rounds', element: <GameRounds /> },
-      { path: 'transactions', element: <AdminTransactions /> },
+      { path: 'rounds', element: <RequirePerm perm="game:manage"><GameRounds /></RequirePerm> },
+      { path: 'transactions', element: <RequirePerm perm="ledger:read"><AdminTransactions /></RequirePerm> },
       { path: 'payments', element: <AdminPayments /> },
-      { path: 'wallets', element: <AdminWallet /> },
-      { path: 'wallet-adjustment', element: <WalletAdjustment /> },
-      { path: 'reports', element: <AdminReports /> },
+      { path: 'wallets', element: <RequirePerm perm="ledger:read"><AdminWallet /></RequirePerm> },
+      { path: 'wallet-adjustment', element: <RequirePerm perm="wallet:adjust"><WalletAdjustment /></RequirePerm> },
+      { path: 'reports', element: <RequirePerm perm="report:export"><AdminReports /></RequirePerm> },
       { path: 'credit-flow', element: <RequireSuperAdmin><CreditFlow /></RequireSuperAdmin> },
       { path: 'risk-controls', element: <RequireSuperAdmin><RiskControls /></RequireSuperAdmin> },
       { path: 'security', element: <RequireSuperAdmin><SecurityCenter /></RequireSuperAdmin> },
@@ -382,28 +389,28 @@ const router = createBrowserRouter([
       { path: 'admin-users/new', element: <RequireSuperAdmin><AddAdmin /></RequireSuperAdmin> },
       { path: 'roles', element: <RequireSuperAdmin><Roles /></RequireSuperAdmin> },
       { path: 'permissions', element: <RequireSuperAdmin><Permissions /></RequireSuperAdmin> },
-      { path: 'audit-logs', element: <AuditLogs /> },
+      { path: 'audit-logs', element: <RequirePerm perm="audit:read"><AuditLogs /></RequirePerm> },
       { path: '2fa', element: <Setup2FA /> },
       { path: 'settings', element: <RequireSuperAdmin><AdminSettings /></RequireSuperAdmin> },
       { path: 'aviator-speed', element: <RequireSuperAdmin><AviatorSpeed /></RequireSuperAdmin> },
       { path: 'promo-codes', element: <RequireSuperAdmin><PromoCodes /></RequireSuperAdmin> },
       // Affiliate back office (each API checks its own permission)
-      { path: 'affiliate', element: <AffOverview /> },
+      { path: 'affiliate', element: <RequirePerm perm="aff:finance:read"><AffOverview /></RequirePerm> },
       { path: 'affiliate/partners', element: <AffPartners /> },
       { path: 'affiliate/subpartners', element: <AffPartners subpartnersOnly /> },
       { path: 'affiliate/partners/:id', element: <AffPartnerDetail /> },
-      { path: 'affiliate/deals', element: <AffDeals /> },
-      { path: 'affiliate/domains', element: <AffDomains /> },
-      { path: 'affiliate/statistics', element: <AffStatistics /> },
-      { path: 'affiliate/settlement', element: <AffSettlement /> },
-      { path: 'affiliate/wallets', element: <AffWallets /> },
-      { path: 'affiliate/withdrawals', element: <AffWithdrawals /> },
-      { path: 'affiliate/adjustments', element: <AffAdjustments /> },
+      { path: 'affiliate/deals', element: <RequireSuperAdmin><AffDeals /></RequireSuperAdmin> },
+      { path: 'affiliate/domains', element: <RequireSuperAdmin><AffDomains /></RequireSuperAdmin> },
+      { path: 'affiliate/statistics', element: <RequirePerm perm="aff:stats:read"><AffStatistics /></RequirePerm> },
+      { path: 'affiliate/settlement', element: <RequirePerm perm="aff:finance:read"><AffSettlement /></RequirePerm> },
+      { path: 'affiliate/wallets', element: <RequirePerm perm="aff:finance:read"><AffWallets /></RequirePerm> },
+      { path: 'affiliate/withdrawals', element: <RequirePerm perm="aff:finance:read"><AffWithdrawals /></RequirePerm> },
+      { path: 'affiliate/adjustments', element: <RequirePerm perm="aff:adjust"><AffAdjustments /></RequirePerm> },
       { path: 'affiliate/content', element: <AffContentAdmin /> },
-      { path: 'affiliate/risk', element: <AffRisk /> },
-      { path: 'affiliate/ingest', element: <AffIngest /> },
-      { path: 'affiliate/audit', element: <AffAudit /> },
-      { path: 'affiliate/settings', element: <AffSettings /> },
+      { path: 'affiliate/risk', element: <RequirePerm perm="aff:risk:manage"><AffRisk /></RequirePerm> },
+      { path: 'affiliate/ingest', element: <RequirePerm perm="aff:ingest:manage"><AffIngest /></RequirePerm> },
+      { path: 'affiliate/audit', element: <RequirePerm perm="audit:read"><AffAudit /></RequirePerm> },
+      { path: 'affiliate/settings', element: <RequireSuperAdmin><AffSettings /></RequireSuperAdmin> },
     ],
   },
 ])

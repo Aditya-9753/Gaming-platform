@@ -347,7 +347,7 @@ async def test_cpa_hold_and_chargeback_reversal(env):
     r = await ingest(env, "reversal", {"external_reversal_id": "cb-1", "external_transaction_id": "t1", "reason": "chargeback"})
     assert r.json()["status"] == "PROCESSED", r.text
     assert await wallet(env, pid) == (Decimal("0"), Decimal("0"), Decimal("0"))
-    events = (await env["client"].get("/api/v1/aff/admin/risk-events", headers=env["a1"])).json()["items"]
+    events = (await env["client"].get("/api/v1/aff/admin/risk-events", headers=env["sa"])).json()["items"]
     assert any(e["event_type"] == "CPA_REVERSED" for e in events)
 
 
@@ -378,18 +378,18 @@ async def test_ingest_security_and_fx(env):
     r = await ingest(env, "deposit", {"external_customer_id": "inr-1", "external_transaction_id": "inr-tx", "amount": "1000",
                                       "currency": "INR"})
     assert r.json()["status"] == "PROCESSED"
-    deposits = (await env["client"].get("/api/v1/aff/admin/deposits", headers=env["a1"])).json()["items"]
+    deposits = (await env["client"].get("/api/v1/aff/admin/deposits", headers=env["sa"])).json()["items"]
     assert deposits[0]["amount_usd"] == "12.00"  # stored INR rate 0.012 (latest on or before the day)
     # unknown currency: kept as FAILED, visible and retryable in the ingest monitor
     r = await ingest(env, "deposit", {"external_customer_id": "inr-1", "external_transaction_id": "jpy", "amount": "1", "currency": "JPY"})
     assert r.json()["status"] == "FAILED" and "FX" in r.json()["error"]
     event_id = r.json()["id"]
-    failed = (await env["client"].get("/api/v1/aff/admin/ingest-events?status=FAILED", headers=env["a1"])).json()
+    failed = (await env["client"].get("/api/v1/aff/admin/ingest-events?status=FAILED", headers=env["sa"])).json()
     assert [e["id"] for e in failed["items"]] == [event_id]
     r = await env["client"].post("/api/v1/aff/admin/fx-rates", headers=env["f1"],
                                  json={"rate_date": datetime.now(timezone.utc).date().isoformat(), "currency": "JPY", "rate_to_usd": "0.0068"})
     assert r.status_code == 201
-    r = await env["client"].post(f"/api/v1/aff/admin/ingest-events/{event_id}/retry", headers=env["a1"])
+    r = await env["client"].post(f"/api/v1/aff/admin/ingest-events/{event_id}/retry", headers=env["sa"])
     assert r.json()["status"] == "PROCESSED", r.text
     # a later duplicate delivery returns the same, now processed, event
     again = await ingest(env, "deposit", {"external_customer_id": "inr-1", "external_transaction_id": "jpy", "amount": "1", "currency": "JPY"})

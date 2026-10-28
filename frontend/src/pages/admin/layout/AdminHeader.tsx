@@ -5,6 +5,7 @@ import { useAuthStore } from '../../../store/auth.store'
 
 export const AdminHeader: React.FC<{ onMenu: () => void }> = ({ onMenu }) => {
   const { user, logout } = useAuthStore()
+  const isSuper = user?.role === 'superadmin'
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-dark-border bg-dark-card px-3 sm:px-6 lg:h-16">
@@ -24,13 +25,13 @@ export const AdminHeader: React.FC<{ onMenu: () => void }> = ({ onMenu }) => {
 
       <div className="flex items-center gap-2 sm:gap-4">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center font-black text-xs">
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs ${isSuper ? 'bg-amber-500/15 text-amber-300' : 'bg-sky-500/15 text-sky-300'}`}>
             <Shield className="w-4 h-4" />
           </div>
           <div className="text-left hidden sm:block">
             <span className="text-xs font-bold text-white block">{user?.username || 'Admin'}</span>
-            <span className="text-[10px] text-purple-400 font-semibold block uppercase">
-              {user?.role || 'Super Admin'}
+            <span className={`text-[10px] font-semibold block uppercase ${isSuper ? 'text-amber-300' : 'text-sky-300'}`}>
+              {isSuper ? 'Super Admin' : user?.role === 'admin' ? 'Admin' : user?.role || 'Staff'}
             </span>
           </div>
         </div>

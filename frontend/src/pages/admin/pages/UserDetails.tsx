@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, Ban, CheckCircle2, Coins, Handshake, KeyRound, Phone } from 'lucide-react'
 import { Button } from '../../../components/common/Button'
 import { showToast } from '../../../components/common/toastBus'
+import { usePermission } from '../../../hooks/usePermission'
 import { apiClient } from '../../../services/api'
 import { getApiErrorMessage } from '../../../utils/apiError'
 import { formatDateTime, formatPaiseToRupee } from '../../../utils/formatters'
@@ -34,6 +35,8 @@ export const UserDetails: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [tempPassword, setTempPassword] = useState<string | null>(null)
+  // Adding or removing wallet money is super-admin only
+  const canAdjust = usePermission().hasPermission('wallet:adjust')
 
   const load = useCallback(async () => {
     try {
@@ -179,12 +182,14 @@ export const UserDetails: React.FC = () => {
           )}
         </div>
 
-        <div className="space-y-3 pt-3 border-t border-dark-border">
-          <h4 className="text-sm font-bold text-white">Administrative Actions</h4>
-          <Link to={`/admin/wallet-adjustment?user=${encodeURIComponent(user.phone ? user.phone.slice(3) : user.username)}`}>
-            <Button variant="secondary" size="sm" leftIcon={<Coins className="w-4 h-4" />}>Manual Wallet Adjustment</Button>
-          </Link>
-        </div>
+        {canAdjust && (
+          <div className="space-y-3 pt-3 border-t border-dark-border">
+            <h4 className="text-sm font-bold text-white">Administrative Actions</h4>
+            <Link to={`/admin/wallet-adjustment?user=${encodeURIComponent(user.phone ? user.phone.slice(3) : user.username)}`}>
+              <Button variant="secondary" size="sm" leftIcon={<Coins className="w-4 h-4" />}>Manual Wallet Adjustment</Button>
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   )

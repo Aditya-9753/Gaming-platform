@@ -201,3 +201,27 @@ async def test_login_with_an_unregistered_number_says_so(env):
     wrong = await client.post("/api/v1/auth/login", json={"username": "9855500001", "password": "Wrong12345"})
     assert wrong.status_code == 401 and "Invalid username or password" in wrong.text
     assert (await client.post("/api/v1/auth/login", json={"username": "9855500001", "password": "Player123"})).status_code == 200
+
+
+async def test_admin_panel_is_operations_only(env):
+    """Admins do day-to-day work; money, profit, game settings, ledgers and partner finance are super-admin only."""
+    client, admin, sa = env["client"], env["admin"], env["super"]
+    r = await _signup(client, "9866600001")
+    async with env["db"]() as db:
+        uid = (await db.execute(select(User.id).where(User.phone == "+919866600001"))).scalar_one()
+
+    super_only = [
+        ("GET", "/api/v1/admin/dashboard/live", None),
+        ("GET", "/api/v1/admin/reports/live", None),
+        ("GET", "/api/v1/admin/audit-logs", None),
+        ("POST", f"/api/v1/admin/users/{uid}/adjust-balance", {"amount_paise": 10000, "reason": "test credit", "type": "credit"}),
+        ("GET", "/api/v1/aff/admin/wallets", None),
+    ]
+    for method, path, body in super_only:
+        res = await client.request(method, path, headers=admin, json=body)
+        assert res.status_code == 403, (path, res.status_code, res.text[:120])
+
+    for path in ("/api/v1/admin/users", f"/api/v1/admin/users/{uid}", "/api/v1/admin/payments/summary", "/api/v1/aff/admin/partners"):
+        res = await client.get(path, headers=admin)
+        assert res.status_code == 200, (path, res.status_code, res.text[:120])
+    assert (await client.get("/api/v1/admin/audit-logs", headers=sa)).status_code == 200
