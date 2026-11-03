@@ -166,7 +166,7 @@ def create_app() -> FastAPI:
     app.include_router(redirect_router)
 
     @app.get("/", tags=["Root"], response_model=None)
-    # async def root(request: Request, db: AsyncSession = Depends(get_db)):
+    async def root(request: Request, db: AsyncSession = Depends(get_db)):
         """Root API status endpoint (or a partner click when ?ref= is present)."""
         ref = request.query_params.get("ref")
         if ref:
